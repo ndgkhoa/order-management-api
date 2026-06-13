@@ -10,6 +10,8 @@ import { dbPlugin } from '@plugins/db.js';
 import { correlationIdPlugin } from '@plugins/correlation-id.js';
 import { errorHandlerPlugin } from '@plugins/error-handler.js';
 import { healthRoutes } from '@modules/health/health-routes.js';
+import { authRoutes } from '@modules/auth/auth-routes.js';
+import { usersRoutes } from '@modules/users/users-routes.js';
 
 /** Pretty logs in dev, structured JSON in production. */
 function loggerOptions(): FastifyServerOptions['logger'] {
@@ -45,7 +47,9 @@ export async function buildApp() {
   await app.register(errorHandlerPlugin); // RFC 7807
 
   await app.register(healthRoutes);
-  // module routes (auth/users/orders) registered in phases 05/06
+  await app.register(authRoutes, { prefix: '/auth' });
+  await app.register(usersRoutes, { prefix: '/users' });
+  // orders routes registered in phase 06
 
   return app;
 }

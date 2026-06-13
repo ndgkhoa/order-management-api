@@ -14,6 +14,10 @@ export const jwtPlugin = fp(async (app) => {
   });
 
   app.decorate('authenticate', async (request) => {
-    await request.jwtVerify();
+    try {
+      await request.jwtVerify(); // sets request.user from the token
+    } catch {
+      throw app.httpErrors.unauthorized('invalid or missing token');
+    }
   });
 });
