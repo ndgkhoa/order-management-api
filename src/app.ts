@@ -1,16 +1,53 @@
-import Fastify, { type FastifyInstance } from 'fastify';
+import { randomUUID } from 'node:crypto';
+import Fastify, { type FastifyServerOptions } from 'fastify';
+import { type TypeBoxTypeProvider, TypeBoxValidatorCompiler } from '@fastify/type-provider-typebox';
+import fastifySensible from '@fastify/sensible';
+import { envPlugin } from '@plugins/env.js';
+import { securityPlugin } from '@plugins/security.js';
+import { jwtPlugin } from '@plugins/jwt.js';
+import { swaggerPlugin } from '@plugins/swagger.js';
+import { dbPlugin } from '@plugins/db.js';
+import { correlationIdPlugin } from '@plugins/correlation-id.js';
+import { errorHandlerPlugin } from '@plugins/error-handler.js';
+import { healthRoutes } from '@modules/health/health-routes.js';
+
+/** Pretty logs in dev, structured JSON in production. */
+function loggerOptions(): FastifyServerOptions['logger'] {
+  const level = process.env.LOG_LEVEL ?? 'info';
+  return process.env.NODE_ENV === 'production'
+    ? { level }
+    : { level, transport: { target: 'pino-pretty' } };
+}
 
 /**
- * Builds and returns a configured Fastify instance WITHOUT listening,
- * so `app.inject()` tests can reuse it (see phase 09).
+ * Builds a configured Fastify instance WITHOUT listening, so `app.inject()` tests
+ * can reuse it. `server.ts` is the only place that calls `listen`.
  *
- * STUB: fleshed out in phase 04 (TypeBox provider, env/security/jwt/swagger
- * plugins, correlation id, RFC 7807 error handler, /health + /ready).
+ * Plugin order matters: env first (provides app.config used by jwt), then
+ * security/jwt/swagger/db, then the error handler, then routes.
  */
-export async function buildApp(): Promise<FastifyInstance> {
-  const app = Fastify({ logger: true });
+export async function buildApp() {
+  const app = Fastify({
+    logger: loggerOptions(),
+    requestIdHeader: 'x-request-id',
+    genReqId: () => randomUUID(),
+  }).withTypeProvider<TypeBoxTypeProvider>();
 
-  app.get('/health', () => ({ status: 'ok' }));
+  app.setValidatorCompiler(TypeBoxValidatorCompiler);
+
+  await app.register(envPlugin); // -> app.config
+  await app.register(fastifySensible); // httpErrors helpers
+  await app.register(correlationIdPlugin);
+  await app.register(securityPlugin);
+  await app.register(jwtPlugin); // -> app.authenticate
+  await app.register(swaggerPlugin); // /docs
+  await app.register(dbPlugin); // -> app.db
+  await app.register(errorHandlerPlugin); // RFC 7807
+
+  await app.register(healthRoutes);
+  // module routes (auth/users/orders) registered in phases 05/06
 
   return app;
 }
+
+export type AppInstance = Awaited<ReturnType<typeof buildApp>>;
