@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { sql } from 'drizzle-orm';
+import { isMqHealthy } from '@infra/mq/connection.js';
 
 /**
  * Liveness vs readiness probes (for Docker/K8s).
@@ -11,7 +12,7 @@ export function healthRoutes(app: FastifyInstance): void {
   app.get('/health', () => ({ status: 'ok' }));
 
   app.get('/ready', async (_req, reply) => {
-    const checks = { db: false, rabbitmq: true };
+    const checks = { db: false, rabbitmq: isMqHealthy() };
     try {
       await app.db.execute(sql`SELECT 1`);
       checks.db = true;
