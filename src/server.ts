@@ -1,21 +1,22 @@
-import './config/load-env.js'; // MUST be first — loads .env before db pool reads process.env
+import './config/env-loader.js'; // MUST be first — loads .env before db pool reads process.env
 import { buildApp } from './app.js';
 import { db } from '@infra/db/client.js';
 import { createOutboxRelay } from '@infra/mq/outbox-relay.js';
-import { createLogPublisher } from '@infra/mq/outbox-publisher.js';
+import { createRabbitPublisher } from '@infra/mq/publisher.js';
+import { closeMq } from '@infra/mq/connection.js';
 
 /**
- * Process entrypoint: build the app, start the outbox relay, listen, and shut
- * down gracefully. On SIGTERM/SIGINT we stop the relay, then `app.close()` drains
- * in-flight requests and runs onClose hooks (closes the db pool).
+ * Process entrypoint: build the app, connect the RabbitMQ publisher, start the
+ * outbox relay, listen, and shut down gracefully (stop relay → drain http + close
+ * db pool → close mq channel/connection).
  */
 async function main(): Promise<void> {
   const app = await buildApp();
 
-  // Phase 07 replaces the stub log-publisher with the real RabbitMQ publisher.
+  const publisher = await createRabbitPublisher(app.log);
   const relay = createOutboxRelay({
     db,
-    publisher: createLogPublisher(app.log),
+    publisher,
     log: app.log,
     intervalMs: app.config.OUTBOX_POLL_INTERVAL_MS,
   });
@@ -29,14 +30,18 @@ async function main(): Promise<void> {
       if (shuttingDown) return;
       shuttingDown = true;
       app.log.info({ signal }, 'graceful shutdown start');
-      relay.stop();
-      app
-        .close()
-        .then(() => process.exit(0))
-        .catch((err: unknown) => {
+      void (async () => {
+        try {
+          relay.stop();
+          await app.close(); // drains in-flight requests, closes db pool (onClose)
+          await publisher.close();
+          await closeMq();
+          process.exit(0);
+        } catch (err) {
           app.log.error(err);
           process.exit(1);
-        });
+        }
+      })();
     });
   }
 }
