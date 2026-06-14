@@ -12,6 +12,7 @@ import { errorHandlerPlugin } from '@plugins/error-handler.js';
 import { healthRoutes } from '@modules/health/health-routes.js';
 import { authRoutes } from '@modules/auth/auth-routes.js';
 import { usersRoutes } from '@modules/users/users-routes.js';
+import { ordersRoutes } from '@modules/orders/orders-routes.js';
 
 /** Pretty logs in dev, structured JSON in production. */
 function loggerOptions(): FastifyServerOptions['logger'] {
@@ -49,7 +50,7 @@ export async function buildApp() {
   await app.register(healthRoutes);
   await app.register(authRoutes, { prefix: '/auth' });
   await app.register(usersRoutes, { prefix: '/users' });
-  // orders routes registered in phase 06
+  await app.register(ordersRoutes, { prefix: '/orders' });
 
   return app;
 }
