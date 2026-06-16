@@ -1,9 +1,9 @@
 import type { FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';
 import { makeUsersRepository } from '@modules/users/users-repository.js';
 import { UserPublic } from '@modules/users/users-schema.js';
-import { makeAuthService } from './auth-service.js';
-import { makeAuthController } from './auth-controller.js';
-import { LoginBody, RegisterBody, TokenResponse } from './auth-schema.js';
+import { makeAuthService } from '@modules/auth/auth-service.js';
+import { makeAuthController } from '@modules/auth/auth-controller.js';
+import { LoginBody, RegisterBody, TokenResponse } from '@modules/auth/auth-schema.js';
 
 /**
  * /auth routes. Wires repository → service → controller (DI from app decorators).

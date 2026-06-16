@@ -1,5 +1,5 @@
 import type { Channel, ConfirmChannel } from 'amqplib';
-import { ORDER_CREATED_EVENT, ORDER_EVENTS_EXCHANGE } from './outbox-event-types.js';
+import { ORDER_CREATED_EVENT, ORDER_EVENTS_EXCHANGE } from '@infra/mq/outbox-event-types.js';
 
 export const ORDER_EMAIL_QUEUE = 'order.created.email';
 export const ORDER_EVENTS_DLX = 'order.events.dlx';

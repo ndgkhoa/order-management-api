@@ -3,8 +3,8 @@ import { context, propagation, ROOT_CONTEXT } from '@opentelemetry/api';
 import type { FastifyBaseLogger } from 'fastify';
 import type { DB } from '@infra/db/client.js';
 import { outboxMessages } from '@infra/db/schema.js';
-import { ORDER_EVENTS_EXCHANGE } from './outbox-event-types.js';
-import type { OutboxPublisher } from './outbox-publisher.js';
+import { ORDER_EVENTS_EXCHANGE } from '@infra/mq/outbox-event-types.js';
+import type { OutboxPublisher } from '@infra/mq/outbox-publisher.js';
 
 interface OutboxRelayDeps {
   db: DB;
@@ -73,6 +73,7 @@ export function createOutboxRelay({
   }
 
   return {
+    tick, // exposed so tests can drive a single poll deterministically
     start(): void {
       if (timer) return;
       timer = setInterval(() => void tick(), intervalMs);

@@ -1,9 +1,9 @@
 import { Type } from '@sinclair/typebox';
 import type { FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';
-import { makeOrdersRepository } from './orders-repository.js';
-import { makeOrdersService } from './orders-service.js';
-import { makeOrdersController } from './orders-controller.js';
-import { CreateOrderBody, OrderPublic } from './orders-schema.js';
+import { makeOrdersRepository } from '@modules/orders/orders-repository.js';
+import { makeOrdersService } from '@modules/orders/orders-service.js';
+import { makeOrdersController } from '@modules/orders/orders-controller.js';
+import { CreateOrderBody, OrderPublic } from '@modules/orders/orders-schema.js';
 
 /** /orders routes — all authenticated. POST creates order + outbox row atomically. */
 export const ordersRoutes: FastifyPluginAsyncTypebox = (app) => {

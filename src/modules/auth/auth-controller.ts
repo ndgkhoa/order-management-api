@@ -1,7 +1,7 @@
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { toUserPublic } from '@modules/users/users-schema.js';
-import type { AuthService } from './auth-service.js';
-import type { LoginBody, RegisterBody } from './auth-schema.js';
+import type { AuthService } from '@modules/auth/auth-service.js';
+import type { LoginBody, RegisterBody } from '@modules/auth/auth-schema.js';
 
 /**
  * HTTP glue (Controller): translates request ↔ service, maps DB entity → DTO,

@@ -3,7 +3,7 @@ import { context, propagation } from '@opentelemetry/api';
 import type { DB } from '@infra/db/client.js';
 import { orders, outboxMessages } from '@infra/db/schema.js';
 import { ORDER_CREATED_EVENT, type OrderCreatedPayload } from '@infra/mq/outbox-event-types.js';
-import type { CreateOrderBody } from './orders-schema.js';
+import type { CreateOrderBody } from '@modules/orders/orders-schema.js';
 
 interface CreateOrderInput extends CreateOrderBody {
   userId: string;

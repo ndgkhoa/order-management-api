@@ -1,6 +1,6 @@
 import type { FastifyReply, FastifyRequest } from 'fastify';
-import type { OrdersService } from './orders-service.js';
-import { type CreateOrderBody, toOrderPublic } from './orders-schema.js';
+import type { OrdersService } from '@modules/orders/orders-service.js';
+import { type CreateOrderBody, toOrderPublic } from '@modules/orders/orders-schema.js';
 
 /**
  * HTTP glue for /orders. userId/email come from the verified JWT, never the body.
