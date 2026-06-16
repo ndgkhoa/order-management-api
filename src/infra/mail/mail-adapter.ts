@@ -1,5 +1,5 @@
 import type { OrderCreatedPayload } from '@infra/mq/outbox-event-types.js';
-import type { Mailer } from './mailer.js';
+import type { Mailer } from '@infra/mail/mailer.js';
 
 /** Adapter pattern: hides Nodemailer behind a domain-meaningful interface. */
 export interface MailAdapter {

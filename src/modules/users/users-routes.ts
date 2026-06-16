@@ -1,8 +1,8 @@
 import type { FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';
-import { makeUsersRepository } from './users-repository.js';
-import { makeUsersService } from './users-service.js';
-import { makeUsersController } from './users-controller.js';
-import { UserPublic } from './users-schema.js';
+import { makeUsersRepository } from '@modules/users/users-repository.js';
+import { makeUsersService } from '@modules/users/users-service.js';
+import { makeUsersController } from '@modules/users/users-controller.js';
+import { UserPublic } from '@modules/users/users-schema.js';
 
 /** /users routes. GET /me is protected by the `authenticate` preHandler (JWT). */
 export const usersRoutes: FastifyPluginAsyncTypebox = (app) => {

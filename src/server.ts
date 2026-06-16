@@ -1,5 +1,5 @@
-import './config/env-loader.js'; // loads .env before db pool reads process.env (OTel preloaded via --import)
-import { buildApp } from './app.js';
+import '@config/env-loader.js'; // loads .env before db pool reads process.env (OTel preloaded via --import)
+import { buildApp } from '@/app.js';
 import { db } from '@infra/db/client.js';
 import { createOutboxRelay } from '@infra/mq/outbox-relay.js';
 import { createRabbitPublisher } from '@infra/mq/publisher.js';

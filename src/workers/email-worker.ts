@@ -1,4 +1,4 @@
-import '../config/env-loader.js'; // loads .env before db pool reads process.env (OTel preloaded via --import)
+import '@config/env-loader.js'; // loads .env before db pool reads process.env (OTel preloaded via --import)
 import { pino } from 'pino';
 import { db } from '@infra/db/client.js';
 import { closePool } from '@infra/db/pool.js';

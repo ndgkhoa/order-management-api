@@ -21,7 +21,8 @@
       "@config/*": ["config/*"],
       "@infra/*": ["infra/*"],
       "@modules/*": ["modules/*"],
-      "@plugins/*": ["plugins/*"]
+      "@plugins/*": ["plugins/*"],
+      "@test/*": ["../test/*"]
     }
   },
   "include": ["src/**/*.ts"],

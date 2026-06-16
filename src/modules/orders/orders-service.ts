@@ -1,5 +1,5 @@
-import type { OrdersRepository } from './orders-repository.js';
-import type { CreateOrderBody } from './orders-schema.js';
+import type { OrdersRepository } from '@modules/orders/orders-repository.js';
+import type { CreateOrderBody } from '@modules/orders/orders-schema.js';
 
 interface OrdersServiceDeps {
   ordersRepo: OrdersRepository;

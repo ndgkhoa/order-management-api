@@ -1,7 +1,7 @@
 import type { Channel, ConsumeMessage } from 'amqplib';
 import type { FastifyBaseLogger } from 'fastify';
 import type { HandlerResult } from '@modules/orders/order-created-handler.js';
-import { ORDER_EVENTS_EXCHANGE } from './outbox-event-types.js';
+import { ORDER_EVENTS_EXCHANGE } from '@infra/mq/outbox-event-types.js';
 
 const delay = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 

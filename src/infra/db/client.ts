@@ -1,6 +1,6 @@
 import { drizzle } from 'drizzle-orm/node-postgres';
-import { pool } from './pool.js';
-import * as schema from './schema.js';
+import { pool } from '@infra/db/pool.js';
+import * as schema from '@infra/db/schema.js';
 
 /**
  * The Drizzle client bound to the pg Pool singleton + full schema.
