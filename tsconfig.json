@@ -1,4 +1,7 @@
 {
+  // Broad config: the editor, ESLint and `tsc --noEmit` all use this so EVERY file
+  // (src + test) resolves with the same options + path aliases. Emit settings live in
+  // tsconfig.build.json so the build never compiles tests into dist.
   "compilerOptions": {
     "target": "ES2023",
     "module": "NodeNext",
@@ -13,8 +16,6 @@
     "forceConsistentCasingInFileNames": true,
     "declaration": false,
     "sourceMap": true,
-    "outDir": "dist",
-    "rootDir": "src",
     "baseUrl": "src",
     "paths": {
       "@/*": ["*"],
@@ -25,6 +26,6 @@
       "@test/*": ["../test/*"]
     }
   },
-  "include": ["src/**/*.ts"],
-  "exclude": ["node_modules", "dist", "test"]
+  "include": ["src/**/*.ts", "test/**/*.ts"],
+  "exclude": ["node_modules", "dist"]
 }

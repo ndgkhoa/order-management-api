@@ -1,0 +1,11 @@
+{
+  // Build-only: emits src → dist. Extends the broad config but restricts inputs to src
+  // and adds rootDir/outDir so tests never land in the build output.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist"
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", "dist", "test"]
+}

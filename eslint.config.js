@@ -12,9 +12,8 @@ export default tseslint.config(
     extends: [...tseslint.configs.recommendedTypeChecked],
     languageOptions: {
       parserOptions: {
-        // projectService can't see test/* (excluded from the build tsconfig), so point at
-        // both projects explicitly: src → tsconfig.json, test → tsconfig.test.json.
-        project: ['./tsconfig.json', './tsconfig.test.json'],
+        // tsconfig.json is the broad config (src + test), so one project covers everything.
+        project: ['./tsconfig.json'],
         tsconfigRootDir: import.meta.dirname,
       },
     },
