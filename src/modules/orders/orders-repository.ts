@@ -1,4 +1,5 @@
 import { desc, eq } from 'drizzle-orm';
+import { context, propagation } from '@opentelemetry/api';
 import type { DB } from '@infra/db/client.js';
 import { orders, outboxMessages } from '@infra/db/schema.js';
 import { ORDER_CREATED_EVENT, type OrderCreatedPayload } from '@infra/mq/outbox-event-types.js';
@@ -38,11 +39,18 @@ export function makeOrdersRepository(db: DB) {
           quantity: order.quantity,
           amount: order.amount,
         };
+        // Capture the active (request) trace context into a W3C carrier so the relay
+        // can resume THIS trace at publish time — without it the relay's later publish
+        // starts a brand-new trace, splitting the request and the email worker apart.
+        const carrier: Record<string, string> = {};
+        propagation.inject(context.active(), carrier);
+
         await tx.insert(outboxMessages).values({
           aggregateType: 'order',
           aggregateId: order.id,
           eventType: ORDER_CREATED_EVENT,
           payload,
+          traceContext: Object.keys(carrier).length > 0 ? carrier : null,
         });
 
         return order; // both committed together

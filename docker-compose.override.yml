@@ -1,0 +1,41 @@
+# LOCAL overlay — auto-merged by `docker compose up` (no -f needed).
+# Holds everything that is convenient for development but must NOT reach production:
+#   - host ports (bound to 127.0.0.1 → reachable from your machine, never the network)
+#   - mailpit (a fake SMTP inbox; only defined here, so the prod stack never has it)
+#   - Grafana anonymous admin access
+#   - env_file: .env  → injects JWT_SECRET, MAIL_FROM, SMTP_* into the api/worker containers
+#
+# UIs: RabbitMQ :15672 · Mailpit :8025 · Jaeger :16686 · Grafana :3001 · Prometheus :9090
+
+services:
+  postgres:
+    ports: ['5432:5432']
+
+  rabbitmq:
+    ports: ['5672:5672', '15672:15672']
+
+  jaeger:
+    ports: ['16686:16686', '4318:4318'] # UI · OTLP HTTP
+
+  prometheus:
+    ports: ['9090:9090']
+
+  grafana:
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: 'true'
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
+    ports: ['3001:3000'] # 3001 to avoid clashing with api :3000
+
+  mailpit:
+    image: axllent/mailpit # dev-only fake SMTP inbox
+    ports: ['1025:1025', '8025:8025']
+
+  api:
+    env_file: .env
+    environment:
+      SMTP_HOST: mailpit # talk to the mailpit container instead of the host's localhost
+
+  email-worker:
+    env_file: .env
+    environment:
+      SMTP_HOST: mailpit

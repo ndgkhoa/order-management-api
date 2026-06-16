@@ -1,0 +1,57 @@
+# PRODUCTION overlay — hardening on top of the base. Does NOT load the local override,
+# so there are no host ports and no mailpit here.
+#
+# Run:
+#   docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+#
+#   --env-file .env.prod  → ${VAR} interpolation reads prod values (NOT the local .env)
+#   env_file: .env.prod   → injects JWT_SECRET, SMTP_*, MAIL_FROM into the api/worker containers
+#
+# This layer adds: restart policies, memory limits, and Grafana lockdown. Credentials are already
+# REQUIRED by the base (`${VAR:?}`), so a missing prod secret aborts startup.
+#
+# Self-hosted infra for a single VM. To use managed services (RDS / CloudAMQP), drop postgres/rabbitmq
+# below and set DATABASE_URL / RABBITMQ_URL in .env.prod to override the base-assembled in-network URLs.
+# Infra UIs (Grafana/Jaeger/Prometheus) are intentionally not published — reach them via a reverse proxy.
+
+services:
+  postgres:
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  rabbitmq:
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  jaeger:
+    restart: unless-stopped
+
+  prometheus:
+    restart: unless-stopped
+
+  grafana:
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: 'false'
+    restart: unless-stopped
+
+  api:
+    env_file: .env.prod
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  email-worker:
+    env_file: .env.prod
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 256M

@@ -1,4 +1,5 @@
 import { eq, isNull } from 'drizzle-orm';
+import { context, propagation, ROOT_CONTEXT } from '@opentelemetry/api';
 import type { FastifyBaseLogger } from 'fastify';
 import type { DB } from '@infra/db/client.js';
 import { outboxMessages } from '@infra/db/schema.js';
@@ -44,12 +45,20 @@ export function createOutboxRelay({
           .for('update', { skipLocked: true });
 
         for (const row of rows) {
-          await publisher.publish({
-            exchange: ORDER_EVENTS_EXCHANGE,
-            routingKey: row.eventType,
-            payload: row.payload,
-            messageId: row.id,
-          });
+          // Resume the trace captured when the row was written, so amqplib injects
+          // the original traceparent into the message → the worker's consume span
+          // joins the same trace as the originating HTTP request. Because this publish
+          // keeps the request as parent, its producer span is never an orphan and so
+          // survives the relay-poll span filter in telemetry/otel.ts.
+          const parentCtx = propagation.extract(ROOT_CONTEXT, row.traceContext ?? {});
+          await context.with(parentCtx, () =>
+            publisher.publish({
+              exchange: ORDER_EVENTS_EXCHANGE,
+              routingKey: row.eventType,
+              payload: row.payload,
+              messageId: row.id,
+            }),
+          );
           await tx
             .update(outboxMessages)
             .set({ publishedAt: new Date() })

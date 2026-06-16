@@ -1,38 +1,40 @@
-# Local full stack. Two ways to run:
-#   Dev (fast):  docker compose up -d postgres rabbitmq mailpit jaeger prometheus grafana
-#                then on host: npm run dev  +  npm run dev:worker
-#   Prod-like:   docker compose up --build   (also builds api + email-worker images)
+# BASE — environment-neutral definitions shared by every environment.
+# Never run this file alone; it is always combined with an environment overlay:
+#   Local:  docker compose up -d
+#           (docker-compose.override.yml is auto-merged → ports, mailpit, dev conveniences)
+#   Prod:   docker compose --env-file .env.prod -f docker-compose.yml -f docker-compose.prod.yml up -d --build
 #
-# UIs: RabbitMQ :15672 · Mailpit :8025 · Jaeger :16686 · Grafana :3001 · Prometheus :9090
+# Secrets policy (senior):
+#   - NO credential is hard-coded. Infra creds (postgres/rabbitmq/grafana) are guarded with `${VAR:?}`
+#     on the service that owns them — the app's env schema can't see those, so compose fails `up` early.
+#   - The api/worker connection URLs use plain `${VAR}` (no `:?`): the parts are already required above,
+#     and the app's @fastify/env schema validates DATABASE_URL / RABBITMQ_URL / JWT_SECRET at boot.
+#   - Local values live in `.env` (auto-read by compose); prod values in `.env.prod` (via --env-file).
+#   - Connection URLs are ASSEMBLED from the discrete cred vars here → one source of truth, no drift.
 #
-# Secrets policy (senior-pragmatic):
-#   - DB/RabbitMQ creds here are LOCAL-DEV throwaways — fine to commit, never reused in prod.
-#   - The only real secret, JWT_SECRET, is REQUIRED from the git-ignored `.env` (${JWT_SECRET:?})
-#     and is never baked into the image.
-#   - In production, creds come from a secrets manager / platform env (see docs/deployment-guide.md),
-#     never from a committed file.
-
-# api + email-worker load config from `.env` via `env_file:`, then override the few values
-# that must use compose service-name hosts instead of localhost (.env targets host `npm run dev`).
+# Host port publishing and the dev-only mailpit live in docker-compose.override.yml, so the prod
+# stack (which does not load the override) exposes nothing on the host except the API.
 
 services:
   postgres:
-    image: postgres:17-alpine
+    image: postgres:18.3-alpine
     environment:
-      POSTGRES_USER: app # local-dev throwaway
-      POSTGRES_PASSWORD: app
-      POSTGRES_DB: orders
-    ports: ['5432:5432']
-    volumes: ['pgdata:/var/lib/postgresql/data']
+      # left = keys the image requires; values come from our DATABASE_* vars
+      POSTGRES_USER: ${DATABASE_USER:?}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:?}
+      POSTGRES_DB: ${DATABASE_NAME:?}
+    volumes: ['pgdata:/var/lib/postgresql'] # pg18+ stores data in a versioned subdir here (not /data)
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U app -d orders']
+      test: ['CMD-SHELL', 'pg_isready -U ${DATABASE_USER} -d ${DATABASE_NAME}']
       interval: 5s
       timeout: 3s
       retries: 10
 
   rabbitmq:
-    image: rabbitmq:4-management # default guest/guest (local only)
-    ports: ['5672:5672', '15672:15672']
+    image: rabbitmq:4.2.5-management
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:?}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:?}
     volumes: ['rabbitmq-data:/var/lib/rabbitmq']
     healthcheck:
       test: ['CMD', 'rabbitmq-diagnostics', '-q', 'ping']
@@ -40,45 +42,36 @@ services:
       timeout: 5s
       retries: 10
 
-  mailpit:
-    image: axllent/mailpit
-    ports: ['1025:1025', '8025:8025']
-
   jaeger:
     image: jaegertracing/all-in-one:latest
     environment:
       COLLECTOR_OTLP_ENABLED: 'true'
     tmpfs: ['/tmp']
-    ports: ['16686:16686', '4318:4318'] # UI · OTLP HTTP
 
   prometheus:
     image: prom/prometheus
     volumes:
       - './prometheus.yml:/etc/prometheus/prometheus.yml:ro'
       - 'prometheus-data:/prometheus'
-    ports: ['9090:9090']
 
   grafana:
     image: grafana/grafana
     environment:
-      GF_AUTH_ANONYMOUS_ENABLED: 'true'
-      GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?}
     volumes:
       - './grafana/provisioning:/etc/grafana/provisioning:ro'
       - 'grafana-data:/var/lib/grafana'
-    ports: ['3001:3000'] # mapped to 3001 to avoid clashing with api :3000
     depends_on: [prometheus]
 
   api:
     build: .
-    command: ['node', 'dist/server.js']
-    env_file: .env # loads JWT_SECRET, MAIL_FROM, LOG_LEVEL, PORT, etc.
+    command: ['node', '--import', './dist/infra/telemetry/otel.js', 'dist/server.js']
     environment:
-      # override only what differs inside the compose network (.env uses localhost)
+      # The container always runs the compiled prod build; secrets (JWT_SECRET, MAIL_FROM, SMTP_*)
+      # come from the env_file set by each overlay (.env locally, .env.prod in prod).
       NODE_ENV: production
-      DATABASE_URL: postgres://app:app@postgres:5432/orders
-      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
-      SMTP_HOST: mailpit
+      DATABASE_URL: postgres://${DATABASE_USER}:${DATABASE_PASSWORD}@postgres:5432/${DATABASE_NAME}
+      RABBITMQ_URL: amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:5672
       OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
     ports: ['3000:3000']
     depends_on:
@@ -89,14 +82,14 @@ services:
 
   email-worker:
     build: .
-    command: ['node', 'dist/workers/email-worker.js']
-    env_file: .env
+    command: ['node', '--import', './dist/infra/telemetry/otel.js', 'dist/workers/email-worker.js']
+    # The shared image bakes an HTTP /health probe for the API; the worker has no HTTP server, so disable it.
+    healthcheck:
+      disable: true
     environment:
-      # override only what differs inside the compose network (.env uses localhost)
       NODE_ENV: production
-      DATABASE_URL: postgres://app:app@postgres:5432/orders
-      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
-      SMTP_HOST: mailpit
+      DATABASE_URL: postgres://${DATABASE_USER}:${DATABASE_PASSWORD}@postgres:5432/${DATABASE_NAME}
+      RABBITMQ_URL: amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:5672
       OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
     depends_on:
       postgres:

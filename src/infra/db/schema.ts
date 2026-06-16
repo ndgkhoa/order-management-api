@@ -34,6 +34,10 @@ export const outboxMessages = pgTable(
     aggregateId: uuid('aggregate_id').notNull(),
     eventType: text('event_type').notNull(), // e.g. 'order.created'
     payload: jsonb('payload').notNull(),
+    // W3C trace context (traceparent/tracestate) captured at write time inside the
+    // request span, so the relay can resume that trace when it publishes later.
+    // Null when OTel is disabled or for rows written before this column existed.
+    traceContext: jsonb('trace_context').$type<Record<string, string>>(),
     publishedAt: timestamp('published_at', { withTimezone: true }), // null = unsent
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
