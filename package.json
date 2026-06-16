@@ -8,11 +8,11 @@
   },
   "scripts": {
     "dev": "tsx watch --import ./src/infra/telemetry/otel.ts src/server.ts",
-    "dev:worker": "tsx watch --import ./src/infra/telemetry/otel.ts src/workers/email-worker.ts",
+    "dev:worker": "OTEL_SERVICE_NAME=email-worker tsx watch --import ./src/infra/telemetry/otel.ts src/workers/email-worker.ts",
     "clean": "rimraf dist",
     "build": "rimraf dist && tsc -p tsconfig.json && tsc-alias",
     "start": "node --import ./dist/infra/telemetry/otel.js dist/server.js",
-    "start:worker": "node --import ./dist/infra/telemetry/otel.js dist/workers/email-worker.js",
+    "start:worker": "OTEL_SERVICE_NAME=email-worker node --import ./dist/infra/telemetry/otel.js dist/workers/email-worker.js",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",

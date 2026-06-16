@@ -5,8 +5,6 @@
 // Uses the low-level provider setup (not NodeSDK) so we EXPLICITLY register the global
 // AsyncLocalStorage context manager before instrumentations hook — this is what makes
 // `context.active()` carry the request span into the pg/amqp spans (proper nesting).
-import type { ReadableSpan, SpanProcessor, Span } from '@opentelemetry/sdk-trace-base';
-import type { Context as ApiContext } from '@opentelemetry/api';
 
 try {
   process.loadEnvFile('.env');
@@ -17,13 +15,14 @@ try {
 const endpoint = process.env.OTEL_EXPORTER_OTLP_ENDPOINT;
 if (endpoint) {
   const { NodeTracerProvider } = await import('@opentelemetry/sdk-trace-node');
-  const { BatchSpanProcessor } = await import('@opentelemetry/sdk-trace-base');
+  const { BatchSpanProcessor, ParentBasedSampler, SamplingDecision } =
+    await import('@opentelemetry/sdk-trace-base');
   const { OTLPTraceExporter } = await import('@opentelemetry/exporter-trace-otlp-http');
   const { registerInstrumentations } = await import('@opentelemetry/instrumentation');
   const { AsyncLocalStorageContextManager } = await import('@opentelemetry/context-async-hooks');
-  const { resourceFromAttributes } = await import('@opentelemetry/resources');
-  const { isSpanContextValid } = await import('@opentelemetry/api');
-  const { ATTR_SERVICE_NAME } = await import('@opentelemetry/semantic-conventions');
+  const { detectResources, defaultResource, envDetector, hostDetector, processDetector } =
+    await import('@opentelemetry/resources');
+  const { SpanKind } = await import('@opentelemetry/api');
   const { HttpInstrumentation } = await import('@opentelemetry/instrumentation-http');
   // fastify v5: the OTel auto-instrumentation can't patch the ESM factory, so use the
   // official @fastify/otel plugin. registerOnInitialization auto-hooks every Fastify()
@@ -32,51 +31,38 @@ if (endpoint) {
   const { PgInstrumentation } = await import('@opentelemetry/instrumentation-pg');
   const { AmqplibInstrumentation } = await import('@opentelemetry/instrumentation-amqplib');
 
-  const serviceName =
-    process.env.OTEL_SERVICE_NAME ??
-    (process.argv.some((a) => a.includes('email-worker')) ? 'email-worker' : 'order-api');
-
-  // Drop the outbox relay's every-tick poll bookkeeping: pg spans with NO parent.
-  // The relay polls the DB once per interval outside any request context, so each
-  // BEGIN/SELECT/COMMIT/connect becomes an orphan root span → floods Jaeger with
-  // single-span traces. Request/worker pg queries always run under a parent span, so
-  // they're kept. (pg instrumentation ignores `suppressTracing`, and ALS doesn't carry
-  // a wrapper span into drizzle's pool queries — so filtering at export is the reliable
-  // lever. The resumed publish keeps the request as parent, so it's never an orphan.)
-  const PG_SCOPE = '@opentelemetry/instrumentation-pg';
-  // "root" = no parent OR an all-zero/invalid parent context (which Jaeger also renders
-  // as a root). Both forms occur for the relay's out-of-request poll queries.
-  const hasValidParent = (span: ReadableSpan): boolean => {
-    const s = span as {
-      parentSpanContext?: { traceId?: string; spanId?: string; traceFlags?: number };
-      parentSpanId?: string;
-    };
-    const pc = s.parentSpanContext;
-    if (pc && typeof pc.traceId === 'string' && typeof pc.spanId === 'string') {
-      return isSpanContextValid({
-        traceId: pc.traceId,
-        spanId: pc.spanId,
-        traceFlags: pc.traceFlags ?? 0,
-      });
-    }
-    return typeof s.parentSpanId === 'string' && s.parentSpanId !== '0000000000000000';
-  };
-  const wrapWithFilter = (inner: SpanProcessor): SpanProcessor => ({
-    onStart: (span: Span, ctx: ApiContext) => inner.onStart(span, ctx),
-    onEnd: (span: ReadableSpan) => {
-      if (span.instrumentationScope.name === PG_SCOPE && !hasValidParent(span)) return; // drop orphan poll span
-      inner.onEnd(span);
-    },
-    forceFlush: () => inner.forceFlush(),
-    shutdown: () => inner.shutdown(),
-  });
+  // service.name is a deployment concern, not app code: envDetector reads the standard
+  // OTEL_SERVICE_NAME / OTEL_RESOURCE_ATTRIBUTES vars (set per-process in compose + npm
+  // scripts), host/process detectors add host.*/process.* context. defaultResource supplies
+  // telemetry.sdk.* and the unknown_service fallback; detected attrs merge on top and win —
+  // so a misconfigured process surfaces as "unknown_service" instead of silently mislabeling.
+  const resource = defaultResource().merge(
+    detectResources({ detectors: [envDetector, hostDetector, processDetector] }),
+  );
 
   const provider = new NodeTracerProvider({
-    resource: resourceFromAttributes({ [ATTR_SERVICE_NAME]: serviceName }),
+    resource,
+    // Drop the outbox relay's every-tick poll bookkeeping. The relay polls the DB once per
+    // interval OUTSIDE any request/consume context, so each BEGIN/SELECT/UPDATE/COMMIT becomes
+    // an orphan ROOT span → floods Jaeger with single-span traces. ParentBasedSampler is the
+    // OTel-native lever: spans WITH a parent (request/worker queries, the resumed relay publish)
+    // follow the parent and are kept; only ROOT spans reach the `root` sampler below, where we
+    // drop the DB ones. Replaces the old export-time processor filter that reached into internal
+    // span fields. ParentBasedSampler also treats an all-zero/invalid parent as root, so those
+    // poll queries are covered too.
+    sampler: new ParentBasedSampler({
+      root: {
+        shouldSample(_context, _traceId, _spanName, spanKind, attributes) {
+          const isDbSpan = 'db.system' in attributes || 'db.system.name' in attributes;
+          return spanKind === SpanKind.CLIENT || isDbSpan
+            ? { decision: SamplingDecision.NOT_RECORD }
+            : { decision: SamplingDecision.RECORD_AND_SAMPLED };
+        },
+        toString: () => 'DropOrphanDbRootSampler',
+      },
+    }),
     spanProcessors: [
-      wrapWithFilter(
-        new BatchSpanProcessor(new OTLPTraceExporter({ url: `${endpoint}/v1/traces` })),
-      ),
+      new BatchSpanProcessor(new OTLPTraceExporter({ url: `${endpoint}/v1/traces` })),
     ],
   });
 
