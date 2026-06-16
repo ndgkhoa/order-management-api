@@ -17,7 +17,7 @@
 
 services:
   postgres:
-    image: postgres:18.3-alpine
+    image: postgres:18.3
     environment:
       # left = keys the image requires; values come from our DATABASE_* vars
       POSTGRES_USER: ${DATABASE_USER:?}
@@ -43,19 +43,19 @@ services:
       retries: 10
 
   jaeger:
-    image: jaegertracing/all-in-one:latest
+    image: jaegertracing/all-in-one:1.76.0
     environment:
       COLLECTOR_OTLP_ENABLED: 'true'
     tmpfs: ['/tmp']
 
   prometheus:
-    image: prom/prometheus
+    image: prom/prometheus:v3.12.0
     volumes:
       - './prometheus.yml:/etc/prometheus/prometheus.yml:ro'
       - 'prometheus-data:/prometheus'
 
   grafana:
-    image: grafana/grafana
+    image: grafana/grafana:13.0.2
     environment:
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?}
     volumes:
