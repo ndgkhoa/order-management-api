@@ -1,4 +1,4 @@
-import './config/env-loader.js'; // MUST be first — loads .env before db pool reads process.env
+import './config/env-loader.js'; // loads .env before db pool reads process.env (OTel preloaded via --import)
 import { buildApp } from './app.js';
 import { db } from '@infra/db/client.js';
 import { createOutboxRelay } from '@infra/mq/outbox-relay.js';

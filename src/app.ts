@@ -9,6 +9,8 @@ import { swaggerPlugin } from '@plugins/swagger.js';
 import { dbPlugin } from '@plugins/db.js';
 import { correlationIdPlugin } from '@plugins/correlation-id.js';
 import { errorHandlerPlugin } from '@plugins/error-handler.js';
+import { metricsPlugin } from '@plugins/metrics.js';
+import { initSentry } from '@infra/telemetry/sentry.js';
 import { healthRoutes } from '@modules/health/health-routes.js';
 import { authRoutes } from '@modules/auth/auth-routes.js';
 import { usersRoutes } from '@modules/users/users-routes.js';
@@ -30,6 +32,8 @@ function loggerOptions(): FastifyServerOptions['logger'] {
  * security/jwt/swagger/db, then the error handler, then routes.
  */
 export async function buildApp() {
+  initSentry(); // no-op without SENTRY_DSN
+
   const app = Fastify({
     logger: loggerOptions(),
     requestIdHeader: 'x-request-id',
@@ -41,6 +45,7 @@ export async function buildApp() {
   await app.register(envPlugin); // -> app.config
   await app.register(fastifySensible); // httpErrors helpers
   await app.register(correlationIdPlugin);
+  await app.register(metricsPlugin); // /metrics for Prometheus
   await app.register(securityPlugin);
   await app.register(jwtPlugin); // -> app.authenticate
   await app.register(swaggerPlugin); // /docs

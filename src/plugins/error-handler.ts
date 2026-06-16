@@ -1,6 +1,7 @@
 import fp from 'fastify-plugin';
 import type { FastifyError } from 'fastify';
 import { buildProblem, problemType, titleFor } from '@infra/http/problem-details.js';
+import { captureError } from '@infra/telemetry/sentry.js';
 
 /**
  * Normalizes EVERY error into an RFC 7807 Problem Details response
@@ -13,6 +14,7 @@ export const errorHandlerPlugin = fp((app) => {
     const status = err.statusCode ?? 500;
     if (status >= 500) {
       req.log.error({ err }, 'unhandled error');
+      captureError(err); // forward 5xx to Sentry (no-op without DSN)
     }
     reply.code(status).type('application/problem+json').send(buildProblem(err, req));
   });

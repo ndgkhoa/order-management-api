@@ -1,0 +1,1 @@
+ALTER TABLE "outbox_messages" ADD COLUMN "trace_context" jsonb;
