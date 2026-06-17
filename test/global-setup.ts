@@ -1,4 +1,5 @@
-import { writeFileSync, rmSync } from 'node:fs';
+import { writeFileSync, rmSync, mkdirSync } from 'node:fs';
+import { dirname } from 'node:path';
 import { PostgreSqlContainer } from '@testcontainers/postgresql';
 import { GenericContainer, Wait } from 'testcontainers';
 import { runMigrations } from '@infra/db/migrate.js';
@@ -30,6 +31,7 @@ export default async function setup(): Promise<() => Promise<void>> {
     smtpPort: String(mailpit.getMappedPort(1025)),
     mailpitHttp: `http://${mailpit.getHost()}:${mailpit.getMappedPort(8025)}`,
   };
+  mkdirSync(dirname(ENV_FILE), { recursive: true }); // ensure node_modules/.cache exists
   writeFileSync(ENV_FILE, JSON.stringify(env));
 
   return async () => {

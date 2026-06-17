@@ -1,5 +1,4 @@
 import { readFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 /**
@@ -8,8 +7,17 @@ import { join } from 'node:path';
  * imported). globalSetup writes the resolved container URLs here; setup.ts reads
  * them synchronously in the worker. A file is the most reliable channel because env
  * mutations and module globals do NOT cross the globalSetup → worker boundary.
+ *
+ * Kept under the project's node_modules/.cache (user-owned, gitignored) — NOT the OS
+ * temp dir, which is world-readable and uses a predictable name (insecure temp file).
+ * The path is deterministic so both processes agree on it without coordination.
  */
-export const ENV_FILE = join(tmpdir(), 'fastify-drizzle-test-env.json');
+export const ENV_FILE = join(
+  process.cwd(),
+  'node_modules',
+  '.cache',
+  'fastify-drizzle-test-env.json',
+);
 
 export interface TestContainerEnv {
   databaseUrl: string;
