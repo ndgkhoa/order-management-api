@@ -1,9 +1,12 @@
 # fastify-drizzle
 
+[![CI](https://github.com/ndgkhoa/fastify-drizzle/actions/workflows/ci.yml/badge.svg)](https://github.com/ndgkhoa/fastify-drizzle/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/ndgkhoa/fastify-drizzle/actions/workflows/codeql.yml/badge.svg)](https://github.com/ndgkhoa/fastify-drizzle/actions/workflows/codeql.yml)
+[![Release](https://img.shields.io/github/v/release/ndgkhoa/fastify-drizzle?sort=semver)](https://github.com/ndgkhoa/fastify-drizzle/releases)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
+
 A production-shaped **learning** REST API. The goal is to learn, by building something real:
 **Fastify v5**, **RabbitMQ** (async messaging done right), **DevOps**, and the **design patterns senior backend engineers actually use**.
-
-> Status: 🚧 In progress — built incrementally, one phase at a time. See [`plans/`](./plans/) for the phase-by-phase plan.
 
 ## What it does
 
@@ -59,16 +62,29 @@ src/
 
 ## Getting started
 
-> Full local stack (Postgres, RabbitMQ, Mailpit, Prometheus, Grafana, Jaeger) via `docker compose` lands in phase 02.
+**Prereqs:** Node 24 (`nvm use`) and Docker.
 
 ```bash
-nvm use                # Node 24
+cp .env.example .env    # fill JWT_SECRET (32+ chars); defaults work for the rest locally
 npm install
-cp .env.example .env    # then fill JWT_SECRET (32+ chars) etc.
 
-npm run dev             # start API (hot reload via tsx)
-npm run dev:worker      # start email worker
+docker compose up -d    # full local stack (Postgres, RabbitMQ, Mailpit, Prometheus, Grafana, Jaeger)
+npm run db:migrate      # apply Drizzle migrations
+
+npm run dev             # start API (hot reload via tsx) → http://localhost:3000
+npm run dev:worker      # in another shell: start the email worker
 ```
+
+Then open the API docs at **http://localhost:3000/docs**, register + log in, `POST /orders`, and watch the email land in **Mailpit** at http://localhost:8025.
+
+| Service        | URL                                                              |
+| -------------- | ---------------------------------------------------------------- |
+| API            | http://localhost:3000 (`/docs`, `/health`, `/ready`, `/metrics`) |
+| Mailpit inbox  | http://localhost:8025                                            |
+| RabbitMQ admin | http://localhost:15672                                           |
+| Jaeger traces  | http://localhost:16686                                           |
+| Prometheus     | http://localhost:9090                                            |
+| Grafana        | http://localhost:3001                                            |
 
 ### Scripts
 
@@ -80,10 +96,6 @@ npm run dev:worker      # start email worker
 | `npm run typecheck`                                | `tsc --noEmit`                                   |
 | `npm test` / `test:cov`                            | Vitest / with coverage                           |
 | `npm run db:generate` / `db:migrate` / `db:studio` | Drizzle Kit migrations / Studio                  |
-
-## Roadmap
-
-10 incremental phases: scaffolding → docker infra → DB (Drizzle) → Fastify core + RFC 7807 errors → auth/users → orders + Outbox → RabbitMQ + email worker → observability → testing → CI/CD + deploy. Track progress in [`plans/`](./plans/).
 
 ## License
 
