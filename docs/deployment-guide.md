@@ -9,14 +9,15 @@ Three tiers, easiest first: **(A) Fly.io** → **(B) VPS + docker compose + TLS*
 
 ## Where the image comes from
 
-| Tag                                       | Built by                                                                                 | Use                       |
-| ----------------------------------------- | ---------------------------------------------------------------------------------------- | ------------------------- |
-| `ghcr.io/ndgkhoa/fastify-drizzle:develop` | [`publish-image.yml`](../.github/workflows/publish-image.yml) after CI passes on develop | dev / staging             |
-| `…:sha-<short>`                           | every build                                                                              | immutable, exact rollback |
-| `…:X.Y.Z`, `…:X.Y`, `…:latest`            | [`release-please.yml`](../.github/workflows/release-please.yml) when a release is cut    | **production**            |
+| Tag                                              | Built by                                                                              | Use                       |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------- | ------------------------- |
+| `ghcr.io/ndgkhoa/fastify-drizzle:X.Y.Z` / `:X.Y` | [`release-please.yml`](../.github/workflows/release-please.yml) when a release is cut | **production**            |
+| `…:latest`                                       | same release build                                                                    | latest stable             |
+| `…:sha-<short>`                                  | same release build                                                                    | immutable, exact rollback |
 
-Pin production to `:X.Y.Z` (or `:sha-…`). Releases are cut by `release-please` from conventional
-commits (merge its release PR → tag `vX.Y.Z` → versioned image).
+Images are built **only when a release is cut** — push to `develop` just runs CI/tests, it does not
+publish an image. Releases come from `release-please`: merge its release PR → tag `vX.Y.Z` →
+versioned image. Pin production to `:X.Y.Z` (or `:sha-…`).
 
 ---
 
