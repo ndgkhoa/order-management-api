@@ -1,0 +1,73 @@
+# CI — verify every change: lint → typecheck → Testcontainers integration tests.
+# Runs on every PR and on develop pushes. Image publishing lives in publish-image.yml
+# (triggered after a green CI on develop) so PRs aren't cluttered with a skipped image job.
+name: CI
+
+on:
+  push:
+    branches: [develop]
+  pull_request: {}
+
+# Least privilege by default; the test job opts into pull-requests: write for its PR comment.
+permissions:
+  contents: read
+
+# Cancel superseded runs on the same ref to save CI minutes.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Lint · Typecheck · Test
+    runs-on: ubuntu-latest # Docker is preinstalled → Testcontainers (pg/rabbit/mailpit) works.
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      pull-requests: write # post the coverage/CI summary comment on PRs
+    env:
+      # Mapped to env so steps can guard on its presence (secrets can't be used in `if:`).
+      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test (Vitest + Testcontainers)
+        run: npm test
+
+      # --- PR comment: one sticky comment with the CI summary, updated in place each push ---
+      - name: Comment CI summary on PR
+        if: github.event_name == 'pull_request'
+        continue-on-error: true # fork PRs get a read-only token — never fail CI over a comment
+        uses: marocchino/sticky-pull-request-comment@v3
+        with:
+          header: ci-summary # identifies the sticky comment so it updates in place
+          message: |
+            ### ✅ CI passed — lint · typecheck · tests
+
+      # --- Slack: notify when a PR's checks (lint+typecheck+test) finish, pass OR fail ---
+      - name: Notify Slack (PR CI done)
+        # always() → report failures too; skip if the webhook secret isn't configured.
+        if: always() && github.event_name == 'pull_request' && env.SLACK_WEBHOOK_URL != ''
+        continue-on-error: true
+        uses: slackapi/slack-github-action@v2.0.0
+        with:
+          webhook: ${{ env.SLACK_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
+          payload: |
+            {
+              "text": "${{ job.status == 'success' && '✅' || '❌' }} CI ${{ job.status }} — PR #${{ github.event.pull_request.number }}: ${{ github.event.pull_request.title }}\nBy ${{ github.actor }} on `${{ github.head_ref }}`\nPR: ${{ github.event.pull_request.html_url }}\nRun: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            }
