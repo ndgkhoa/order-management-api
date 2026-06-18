@@ -99,6 +99,15 @@ npm run dev:worker      # in another shell: start the email worker
 | `npm test` / `test:cov`                            | Vitest / with coverage                           |
 | `npm run db:generate` / `db:migrate` / `db:studio` | Drizzle Kit migrations / Studio                  |
 
+## Container image
+
+Each release builds a single image and publishes it to **both** GitHub Container Registry and Docker Hub with identical tags (`:X.Y.Z`, `:X.Y`, `:latest`, `:sha-<short>`):
+
+```bash
+docker pull ghcr.io/ndgkhoa/fastify-drizzle:latest   # GitHub Container Registry
+docker pull ndgkhoa/fastify-drizzle:latest           # Docker Hub
+```
+
 ## License
 
 [MIT](./LICENSE) © 2026 ndgkhoa

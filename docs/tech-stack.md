@@ -90,7 +90,7 @@ src/
 - **Local**: `docker compose up` → api + worker + postgres + rabbitmq + mailpit + prometheus + grafana + jaeger
 - **Dockerfile**: multi-stage (deps → build → runner node:24-alpine, non-root + HEALTHCHECK), one image runs both api & worker (different CMD)
 - **Migration**: `drizzle-kit generate` (commit) → `drizzle-kit migrate` on deploy
-- **CI**: GitHub Actions — install → ESLint → typecheck → test (unit + Testcontainers) → build image → push GHCR
+- **CI**: GitHub Actions — install → ESLint → typecheck → test (unit + Testcontainers) → build image → push GHCR + Docker Hub
 - **CD path**: Fly.io/Railway (easy) → VPS + docker compose + Caddy/Traefik (TLS) → Kubernetes + Helm (stretch goal)
 
 ## Stretch Goals (noted, not built)

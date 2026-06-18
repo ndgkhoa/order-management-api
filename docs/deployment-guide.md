@@ -1,6 +1,6 @@
 # Deployment Guide
 
-The CI/CD pipeline's job ends at **publishing the image to GHCR** (see the release flow below).
+The CI/CD pipeline's job ends at **publishing the image to GHCR and Docker Hub** (see the release flow below).
 **Deploying** = pulling that image and running it. The same image runs the **API**
 (`node dist/server.js`) or the **email worker** (`node dist/workers/email-worker.js`) — the command
 is overridden per role.
@@ -8,6 +8,8 @@ is overridden per role.
 Three tiers, easiest first: **(A) Fly.io** → **(B) VPS + docker compose + TLS** → **(C) Kubernetes + Helm**.
 
 ## Where the image comes from
+
+Same tags are pushed to both `ghcr.io/ndgkhoa/fastify-drizzle` and `docker.io/ndgkhoa/fastify-drizzle`.
 
 | Tag                                              | Built by                                                                              | Use                       |
 | ------------------------------------------------ | ------------------------------------------------------------------------------------- | ------------------------- |
