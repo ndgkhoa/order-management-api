@@ -63,7 +63,7 @@ jobs:
         # always() → report failures too; skip if the webhook secret isn't configured.
         if: always() && github.event_name == 'pull_request' && env.SLACK_WEBHOOK_URL != ''
         continue-on-error: true
-        uses: slackapi/slack-github-action@v2.0.0
+        uses: slackapi/slack-github-action@v3.0.3
         with:
           webhook: ${{ env.SLACK_WEBHOOK_URL }}
           webhook-type: incoming-webhook
