@@ -74,7 +74,6 @@
     "@commitlint/config-conventional": "^21.0.2",
     "@eslint/js": "^10.0.1",
     "@testcontainers/postgresql": "^12.0.2",
-    "@types/amqplib": "^0.10.8",
     "@types/node": "^25.9.2",
     "@types/nodemailer": "^8.0.0",
     "@types/pg": "^8.20.0",
