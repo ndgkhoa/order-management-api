@@ -6,6 +6,7 @@
 #   - env_file: .env  → injects JWT_SECRET, MAIL_FROM, SMTP_* into the api/worker containers
 #
 # UIs: RabbitMQ :15672 · Mailpit :8025 · Jaeger :16686 · Grafana :3001 · Prometheus :9090
+#      Loki :3100 (query API) · Alloy :12345 (collector UI)
 
 services:
   postgres:
@@ -19,6 +20,12 @@ services:
 
   prometheus:
     ports: ['9090:9090']
+
+  loki:
+    ports: ['3100:3100']
+
+  alloy:
+    ports: ['12345:12345'] # collector UI/debug
 
   grafana:
     environment:

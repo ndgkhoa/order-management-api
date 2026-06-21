@@ -1,0 +1,52 @@
+// Grafana Alloy — tails every container's stdout/stderr via the Docker socket and
+// ships the lines to Loki. The app stays infra-agnostic: it just writes JSON to stdout
+// (Pino in prod) and Alloy does the shipping, same decoupling as Prometheus scraping /metrics.
+
+// Discover all running containers from the daemon socket.
+discovery.docker "containers" {
+  host = "unix:///var/run/docker.sock"
+}
+
+// Turn Docker/Compose metadata into clean Loki labels.
+discovery.relabel "containers" {
+  targets = discovery.docker.containers.targets
+
+  // Compose service name (api, email-worker, postgres, …) → `service` label.
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+    target_label  = "service"
+  }
+  // Container name, minus Docker's leading "/".
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/(.*)"
+    target_label  = "container"
+  }
+}
+
+// Tail stdout/stderr of each discovered container.
+loki.source.docker "containers" {
+  host          = "unix:///var/run/docker.sock"
+  targets       = discovery.relabel.containers.output
+  relabel_rules = discovery.relabel.containers.rules
+  forward_to    = [loki.process.parse.receiver]
+}
+
+// Lift Pino's JSON `level` into a Loki label so you can filter by severity.
+// Non-JSON lines (postgres, rabbitmq) simply don't match and pass through unchanged.
+// Note: Pino emits numeric levels by default (30=info, 40=warn, 50=error).
+loki.process "parse" {
+  stage.json {
+    expressions = { level = "level" }
+  }
+  stage.labels {
+    values = { level = "" }
+  }
+  forward_to = [loki.write.default.receiver]
+}
+
+loki.write "default" {
+  endpoint {
+    url = "http://loki:3100/loki/api/v1/push"
+  }
+}

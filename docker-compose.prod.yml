@@ -35,6 +35,12 @@ services:
   prometheus:
     restart: unless-stopped
 
+  loki:
+    restart: unless-stopped
+
+  alloy:
+    restart: unless-stopped
+
   grafana:
     environment:
       GF_AUTH_ANONYMOUS_ENABLED: 'false'
