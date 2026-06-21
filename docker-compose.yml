@@ -17,7 +17,7 @@
 
 services:
   postgres:
-    image: postgres:18.3
+    image: postgres:18.4
     environment:
       # left = keys the image requires; values come from our DATABASE_* vars
       POSTGRES_USER: ${DATABASE_USER:?}
@@ -31,7 +31,7 @@ services:
       retries: 10
 
   rabbitmq:
-    image: rabbitmq:4.2.5-management
+    image: rabbitmq:4.3.2-management
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:?}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:?}
