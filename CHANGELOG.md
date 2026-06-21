@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.1.2](https://github.com/ndgkhoa/fastify-drizzle/compare/v0.1.1...v0.1.2) (2026-06-21)
+
+
+### Features
+
+* add Loki log aggregation with Alloy collector ([743c160](https://github.com/ndgkhoa/fastify-drizzle/commit/743c16033704226c4afe4b31f613584b7ae22773))
+
+
+### Bug Fixes
+
+* show 0% instead of No data on 5xx error rate panel ([611ec4c](https://github.com/ndgkhoa/fastify-drizzle/commit/611ec4c0310b72727d90d15106141b7084968e85))
+
 ## [0.1.1](https://github.com/ndgkhoa/fastify-drizzle/compare/v0.1.0...v0.1.1) (2026-06-17)
 
 ### Features
