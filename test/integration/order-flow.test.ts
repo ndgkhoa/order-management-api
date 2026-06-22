@@ -104,7 +104,7 @@ describe('order flow integration (pg + rabbit + mailpit)', () => {
     const processed = await db
       .select()
       .from(processedMessages)
-      .where(eq(processedMessages.messageId, outbox!.id));
+      .where(eq(processedMessages.eventId, outbox!.eventId));
     expect(processed).toHaveLength(1);
   });
 });

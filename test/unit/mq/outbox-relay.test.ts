@@ -47,12 +47,34 @@ describe('outbox-relay (real Postgres)', () => {
 
     await relay.tick();
 
-    expect(publisher.calls.map((c) => c.messageId)).toEqual([first.id, second.id]);
+    // messageId is the logical eventId (what consumers dedupe on), not the row id.
+    expect(publisher.calls.map((c) => c.messageId)).toEqual([first.eventId, second.eventId]);
     const remaining = await db
       .select()
       .from(outboxMessages)
       .where(isNull(outboxMessages.publishedAt));
     expect(remaining).toHaveLength(0);
+  });
+
+  it('wraps the payload in a versioned envelope (eventId, correlationId, occurredAt)', async () => {
+    const row = await insertOutboxRow('order.created', new Date('2026-01-01T00:00:00Z'));
+    const publisher = recordingPublisher();
+    const relay = createOutboxRelay({ db, publisher, log, intervalMs: 1000 });
+
+    await relay.tick();
+
+    const envelope = publisher.calls[0]!.payload as {
+      eventId: string;
+      eventType: string;
+      correlationId: string;
+      occurredAt: string;
+      payload: unknown;
+    };
+    expect(envelope.eventId).toBe(row.eventId);
+    expect(envelope.eventType).toBe('order.created');
+    expect(envelope.correlationId).toBe(row.aggregateId);
+    expect(typeof envelope.occurredAt).toBe('string');
+    expect(envelope.payload).toEqual({ hello: 'world' });
   });
 
   it('leaves the row unpublished when the publisher throws (retry next tick)', async () => {

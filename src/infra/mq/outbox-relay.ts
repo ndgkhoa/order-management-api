@@ -4,6 +4,7 @@ import type { FastifyBaseLogger } from 'fastify';
 import type { DB } from '@infra/db/client.js';
 import { outboxMessages } from '@infra/db/schema.js';
 import { ORDER_EVENTS_EXCHANGE } from '@infra/mq/outbox-event-types.js';
+import { createEventEnvelope } from '@infra/mq/event-envelope.js';
 import type { OutboxPublisher } from '@infra/mq/outbox-publisher.js';
 
 interface OutboxRelayDeps {
@@ -51,12 +52,21 @@ export function createOutboxRelay({
           // keeps the request as parent, its producer span is never an orphan and so
           // survives the relay-poll span filter in telemetry/otel.ts.
           const parentCtx = propagation.extract(ROOT_CONTEXT, row.traceContext ?? {});
+          // Publish the versioned envelope as the message body; the AMQP messageId is the
+          // logical eventId so consumers dedupe on the same key the envelope carries.
+          const envelope = createEventEnvelope({
+            eventId: row.eventId,
+            eventType: row.eventType,
+            correlationId: row.correlationId ?? row.aggregateId,
+            payload: row.payload,
+            occurredAt: row.createdAt,
+          });
           await context.with(parentCtx, () =>
             publisher.publish({
               exchange: ORDER_EVENTS_EXCHANGE,
               routingKey: row.eventType,
-              payload: row.payload,
-              messageId: row.id,
+              payload: envelope,
+              messageId: row.eventId,
             }),
           );
           await tx

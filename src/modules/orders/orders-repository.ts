@@ -48,6 +48,7 @@ export function makeOrdersRepository(db: DB) {
         await tx.insert(outboxMessages).values({
           aggregateType: 'order',
           aggregateId: order.id,
+          correlationId: order.id, // saga correlation = order id; event_id defaults to a fresh uuid
           eventType: ORDER_CREATED_EVENT,
           payload,
           traceContext: Object.keys(carrier).length > 0 ? carrier : null,
