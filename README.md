@@ -1,8 +1,8 @@
-# fastify-drizzle
+# order-management-api
 
-[![CI](https://github.com/ndgkhoa/fastify-drizzle/actions/workflows/ci.yml/badge.svg)](https://github.com/ndgkhoa/fastify-drizzle/actions/workflows/ci.yml)
-[![CodeQL](https://github.com/ndgkhoa/fastify-drizzle/actions/workflows/codeql.yml/badge.svg)](https://github.com/ndgkhoa/fastify-drizzle/actions/workflows/codeql.yml)
-[![Release](https://img.shields.io/github/v/release/ndgkhoa/fastify-drizzle?sort=semver)](https://github.com/ndgkhoa/fastify-drizzle/releases)
+[![CI](https://github.com/ndgkhoa/order-management-api/actions/workflows/ci.yml/badge.svg)](https://github.com/ndgkhoa/order-management-api/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/ndgkhoa/order-management-api/actions/workflows/codeql.yml/badge.svg)](https://github.com/ndgkhoa/order-management-api/actions/workflows/codeql.yml)
+[![Release](https://img.shields.io/github/v/release/ndgkhoa/order-management-api?sort=semver)](https://github.com/ndgkhoa/order-management-api/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
 
 A production-shaped REST API on Fastify v5, Drizzle ORM + PostgreSQL, and RabbitMQ: register/login, create orders, and send order-email notifications asynchronously via the Transactional Outbox pattern.
@@ -104,8 +104,8 @@ npm run dev:worker      # in another shell: start the email worker
 Each release builds a single image and publishes it to **both** GitHub Container Registry and Docker Hub with identical tags (`:X.Y.Z`, `:X.Y`, `:latest`, `:sha-<short>`):
 
 ```bash
-docker pull ghcr.io/ndgkhoa/fastify-drizzle:latest   # GitHub Container Registry
-docker pull ndgkhoa/fastify-drizzle:latest           # Docker Hub
+docker pull ghcr.io/ndgkhoa/order-management-api:latest   # GitHub Container Registry
+docker pull ndgkhoa/order-management-api:latest           # Docker Hub
 ```
 
 ## License

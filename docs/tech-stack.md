@@ -1,4 +1,4 @@
-# Tech Stack & Architecture — fastify-drizzle
+# Tech Stack & Architecture — order-management-api
 
 Production-grade learning API. Learning goals: **Fastify v5, RabbitMQ, DevOps, senior backend design patterns**.
 
