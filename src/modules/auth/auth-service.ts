@@ -4,7 +4,7 @@ import type { UsersRepository } from '@modules/users/users-repository.js';
 
 interface AuthServiceDeps {
   usersRepo: UsersRepository;
-  signToken: (payload: { sub: string; email: string }) => string;
+  signToken: (payload: { sub: string; email: string; role: string }) => string;
   httpErrors: FastifyInstance['httpErrors'];
 }
 
@@ -28,7 +28,7 @@ export function makeAuthService({ usersRepo, signToken, httpErrors }: AuthServic
       if (!user || !(await argon2.verify(user.passwordHash, password))) {
         throw httpErrors.unauthorized('invalid email or password');
       }
-      return signToken({ sub: user.id, email: user.email });
+      return signToken({ sub: user.id, email: user.email, role: user.role });
     },
   };
 }

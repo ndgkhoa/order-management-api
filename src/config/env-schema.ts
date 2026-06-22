@@ -15,9 +15,14 @@ export const envSchema = Type.Object({
 
   DATABASE_URL: Type.String({ minLength: 1 }),
   RABBITMQ_URL: Type.String({ minLength: 1 }),
+  REDIS_URL: Type.String({ minLength: 1 }),
 
   JWT_SECRET: Type.String({ minLength: 32 }),
   JWT_EXPIRES_IN: Type.String({ default: '15m' }),
+
+  // Shared secret the mock payment provider signs webhooks with and the webhook
+  // route verifies (phase 6). Declared now so boot validation covers it early.
+  WEBHOOK_HMAC_SECRET: Type.String({ minLength: 32 }),
 
   SMTP_HOST: Type.String({ default: 'localhost' }),
   SMTP_PORT: Type.Number({ default: 1025 }),
