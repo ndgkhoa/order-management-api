@@ -68,7 +68,7 @@ jobs:
         with:
           images: |
             ghcr.io/${{ github.repository }}
-            docker.io/${{ secrets.DOCKERHUB_USERNAME }}/fastify-drizzle
+            docker.io/${{ secrets.DOCKERHUB_USERNAME }}/order-management-api
           tags: |
             type=semver,pattern={{version}},value=${{ needs.release-please.outputs.tag_name }}
             type=semver,pattern={{major}}.{{minor}},value=${{ needs.release-please.outputs.tag_name }}
@@ -93,6 +93,6 @@ jobs:
         continue-on-error: true # cleanup must never fail the release
         uses: actions/delete-package-versions@v5
         with:
-          package-name: fastify-drizzle
+          package-name: order-management-api
           package-type: container
           delete-only-untagged-versions: true
