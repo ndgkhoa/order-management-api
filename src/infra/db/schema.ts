@@ -1,10 +1,21 @@
-import { pgTable, uuid, text, timestamp, integer, jsonb, index } from 'drizzle-orm/pg-core';
+import {
+  pgTable,
+  uuid,
+  text,
+  timestamp,
+  integer,
+  jsonb,
+  index,
+  primaryKey,
+} from 'drizzle-orm/pg-core';
 
-/** Application users. Only the argon2 hash is stored — never the plaintext password. */
+/** Application users. Only the argon2 hash is stored — never the plaintext password.
+ *  `role` drives RBAC (`requireRole`); JWTs carry it so guards read it from the token. */
 export const users = pgTable('users', {
   id: uuid('id').primaryKey().defaultRandom(),
   email: text('email').notNull().unique(),
   passwordHash: text('password_hash').notNull(),
+  role: text('role').notNull().default('customer'), // 'customer' | 'admin'
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -30,6 +41,12 @@ export const outboxMessages = pgTable(
   'outbox_messages',
   {
     id: uuid('id').primaryKey().defaultRandom(),
+    // Logical event id — stable across re-emits, distinct from the row `id`. The relay
+    // publishes it in the envelope; consumers dedupe on it. Defaulted so existing rows
+    // and inserts that omit it still get a value.
+    eventId: uuid('event_id').notNull().defaultRandom(),
+    // Ties every event in a saga to its aggregate (= order id) for tracing/correlation.
+    correlationId: text('correlation_id'),
     aggregateType: text('aggregate_type').notNull(), // e.g. 'order'
     aggregateId: uuid('aggregate_id').notNull(),
     eventType: text('event_type').notNull(), // e.g. 'order.created'
@@ -45,11 +62,18 @@ export const outboxMessages = pgTable(
 );
 
 /**
- * Idempotent Consumer guard: the worker inserts the message id here inside its
- * handler transaction. A duplicate delivery hits the PK conflict → skip (no double email).
- * `messageId` reuses the outbox row id as the dedupe key.
+ * Idempotent Consumer guard, keyed per consumer. Each consumer inserts
+ * (`consumerName`, `eventId`) inside its handler transaction; a duplicate delivery
+ * hits the composite PK conflict → skip. The consumer dimension lets independent
+ * consumers (email, inventory, …) each process the SAME logical event exactly once
+ * without one consumer's dedupe row blocking another (fan-out safe).
  */
-export const processedMessages = pgTable('processed_messages', {
-  messageId: uuid('message_id').primaryKey(),
-  processedAt: timestamp('processed_at', { withTimezone: true }).notNull().defaultNow(),
-});
+export const processedMessages = pgTable(
+  'processed_messages',
+  {
+    consumerName: text('consumer_name').notNull(),
+    eventId: uuid('event_id').notNull(),
+    processedAt: timestamp('processed_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.consumerName, t.eventId] })],
+);

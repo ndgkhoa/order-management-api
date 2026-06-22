@@ -15,6 +15,13 @@
       "when": 1781450951250,
       "tag": "0001_short_gravity",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1782134625194,
+      "tag": "0002_daily_george_stacy",
+      "breakpoints": true
     }
   ]
 }
