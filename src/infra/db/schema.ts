@@ -4,10 +4,18 @@ import {
   text,
   timestamp,
   integer,
+  boolean,
   jsonb,
   index,
   primaryKey,
+  check,
+  pgEnum,
 } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
+import { USER_ROLES, UserRoles } from '@/types/user-role.js';
+
+/** DB enum bound to the role values defined in `@/types/user-role` (single source of truth). */
+export const userRole = pgEnum('user_role', USER_ROLES);
 
 /** Application users. Only the argon2 hash is stored — never the plaintext password.
  *  `role` drives RBAC (`requireRole`); JWTs carry it so guards read it from the token. */
@@ -15,9 +23,35 @@ export const users = pgTable('users', {
   id: uuid('id').primaryKey().defaultRandom(),
   email: text('email').notNull().unique(),
   passwordHash: text('password_hash').notNull(),
-  role: text('role').notNull().default('customer'), // 'customer' | 'admin'
+  role: userRole('role').notNull().default(UserRoles.Customer),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
+
+/**
+ * Product catalog. `price_cents` is integer cents (no float money). Stock is split into
+ * `available` (sellable) and `reserved` (held by in-flight orders); the reserve/release
+ * logic lands in later phases — here the columns exist with non-negative CHECK guards.
+ * `active=false` is a soft delete so orders can still reference a withdrawn product.
+ */
+export const products = pgTable(
+  'products',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    sku: text('sku').notNull().unique(),
+    name: text('name').notNull(),
+    description: text('description').notNull().default(''),
+    priceCents: integer('price_cents').notNull(),
+    stockAvailable: integer('stock_available').notNull().default(0),
+    stockReserved: integer('stock_reserved').notNull().default(0),
+    active: boolean('active').notNull().default(true),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    check('products_stock_available_nonneg', sql`${t.stockAvailable} >= 0`),
+    check('products_stock_reserved_nonneg', sql`${t.stockReserved} >= 0`),
+  ],
+);
 
 /** Orders placed by a user. `amount` is stored in integer cents to avoid float money bugs. */
 export const orders = pgTable('orders', {
