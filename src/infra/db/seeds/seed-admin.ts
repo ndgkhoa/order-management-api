@@ -1,6 +1,7 @@
 import argon2 from 'argon2';
 import { db } from '@infra/db/client.js';
 import { users } from '@infra/db/schema.js';
+import { UserRoles } from '@/types/user-role.js';
 
 /**
  * Seeds (or promotes) the bootstrap admin so RBAC-guarded routes are usable locally.
@@ -14,8 +15,8 @@ export async function seedAdmin(): Promise<void> {
   const passwordHash = await argon2.hash(ADMIN_PASSWORD);
   const [row] = await db
     .insert(users)
-    .values({ email: ADMIN_EMAIL, passwordHash, role: 'admin' })
-    .onConflictDoUpdate({ target: users.email, set: { role: 'admin', passwordHash } })
+    .values({ email: ADMIN_EMAIL, passwordHash, role: UserRoles.Admin })
+    .onConflictDoUpdate({ target: users.email, set: { role: UserRoles.Admin, passwordHash } })
     .returning();
   console.log(`  ✓ admin: ${row!.email} (role=${row!.role})`);
 }

@@ -1,10 +1,11 @@
 import argon2 from 'argon2';
 import type { FastifyInstance } from 'fastify';
+import type { UserRole } from '@/types/user-role.js';
 import type { UsersRepository } from '@modules/users/users-repository.js';
 
 interface AuthServiceDeps {
   usersRepo: UsersRepository;
-  signToken: (payload: { sub: string; email: string; role: string }) => string;
+  signToken: (payload: { sub: string; email: string; role: UserRole }) => string;
   httpErrors: FastifyInstance['httpErrors'];
 }
 
