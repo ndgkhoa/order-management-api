@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.1.2](https://github.com/ndgkhoa/order-management-api/compare/v0.1.1...v0.1.2) (2026-06-23)
+
+
+### Features
+
+* add Loki log aggregation with Alloy collector ([743c160](https://github.com/ndgkhoa/order-management-api/commit/743c16033704226c4afe4b31f613584b7ae22773))
+* **auth:** add Redis plugin, requireRole guard, role in JWT, admin seed ([852d0ba](https://github.com/ndgkhoa/order-management-api/commit/852d0ba1b0e39513cb43b7e6d65a7ac8c87ac545))
+* **db:** add event-id/correlation-id columns, composite dedup PK, users.role ([f7252b8](https://github.com/ndgkhoa/order-management-api/commit/f7252b8ef7b92e06c7cedad57fd06843842a6873))
+* **mq:** versioned event envelope published by relay; per-consumer dedup ([8562ae6](https://github.com/ndgkhoa/order-management-api/commit/8562ae674282fc1985e2a28ca99012e3fc087098))
+* **saga:** foundation — Redis, event envelope, composite dedup, RBAC ([7372d54](https://github.com/ndgkhoa/order-management-api/commit/7372d54369be5e1b619ec7fbe8d6f55826ce4247))
+
+
+### Bug Fixes
+
+* show 0% instead of No data on 5xx error rate panel ([611ec4c](https://github.com/ndgkhoa/order-management-api/commit/611ec4c0310b72727d90d15106141b7084968e85))
+
 ## [0.1.1](https://github.com/ndgkhoa/fastify-drizzle/compare/v0.1.0...v0.1.1) (2026-06-17)
 
 ### Features
