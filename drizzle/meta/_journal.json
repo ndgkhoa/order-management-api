@@ -22,6 +22,20 @@
       "when": 1782134625194,
       "tag": "0002_daily_george_stacy",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1782181025314,
+      "tag": "0003_broad_alice",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1782181726640,
+      "tag": "0004_supreme_captain_cross",
+      "breakpoints": true
     }
   ]
 }

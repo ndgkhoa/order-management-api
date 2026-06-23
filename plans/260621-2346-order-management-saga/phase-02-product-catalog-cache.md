@@ -1,7 +1,7 @@
 ---
 phase: 2
 title: 'Product Catalog & Cache'
-status: pending
+status: completed
 priority: P1
 effort: '6h'
 dependencies: [1]
@@ -57,3 +57,10 @@ Introduce a product catalog with reservation-aware stock columns (`stock_availab
 
 - Cache invalidation correctness → keep keys few + invalidate broadly (DEL list + item) rather than surgical; correctness over hit-rate.
 - Don't implement reserve/release here (phase 4/6 own it) → avoid premature stock mutation logic.
+
+## Implementation Notes (done 2026-06-23)
+
+- **Decisions:** DELETE = soft-delete (`active=false`) so later `order_items.product_id` FK won't break; Redis caches only the PUBLIC active-only view, admin reads bypass via optional-auth on GET (`request.user` populated if a token is present, never 401s a read).
+- **Stock guards:** non-negative CHECK constraints (`stock_available >= 0`, `stock_reserved >= 0`) added with the `products` table now (migration `0003`), satisfying this phase's "stock never negative" and pre-empting the phase-4 hardening.
+- **Known trade-off (accepted, not fixed):** read-through + DEL-invalidate has a classic race — a public read that misses and a concurrent admin mutation can re-`SET` a pre-mutation snapshot that then survives the DEL for up to the TTL (300s). Bounded staleness of catalog display fields only (no money/stock, which aren't mutated here). Matches the "correctness over hit-rate, bounded TTL" decision above. Future fix if needed: write-through or a version token on the cache key.
+- **Tests:** 18 added (products-cache unit, products-service unit, products API incl. authz matrix, soft-delete, re-activation, cache-invalidation-on-update). Full suite 45 green.

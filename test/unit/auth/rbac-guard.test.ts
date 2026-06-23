@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
+import type { FastifyInstance, FastifyRequest } from 'fastify';
+import { UserRoles } from '@/types/user-role.js';
 import { makeRequireRole } from '@plugins/rbac.js';
 
 // Minimal httpErrors stub: forbidden() returns a throwable 403 (matches @fastify/sensible shape).
@@ -8,29 +9,23 @@ const httpErrors = {
 } as unknown as FastifyInstance['httpErrors'];
 
 const requireRole = makeRequireRole(httpErrors);
-const adminGuard = requireRole('admin');
+const adminGuard = requireRole(UserRoles.Admin);
 
-function run(role: string): void {
-  const request = { user: { sub: 'u', email: 'e', role } } as unknown as FastifyRequest;
-  adminGuard(request, {} as FastifyReply, () => undefined);
-}
+const reqWithRole = (role: string) =>
+  ({ user: { sub: 'u', email: 'e', role } }) as unknown as FastifyRequest;
 
 describe('requireRole guard', () => {
-  it('passes through (calls done) for a matching role', () => {
-    let called = false;
-    const request = { user: { sub: 'u', email: 'e', role: 'admin' } } as unknown as FastifyRequest;
-    adminGuard(request, {} as FastifyReply, () => {
-      called = true;
+  it('resolves for a matching role', async () => {
+    await expect(adminGuard(reqWithRole(UserRoles.Admin))).resolves.toBeUndefined();
+  });
+
+  it('throws 403 for a non-matching role', async () => {
+    await expect(adminGuard(reqWithRole(UserRoles.Customer))).rejects.toMatchObject({
+      statusCode: 403,
     });
-    expect(called).toBe(true);
   });
 
-  it('throws 403 for a non-matching role', () => {
-    expect(() => run('customer')).toThrowError(/insufficient role/);
-  });
-
-  it('throws 403 when there is no authenticated user', () => {
-    const request = {} as FastifyRequest;
-    expect(() => adminGuard(request, {} as FastifyReply, () => undefined)).toThrow();
+  it('throws 403 when there is no authenticated user', async () => {
+    await expect(adminGuard({} as FastifyRequest)).rejects.toMatchObject({ statusCode: 403 });
   });
 });
