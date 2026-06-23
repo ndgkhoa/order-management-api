@@ -5,8 +5,10 @@ import fastifySensible from '@fastify/sensible';
 import { envPlugin } from '@plugins/env.js';
 import { securityPlugin } from '@plugins/security.js';
 import { jwtPlugin } from '@plugins/jwt.js';
+import { rbacPlugin } from '@plugins/rbac.js';
 import { swaggerPlugin } from '@plugins/swagger.js';
 import { dbPlugin } from '@plugins/db.js';
+import { redisPlugin } from '@plugins/redis.js';
 import { correlationIdPlugin } from '@plugins/correlation-id.js';
 import { errorHandlerPlugin } from '@plugins/error-handler.js';
 import { metricsPlugin } from '@plugins/metrics.js';
@@ -48,8 +50,10 @@ export async function buildApp() {
   await app.register(metricsPlugin); // /metrics for Prometheus
   await app.register(securityPlugin);
   await app.register(jwtPlugin); // -> app.authenticate
+  await app.register(rbacPlugin); // -> app.requireRole (needs app.httpErrors from sensible)
   await app.register(swaggerPlugin); // /docs
   await app.register(dbPlugin); // -> app.db
+  await app.register(redisPlugin); // -> app.redis
   await app.register(errorHandlerPlugin); // RFC 7807
 
   await app.register(healthRoutes);

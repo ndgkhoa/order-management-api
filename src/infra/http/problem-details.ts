@@ -13,7 +13,7 @@ export const ProblemSchema = Type.Object({
 });
 export type Problem = Static<typeof ProblemSchema>;
 
-const BASE = 'https://fastify-drizzle/errors';
+const BASE = 'https://order-management-api/errors';
 
 const TITLES: Record<number, string> = {
   400: 'Bad Request',

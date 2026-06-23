@@ -20,11 +20,18 @@ const payload: OrderCreatedPayload = {
   amount: 1500,
 };
 
-/** Builds a minimal ConsumeMessage carrying a messageId + JSON payload. */
-function makeMessage(messageId: string): ConsumeMessage {
+/** Builds a minimal ConsumeMessage whose body is an EventEnvelope keyed by eventId. */
+function makeMessage(eventId: string): ConsumeMessage {
+  const envelope = {
+    eventId,
+    eventType: 'order.created',
+    correlationId: payload.orderId,
+    occurredAt: new Date().toISOString(),
+    payload,
+  };
   return {
-    content: Buffer.from(JSON.stringify(payload)),
-    properties: { messageId },
+    content: Buffer.from(JSON.stringify(envelope)),
+    properties: { messageId: eventId },
     fields: {},
   } as unknown as ConsumeMessage;
 }
@@ -44,28 +51,29 @@ describe('order-created-handler idempotency (real Postgres)', () => {
   beforeEach(resetDb);
 
   it('processes once and skips a duplicate delivery (1 row, 1 email)', async () => {
-    const messageId = crypto.randomUUID();
+    const eventId = crypto.randomUUID();
     const mail = recordingMailAdapter();
     const deps = { db, mailAdapter: mail, log };
 
-    const first = await handleOrderCreated(makeMessage(messageId), deps);
-    const second = await handleOrderCreated(makeMessage(messageId), deps);
+    const first = await handleOrderCreated(makeMessage(eventId), deps);
+    const second = await handleOrderCreated(makeMessage(eventId), deps);
 
     expect(first).toBe('ack');
     expect(second).toBe('ack');
     expect(mail.sent).toHaveLength(1);
     const rows = await db.select().from(processedMessages);
     expect(rows).toHaveLength(1);
-    expect(rows[0]!.messageId).toBe(messageId);
+    expect(rows[0]!.eventId).toBe(eventId);
+    expect(rows[0]!.consumerName).toBe('email');
   });
 
   it('rolls back (no processed row) and returns retry when the email fails', async () => {
-    const messageId = crypto.randomUUID();
+    const eventId = crypto.randomUUID();
     const failingMail: MailAdapter = {
       sendOrderCreatedEmail: () => Promise.reject(new Error('smtp down')),
     };
 
-    const result = await handleOrderCreated(makeMessage(messageId), {
+    const result = await handleOrderCreated(makeMessage(eventId), {
       db,
       mailAdapter: failingMail,
       log,
@@ -76,9 +84,9 @@ describe('order-created-handler idempotency (real Postgres)', () => {
     expect(rows).toHaveLength(0);
   });
 
-  it('acks and drops a message with no messageId (avoids a poison loop)', async () => {
+  it('acks and drops a message with no eventId (avoids a poison loop)', async () => {
     const noId = {
-      content: Buffer.from('{}'),
+      content: Buffer.from(JSON.stringify({ eventType: 'order.created', payload })),
       properties: {},
       fields: {},
     } as unknown as ConsumeMessage;

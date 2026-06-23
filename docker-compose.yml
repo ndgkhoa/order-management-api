@@ -15,6 +15,10 @@
 # Host port publishing and the dev-only mailpit live in docker-compose.override.yml, so the prod
 # stack (which does not load the override) exposes nothing on the host except the API.
 
+# Pinned project name → container/volume prefix is stable regardless of the directory name
+# (containers become `order-management-*`, volumes `order-management_*`).
+name: order-management
+
 services:
   postgres:
     image: postgres:18.4
@@ -40,6 +44,16 @@ services:
       test: ['CMD', 'rabbitmq-diagnostics', '-q', 'ping']
       interval: 10s
       timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7.4
+    command: ['redis-server', '--appendonly', 'yes']
+    volumes: ['redis-data:/data']
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
       retries: 10
 
   jaeger:
@@ -99,6 +113,7 @@ services:
       NODE_ENV: production
       DATABASE_URL: postgres://${DATABASE_USER}:${DATABASE_PASSWORD}@postgres:5432/${DATABASE_NAME}
       RABBITMQ_URL: amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:5672
+      REDIS_URL: redis://redis:6379
       OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
       OTEL_SERVICE_NAME: order-api
     ports: ['3000:3000']
@@ -106,6 +121,8 @@ services:
       postgres:
         condition: service_healthy
       rabbitmq:
+        condition: service_healthy
+      redis:
         condition: service_healthy
 
   email-worker:
@@ -118,12 +135,15 @@ services:
       NODE_ENV: production
       DATABASE_URL: postgres://${DATABASE_USER}:${DATABASE_PASSWORD}@postgres:5432/${DATABASE_NAME}
       RABBITMQ_URL: amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:5672
+      REDIS_URL: redis://redis:6379
       OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
       OTEL_SERVICE_NAME: email-worker
     depends_on:
       postgres:
         condition: service_healthy
       rabbitmq:
+        condition: service_healthy
+      redis:
         condition: service_healthy
 
 volumes:
@@ -132,3 +152,4 @@ volumes:
   rabbitmq-data:
   prometheus-data:
   loki-data:
+  redis-data:

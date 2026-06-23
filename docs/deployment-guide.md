@@ -9,13 +9,13 @@ Three tiers, easiest first: **(A) Fly.io** → **(B) VPS + docker compose + TLS*
 
 ## Where the image comes from
 
-Same tags are pushed to both `ghcr.io/ndgkhoa/fastify-drizzle` and `docker.io/ndgkhoa/fastify-drizzle`.
+Same tags are pushed to both `ghcr.io/ndgkhoa/order-management-api` and `docker.io/ndgkhoa/order-management-api`.
 
-| Tag                                              | Built by                                                                              | Use                       |
-| ------------------------------------------------ | ------------------------------------------------------------------------------------- | ------------------------- |
-| `ghcr.io/ndgkhoa/fastify-drizzle:X.Y.Z` / `:X.Y` | [`release-please.yml`](../.github/workflows/release-please.yml) when a release is cut | **production**            |
-| `…:latest`                                       | same release build                                                                    | latest stable             |
-| `…:sha-<short>`                                  | same release build                                                                    | immutable, exact rollback |
+| Tag                                                   | Built by                                                                              | Use                       |
+| ----------------------------------------------------- | ------------------------------------------------------------------------------------- | ------------------------- |
+| `ghcr.io/ndgkhoa/order-management-api:X.Y.Z` / `:X.Y` | [`release-please.yml`](../.github/workflows/release-please.yml) when a release is cut | **production**            |
+| `…:latest`                                            | same release build                                                                    | latest stable             |
+| `…:sha-<short>`                                       | same release build                                                                    | immutable, exact rollback |
 
 Images are built **only when a release is cut** — push to `develop` just runs CI/tests, it does not
 publish an image. Releases come from `release-please`: merge its release PR → tag `vX.Y.Z` →
@@ -72,17 +72,17 @@ fly secrets set \
   SMTP_HOST='email-smtp.region.amazonaws.com' SMTP_PORT='587' \
   MAIL_FROM='orders@yourdomain.com'
 
-fly deploy --image ghcr.io/ndgkhoa/fastify-drizzle:X.Y.Z   # or build from the Dockerfile
+fly deploy --image ghcr.io/ndgkhoa/order-management-api:X.Y.Z   # or build from the Dockerfile
 ```
 
 `fly.toml` — **two processes from one image**, with the migration gate as `release_command`:
 
 ```toml
-app = "fastify-drizzle-order-api"
+app = "order-management-api"
 primary_region = "sin"
 
 [build]
-  image = "ghcr.io/ndgkhoa/fastify-drizzle:X.Y.Z"   # or: dockerfile = "Dockerfile"
+  image = "ghcr.io/ndgkhoa/order-management-api:X.Y.Z"   # or: dockerfile = "Dockerfile"
 
 [deploy]
   release_command = "node dist/infra/db/migrate.js" # runs once per deploy, before going live
@@ -120,7 +120,7 @@ memory limits, Grafana locked down, **no published Postgres/RabbitMQ ports**, cr
    record at it.
 2. **Secrets:** create `.env.prod` on the host (`chmod 600`, not in git). For managed DB/broker, set
    `DATABASE_URL` / `RABBITMQ_URL` and drop the `postgres`/`rabbitmq` services from the overlay (the
-   file documents this). Point api/worker `image:` at `ghcr.io/ndgkhoa/fastify-drizzle:X.Y.Z`.
+   file documents this). Point api/worker `image:` at `ghcr.io/ndgkhoa/order-management-api:X.Y.Z`.
 3. **Pull → migrate → start** (migration gate first):
 
    ```bash

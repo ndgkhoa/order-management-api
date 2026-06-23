@@ -10,7 +10,7 @@ export const swaggerPlugin = fp(async (app) => {
   await app.register(swagger, {
     openapi: {
       info: {
-        title: 'fastify-drizzle API',
+        title: 'order-management-api',
         description: 'Register/login + async order email via Transactional Outbox → RabbitMQ.',
         version: '0.1.0',
       },

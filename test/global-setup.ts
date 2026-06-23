@@ -20,6 +20,11 @@ export default async function setup(): Promise<() => Promise<void>> {
     .withStartupTimeout(120_000)
     .start();
 
+  const redis = await new GenericContainer('redis:7.4')
+    .withExposedPorts(6379)
+    .withWaitStrategy(Wait.forLogMessage('Ready to accept connections'))
+    .start();
+
   const mailpit = await new GenericContainer('axllent/mailpit:v1.30.1')
     .withExposedPorts(1025, 8025)
     .start();
@@ -27,6 +32,7 @@ export default async function setup(): Promise<() => Promise<void>> {
   const env: TestContainerEnv = {
     databaseUrl: pg.getConnectionUri(),
     rabbitmqUrl: `amqp://${rabbit.getHost()}:${rabbit.getMappedPort(5672)}`,
+    redisUrl: `redis://${redis.getHost()}:${redis.getMappedPort(6379)}`,
     smtpHost: mailpit.getHost(),
     smtpPort: String(mailpit.getMappedPort(1025)),
     mailpitHttp: `http://${mailpit.getHost()}:${mailpit.getMappedPort(8025)}`,
@@ -36,6 +42,6 @@ export default async function setup(): Promise<() => Promise<void>> {
 
   return async () => {
     rmSync(ENV_FILE, { force: true });
-    await Promise.allSettled([pg.stop(), rabbit.stop(), mailpit.stop()]);
+    await Promise.allSettled([pg.stop(), rabbit.stop(), redis.stop(), mailpit.stop()]);
   };
 }
