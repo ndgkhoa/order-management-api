@@ -1,4 +1,8 @@
+import { eq } from 'drizzle-orm';
 import { buildApp, type AppInstance } from '@/app.js';
+import { db } from '@infra/db/client.js';
+import { users } from '@infra/db/schema.js';
+import { UserRoles } from '@/types/user-role.js';
 
 // Memoized: the metrics plugin registers default metrics on prom-client's GLOBAL
 // registry, so building the app twice in one process throws "already registered".
@@ -24,6 +28,26 @@ export async function registerAndLogin(
   password = DEFAULT_PASSWORD,
 ): Promise<{ token: string; email: string }> {
   await app.inject({ method: 'POST', url: '/auth/register', payload: { email, password } });
+  const res = await app.inject({
+    method: 'POST',
+    url: '/auth/login',
+    payload: { email, password },
+  });
+  const { accessToken } = res.json<{ accessToken: string }>();
+  return { token: accessToken, email };
+}
+
+/**
+ * Registers a user, promotes them to admin in the DB, then logs in so the issued JWT
+ * carries `role: 'admin'`. Used to exercise admin-guarded routes.
+ */
+export async function registerAdminAndLogin(
+  app: AppInstance,
+  email = `admin-${crypto.randomUUID()}@test.dev`,
+  password = DEFAULT_PASSWORD,
+): Promise<{ token: string; email: string }> {
+  await app.inject({ method: 'POST', url: '/auth/register', payload: { email, password } });
+  await db.update(users).set({ role: UserRoles.Admin }).where(eq(users.email, email));
   const res = await app.inject({
     method: 'POST',
     url: '/auth/login',

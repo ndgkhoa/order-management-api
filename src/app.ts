@@ -16,6 +16,7 @@ import { initSentry } from '@infra/telemetry/sentry.js';
 import { healthRoutes } from '@modules/health/health-routes.js';
 import { authRoutes } from '@modules/auth/auth-routes.js';
 import { usersRoutes } from '@modules/users/users-routes.js';
+import { productsRoutes } from '@modules/products/products-routes.js';
 import { ordersRoutes } from '@modules/orders/orders-routes.js';
 
 /** Pretty logs in dev, structured JSON in production. */
@@ -59,6 +60,7 @@ export async function buildApp() {
   await app.register(healthRoutes);
   await app.register(authRoutes, { prefix: '/auth' });
   await app.register(usersRoutes, { prefix: '/users' });
+  await app.register(productsRoutes, { prefix: '/products' });
   await app.register(ordersRoutes, { prefix: '/orders' });
 
   return app;
