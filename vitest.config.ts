@@ -19,6 +19,10 @@ export default defineConfig({
       provider: 'v8',
       include: ['src/**/*.ts'],
       exclude: ['src/**/*.d.ts', 'src/server.ts', 'src/workers/**', 'src/infra/telemetry/**'],
+      // `json-summary` feeds the CI PR-comment coverage table; `reportOnFailure` writes it
+      // even when a test fails so the comment still renders. `text` keeps the console output.
+      reporter: ['text', 'json-summary'],
+      reportOnFailure: true,
     },
   },
 });

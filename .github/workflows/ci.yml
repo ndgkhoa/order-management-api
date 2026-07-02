@@ -45,21 +45,44 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
-      - name: Test (Vitest + Testcontainers)
-        run: npm test
+      - name: Test (Vitest + Testcontainers, with coverage)
+        id: test
+        run: npm run test:cov
 
-      # --- PR comment: one sticky comment with the CI summary, updated in place each push ---
+      # Parse the vitest json-summary into a markdown table for the PR comment.
+      # `reportOnFailure` (vitest.config) means the summary exists even on a failed run.
+      - name: Read coverage summary
+        if: always()
+        id: cov
+        run: |
+          if [ -f coverage/coverage-summary.json ]; then
+            {
+              echo 'table<<COV_EOF'
+              jq -r '.total | "| Metric | Coverage |\n| --- | --- |\n| Lines | \(.lines.pct)% (\(.lines.covered)/\(.lines.total)) |\n| Statements | \(.statements.pct)% |\n| Functions | \(.functions.pct)% |\n| Branches | \(.branches.pct)% |"' coverage/coverage-summary.json
+              echo 'COV_EOF'
+            } >> "$GITHUB_OUTPUT"
+          else
+            printf 'table<<COV_EOF\n_coverage report not generated_\nCOV_EOF\n' >> "$GITHUB_OUTPUT"
+          fi
+
+      # --- PR comment: one sticky comment (status + coverage + run link), updated in place ---
       - name: Comment CI summary on PR
-        if: github.event_name == 'pull_request'
+        if: always() && github.event_name == 'pull_request'
         continue-on-error: true # fork PRs get a read-only token — never fail CI over a comment
         uses: marocchino/sticky-pull-request-comment@v3
         with:
           header: ci-summary # identifies the sticky comment so it updates in place
           message: |
-            ### ✅ CI passed — lint · typecheck · tests
+            ### ${{ steps.test.outcome == 'success' && '✅ CI passed' || '❌ CI failed' }} — lint · typecheck · tests
+
+            **Coverage**
+
+            ${{ steps.cov.outputs.table }}
+
+            [View run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
 
       # --- Slack: notify when a PR's checks (lint+typecheck+test) finish, pass OR fail ---
-      - name: Notify Slack (PR CI done)
+      - name: Notify Slack
         # always() → report failures too; skip if the webhook secret isn't configured.
         if: always() && github.event_name == 'pull_request' && env.SLACK_WEBHOOK_URL != ''
         continue-on-error: true
