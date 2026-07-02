@@ -1,7 +1,7 @@
 ---
 phase: 3
 title: 'Order Aggregate Refactor'
-status: pending
+status: completed
 priority: P1
 effort: '7h'
 dependencies: [2]
@@ -72,3 +72,12 @@ Reshape `orders` from a single-product row into a multi-line aggregate (`order_i
   | `fulfilling` | `delivered`  | ShipmentDelivered             |
 
   All other transitions illegal. `cancelled`/`delivered` are terminal — explicitly reject `cancelled → paid`.
+
+## Implementation Notes (done 2026-07-02)
+
+- **Decisions:** `OrderCreatedPayload` keeps `email` (worker stays query-free) + `items[]` + `totalCents`; two DTOs (`OrderPublic` summary for list, `OrderDetail` with items for create/`GET :id`); `GET /orders/:id` is owner-scoped → 404 on non-owner (closes the IDOR the phase-7 hardening flagged; admin-all-orders stays phase 7).
+- **Layering:** pure `order-total.ts` (unit-tested) computes line snapshots + total; `orders-service` validates each product is active (`findActiveById`, 400 on unknown/inactive) and snapshots price; `orders-repository.createWithOutbox` does the atomic order+items+outbox write. NO stock reserve / payment here.
+- **Status machine:** canonical table above locked here; column default `created`→`pending` (breaking, reflected in tests + migration).
+- **Migrations:** `0005` reshape (drops product/quantity/amount, adds total_cents/currency/updated_at, creates order_items; `DELETE FROM orders` clears legacy dev rows per plan); `0006` adds indexes on `order_items.order_id/product_id` + `orders.user_id`.
+- **Hardening from review:** FK-column indexes (0006); `quantity` max 10000 + `items` maxItems 100 to keep totals within int32 and cap order blast radius (400 not 500).
+- **Tests:** 8 added/updated — multi-item create, snapshot immutability, unknown/inactive/qty<1/empty/qty-over-max → 400, list + detail, IDOR 404, pure total helper; order-flow + handler updated to the new payload. Full suite 53 green.

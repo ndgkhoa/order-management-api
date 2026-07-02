@@ -4,7 +4,13 @@ import { eq } from 'drizzle-orm';
 import type { FastifyBaseLogger } from 'fastify';
 import type { AppInstance } from '@/app.js';
 import { db } from '@infra/db/client.js';
-import { orders, outboxMessages, processedMessages } from '@infra/db/schema.js';
+import {
+  orders,
+  orderItems,
+  outboxMessages,
+  processedMessages,
+  products,
+} from '@infra/db/schema.js';
 import { getConnection, closeMq } from '@infra/mq/connection.js';
 import { createRabbitPublisher, type RabbitPublisher } from '@infra/mq/publisher.js';
 import { createOutboxRelay } from '@infra/mq/outbox-relay.js';
@@ -74,12 +80,21 @@ describe('order flow integration (pg + rabbit + mailpit)', () => {
 
   it('delivers an order-created email through the whole pipeline', async () => {
     const { token, email } = await registerAndLogin(app);
+    const [product] = await db
+      .insert(products)
+      .values({
+        sku: `SKU-${crypto.randomUUID()}`,
+        name: 'widget',
+        priceCents: 1500,
+        stockAvailable: 10,
+      })
+      .returning();
     const created = await app
       .inject({
         method: 'POST',
         url: '/orders',
         headers: { authorization: `Bearer ${token}` },
-        payload: { product: 'widget', quantity: 2, amount: 1500 },
+        payload: { items: [{ productId: product!.id, quantity: 2 }] },
       })
       .then((r) => r.json<{ id: string; status: string }>());
 
@@ -99,7 +114,11 @@ describe('order flow integration (pg + rabbit + mailpit)', () => {
     expect(outbox!.publishedAt).not.toBeNull();
 
     const [order] = await db.select().from(orders).where(eq(orders.id, created.id));
-    expect(order!.status).toBe('created');
+    expect(order!.status).toBe('pending');
+
+    // order_items written; no payment side effect in this phase
+    const items = await db.select().from(orderItems).where(eq(orderItems.orderId, created.id));
+    expect(items).toHaveLength(1);
 
     const processed = await db
       .select()

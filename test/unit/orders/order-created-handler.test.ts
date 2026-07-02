@@ -15,9 +15,8 @@ const payload: OrderCreatedPayload = {
   orderId: crypto.randomUUID(),
   userId: crypto.randomUUID(),
   email: 'buyer@test.dev',
-  product: 'widget',
-  quantity: 2,
-  amount: 1500,
+  items: [{ productId: crypto.randomUUID(), sku: 'SKU-A', unitPriceCents: 750, quantity: 2 }],
+  totalCents: 1500,
 };
 
 /** Builds a minimal ConsumeMessage whose body is an EventEnvelope keyed by eventId. */

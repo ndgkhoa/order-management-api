@@ -53,18 +53,56 @@ export const products = pgTable(
   ],
 );
 
-/** Orders placed by a user. `amount` is stored in integer cents to avoid float money bugs. */
-export const orders = pgTable('orders', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  userId: uuid('user_id')
-    .notNull()
-    .references(() => users.id),
-  product: text('product').notNull(),
-  quantity: integer('quantity').notNull(),
-  amount: integer('amount').notNull(), // cents
-  status: text('status').notNull().default('created'),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-});
+/**
+ * Orders are a multi-line aggregate: the header row holds the total + status, and one
+ * `order_items` row per product carries an immutable price snapshot. The create tx writes
+ * ONLY order + items + the OrderCreated outbox event — stock reservation and payment are
+ * async saga steps in later phases. `total_cents` is integer cents (no float money).
+ * Status lifecycle (guarded in code): pending → paid → fulfilling → delivered, plus cancelled.
+ */
+export const orders = pgTable(
+  'orders',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id),
+    status: text('status').notNull().default('pending'),
+    totalCents: integer('total_cents').notNull(),
+    currency: text('currency').notNull().default('USD'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('orders_user_id_idx').on(t.userId)], // listByUser filters on user_id
+);
+
+/**
+ * Line items of an order. `unit_price_cents` + `sku_snapshot` are captured at order time
+ * and never change, so a later price edit or product withdrawal cannot alter historical
+ * orders. `line_total_cents = unit_price_cents * quantity`.
+ */
+export const orderItems = pgTable(
+  'order_items',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    orderId: uuid('order_id')
+      .notNull()
+      .references(() => orders.id),
+    productId: uuid('product_id')
+      .notNull()
+      .references(() => products.id),
+    skuSnapshot: text('sku_snapshot').notNull(),
+    unitPriceCents: integer('unit_price_cents').notNull(),
+    quantity: integer('quantity').notNull(),
+    lineTotalCents: integer('line_total_cents').notNull(),
+  },
+  // Postgres does not auto-index FK columns; both are filtered on read (fetch items by order,
+  // future inventory joins by product).
+  (t) => [
+    index('order_items_order_id_idx').on(t.orderId),
+    index('order_items_product_id_idx').on(t.productId),
+  ],
+);
 
 /**
  * Transactional Outbox: an event row written in the SAME transaction as the order.
