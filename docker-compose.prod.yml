@@ -54,7 +54,7 @@ services:
         limits:
           memory: 256M
 
-  email-worker:
+  worker:
     env_file: .env.prod
     restart: unless-stopped
     deploy:

@@ -2,7 +2,7 @@
 
 The CI/CD pipeline's job ends at **publishing the image to GHCR and Docker Hub** (see the release flow below).
 **Deploying** = pulling that image and running it. The same image runs the **API**
-(`node dist/server.js`) or the **email worker** (`node dist/workers/email-worker.js`) — the command
+(`node dist/server.js`) or the **worker** (`node dist/workers/worker.js`) — the command
 is overridden per role.
 
 Three tiers, easiest first: **(A) Fly.io** → **(B) VPS + docker compose + TLS** → **(C) Kubernetes + Helm**.
@@ -89,7 +89,7 @@ primary_region = "sin"
 
 [processes]
   app    = "node dist/server.js"
-  worker = "node dist/workers/email-worker.js"
+  worker = "node dist/workers/worker.js"
 
 [http_service]                    # fronts the API process only — the worker has no HTTP server
   internal_port = 3000
@@ -152,7 +152,7 @@ memory limits, Grafana locked down, **no published Postgres/RabbitMQ ports**, cr
 
 Only worth it at multi-node scale. Sketch:
 
-- **Two Deployments**, same image, different `command`: `api` (replicas ≥ 2) and `email-worker`.
+- **Two Deployments**, same image, different `command`: `api` (replicas ≥ 2) and `worker`.
 - **Service + Ingress** for the API; TLS via **cert-manager** + a `ClusterIssuer` (Let's Encrypt).
 - **Managed Postgres + RabbitMQ** (cloud or an operator) — don't run stateful infra by hand.
 - **Probes** on the API: liveness `GET /health`, readiness `GET /ready` (the worker has no HTTP —
@@ -168,6 +168,6 @@ Only worth it at multi-node scale. Sketch:
 - [ ] Secrets in the platform store, none in git (`JWT_SECRET` ≥ 32 chars, unique per env)
 - [ ] `node dist/infra/db/migrate.js` runs and exits 0 **before** api/worker start
 - [ ] API reachable only through the TLS reverse proxy; Postgres/RabbitMQ ports not public
-- [ ] Both roles running (api + email-worker) from the **same** pinned image tag
+- [ ] Both roles running (api + worker) from the **same** pinned image tag
 - [ ] `/health` + `/ready` green; metrics/traces flowing if collectors configured
 - [ ] Postgres volume backups scheduled (self-hosted paths)

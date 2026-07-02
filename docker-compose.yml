@@ -134,10 +134,10 @@ services:
       redis:
         condition: service_healthy
 
-  email-worker:
-    container_name: order-management-email-worker
+  worker:
+    container_name: order-management-worker
     build: .
-    command: ['node', '--import', './dist/infra/telemetry/otel.js', 'dist/workers/email-worker.js']
+    command: ['node', '--import', './dist/infra/telemetry/otel.js', 'dist/workers/worker.js']
     # The shared image bakes an HTTP /health probe for the API; the worker has no HTTP server, so disable it.
     healthcheck:
       disable: true
@@ -147,7 +147,7 @@ services:
       RABBITMQ_URL: amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:5672
       REDIS_URL: redis://redis:6379
       OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
-      OTEL_SERVICE_NAME: email-worker
+      OTEL_SERVICE_NAME: worker
     depends_on:
       postgres:
         condition: service_healthy
