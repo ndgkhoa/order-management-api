@@ -11,6 +11,7 @@ import {
   UpdateProductBody,
   ProductPublic,
 } from '@modules/products/products-schema.js';
+import { errorResponses } from '@infra/http/error-responses.js';
 
 const IdParams = Type.Object({ id: Type.String({ format: 'uuid' }) });
 
@@ -41,7 +42,11 @@ export const productsRoutes: FastifyPluginAsyncTypebox = (app) => {
     '/',
     {
       preHandler: adminOnly,
-      schema: { body: CreateProductBody, response: { 201: ProductPublic } },
+      schema: {
+        tags: ['products'],
+        body: CreateProductBody,
+        response: { 201: ProductPublic, ...errorResponses(400, 401, 403, 409) },
+      },
     },
     controller.create,
   );
@@ -50,22 +55,45 @@ export const productsRoutes: FastifyPluginAsyncTypebox = (app) => {
     '/:id',
     {
       preHandler: adminOnly,
-      schema: { params: IdParams, body: UpdateProductBody, response: { 200: ProductPublic } },
+      schema: {
+        tags: ['products'],
+        params: IdParams,
+        body: UpdateProductBody,
+        response: { 200: ProductPublic, ...errorResponses(400, 401, 403, 404) },
+      },
     },
     controller.update,
   );
 
-  app.delete('/:id', { preHandler: adminOnly, schema: { params: IdParams } }, controller.remove);
+  app.delete(
+    '/:id',
+    {
+      preHandler: adminOnly,
+      schema: { tags: ['products'], params: IdParams, response: errorResponses(401, 403, 404) },
+    },
+    controller.remove,
+  );
 
   app.get(
     '/',
-    { preHandler: optionalAuth, schema: { response: { 200: Type.Array(ProductPublic) } } },
+    {
+      preHandler: optionalAuth,
+      schema: { tags: ['products'], security: [], response: { 200: Type.Array(ProductPublic) } },
+    },
     controller.list,
   );
 
   app.get(
     '/:id',
-    { preHandler: optionalAuth, schema: { params: IdParams, response: { 200: ProductPublic } } },
+    {
+      preHandler: optionalAuth,
+      schema: {
+        tags: ['products'],
+        security: [],
+        params: IdParams,
+        response: { 200: ProductPublic, ...errorResponses(404) },
+      },
+    },
     controller.get,
   );
 

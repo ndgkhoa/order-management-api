@@ -3,6 +3,7 @@ import { makeUsersRepository } from '@modules/users/users-repository.js';
 import { makeUsersService } from '@modules/users/users-service.js';
 import { makeUsersController } from '@modules/users/users-controller.js';
 import { UserPublic } from '@modules/users/users-schema.js';
+import { errorResponses } from '@infra/http/error-responses.js';
 
 /** /users routes. GET /me is protected by the `authenticate` preHandler (JWT). */
 export const usersRoutes: FastifyPluginAsyncTypebox = (app) => {
@@ -12,7 +13,10 @@ export const usersRoutes: FastifyPluginAsyncTypebox = (app) => {
 
   app.get(
     '/me',
-    { preHandler: app.authenticate, schema: { response: { 200: UserPublic } } },
+    {
+      preHandler: app.authenticate,
+      schema: { tags: ['users'], response: { 200: UserPublic, ...errorResponses(401, 404) } },
+    },
     controller.me,
   );
 
