@@ -8,6 +8,6 @@ import { db } from '@infra/db/client.js';
  */
 export async function resetDb(): Promise<void> {
   await db.execute(
-    sql`TRUNCATE TABLE processed_messages, outbox_messages, orders, products, users RESTART IDENTITY CASCADE`,
+    sql`TRUNCATE TABLE processed_messages, outbox_messages, order_items, orders, products, users RESTART IDENTITY CASCADE`,
   );
 }

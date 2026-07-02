@@ -36,6 +36,20 @@
       "when": 1782181726640,
       "tag": "0004_supreme_captain_cross",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1782979938820,
+      "tag": "0005_stormy_silver_fox",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1782980543172,
+      "tag": "0006_gifted_nova",
+      "breakpoints": true
     }
   ]
 }

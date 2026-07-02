@@ -1,47 +1,54 @@
-import { desc, eq } from 'drizzle-orm';
+import { and, desc, eq } from 'drizzle-orm';
 import { context, propagation } from '@opentelemetry/api';
 import type { DB } from '@infra/db/client.js';
-import { orders, outboxMessages } from '@infra/db/schema.js';
+import { orders, orderItems, outboxMessages } from '@infra/db/schema.js';
 import { ORDER_CREATED_EVENT, type OrderCreatedPayload } from '@infra/mq/outbox-event-types.js';
-import type { CreateOrderBody } from '@modules/orders/orders-schema.js';
+import type { OrderLine } from '@modules/orders/order-total.js';
 
-interface CreateOrderInput extends CreateOrderBody {
+interface CreateOrderInput {
   userId: string;
   email: string; // carried into the event payload (no extra query in the worker)
+  lines: OrderLine[]; // pre-validated + price-snapshotted by the service
+  totalCents: number;
 }
 
 /** Data access for orders. The create path is the Transactional Outbox core. */
 export function makeOrdersRepository(db: DB) {
   return {
     /**
-     * Writes the order AND its `order.created` outbox row in ONE transaction.
-     * Either both commit or neither does — the event can never be lost or orphaned.
+     * Writes the order header, its line items, AND the `order.created` outbox row in ONE
+     * transaction — all commit together or none does, so the event can never be lost or
+     * orphaned. NO stock reservation and NO payment here; those are async saga steps.
      */
     async createWithOutbox(input: CreateOrderInput) {
       return db.transaction(async (tx) => {
-        const rows = await tx
+        const orderRows = await tx
           .insert(orders)
-          .values({
-            userId: input.userId,
-            product: input.product,
-            quantity: input.quantity,
-            amount: input.amount,
-          })
+          .values({ userId: input.userId, totalCents: input.totalCents })
           .returning();
-        const order = rows[0];
+        const order = orderRows[0];
         if (!order) throw new Error('order insert returned no row');
+
+        const itemRows = await tx
+          .insert(orderItems)
+          .values(input.lines.map((l) => ({ orderId: order.id, ...l })))
+          .returning();
 
         const payload: OrderCreatedPayload = {
           orderId: order.id,
           userId: order.userId,
           email: input.email,
-          product: order.product,
-          quantity: order.quantity,
-          amount: order.amount,
+          items: input.lines.map((l) => ({
+            productId: l.productId,
+            sku: l.skuSnapshot,
+            unitPriceCents: l.unitPriceCents,
+            quantity: l.quantity,
+          })),
+          totalCents: order.totalCents,
         };
-        // Capture the active (request) trace context into a W3C carrier so the relay
-        // can resume THIS trace at publish time — without it the relay's later publish
-        // starts a brand-new trace, splitting the request and the email worker apart.
+        // Capture the active (request) trace context into a W3C carrier so the relay can
+        // resume THIS trace at publish time — without it the relay's later publish starts
+        // a brand-new trace, splitting the request and the worker apart.
         const carrier: Record<string, string> = {};
         propagation.inject(context.active(), carrier);
 
@@ -54,7 +61,7 @@ export function makeOrdersRepository(db: DB) {
           traceContext: Object.keys(carrier).length > 0 ? carrier : null,
         });
 
-        return order; // both committed together
+        return { order, items: itemRows };
       });
     },
 
@@ -63,6 +70,18 @@ export function makeOrdersRepository(db: DB) {
         where: eq(orders.userId, userId),
         orderBy: desc(orders.createdAt),
       }),
+
+    /** Owner-scoped fetch (order + items). Returns undefined if missing or not owned. */
+    async findByIdForUser(orderId: string, userId: string) {
+      const order = await db.query.orders.findFirst({
+        where: and(eq(orders.id, orderId), eq(orders.userId, userId)),
+      });
+      if (!order) return undefined;
+      const items = await db.query.orderItems.findMany({
+        where: eq(orderItems.orderId, orderId),
+      });
+      return { order, items };
+    },
   };
 }
 
