@@ -1,7 +1,9 @@
 import type { Channel, ConsumeMessage } from 'amqplib';
 import type { FastifyBaseLogger } from 'fastify';
-import type { HandlerResult } from '@modules/orders/order-created-handler.js';
 import { ORDER_EVENTS_EXCHANGE } from '@infra/mq/outbox-event-types.js';
+
+/** What a message handler asks the consumer to do: acknowledge, or retry (nack + backoff). */
+export type HandlerResult = 'ack' | 'retry';
 
 const delay = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 

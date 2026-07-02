@@ -5,14 +5,13 @@ import { processedMessages } from '@infra/db/schema.js';
 import type { MailAdapter } from '@infra/mail/mail-adapter.js';
 import type { OrderCreatedPayload } from '@infra/mq/outbox-event-types.js';
 import type { EventEnvelope } from '@infra/mq/event-envelope.js';
+import type { HandlerResult } from '@infra/mq/consumer.js';
 
 interface HandlerDeps {
   db: DB;
   mailAdapter: MailAdapter;
   log: FastifyBaseLogger;
 }
-
-export type HandlerResult = 'ack' | 'retry';
 
 /** This consumer's identity in the per-consumer dedupe key. */
 const CONSUMER_NAME = 'email';

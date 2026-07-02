@@ -46,7 +46,7 @@ services:
     environment:
       SMTP_HOST: mailpit # talk to the mailpit container instead of the host's localhost
 
-  email-worker:
+  worker:
     env_file: .env
     environment:
       SMTP_HOST: mailpit

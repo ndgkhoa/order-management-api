@@ -30,6 +30,11 @@ export const envSchema = Type.Object({
 
   OUTBOX_POLL_INTERVAL_MS: Type.Number({ default: 1000 }),
 
+  // Stuck-order reaper (worker): how often to sweep, and how old a `pending` order must be
+  // to be flagged as stuck (default 15 min).
+  ORDER_REAPER_INTERVAL_MS: Type.Number({ default: 60_000 }),
+  STUCK_ORDER_THRESHOLD_MS: Type.Number({ default: 900_000 }),
+
   OTEL_EXPORTER_OTLP_ENDPOINT: Type.Optional(Type.String()),
   SENTRY_DSN: Type.Optional(Type.String()),
 });

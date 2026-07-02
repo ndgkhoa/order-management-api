@@ -2,7 +2,7 @@ import { Pool } from 'pg';
 
 /**
  * node-postgres connection Pool — a Singleton for the process.
- * Both the API and the email-worker import this module; each process gets its
+ * Both the API and the worker import this module; each process gets its
  * own pool (correct: separate processes shouldn't share sockets).
  * `max` is bounded to avoid exhausting Postgres connections.
  */

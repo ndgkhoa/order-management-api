@@ -2,26 +2,57 @@ import type { Channel, ConfirmChannel } from 'amqplib';
 import { ORDER_CREATED_EVENT, ORDER_EVENTS_EXCHANGE } from '@infra/mq/outbox-event-types.js';
 
 export const ORDER_EMAIL_QUEUE = 'order.created.email';
+export const ORDER_INVENTORY_QUEUE = 'order.created.inventory';
 export const ORDER_EVENTS_DLX = 'order.events.dlx';
 export const ORDER_EMAIL_DLQ = 'order.created.email.dlq';
-const DEAD_ROUTING_KEY = 'order.created.dead';
+export const ORDER_INVENTORY_DLQ = 'order.created.inventory.dlq';
+// Per-consumer dead-letter keys — each consumer's failures route to its own DLQ.
+// NOTE: a RabbitMQ queue is immutable. An environment that already declared
+// `order.created.email` with a different `x-dead-letter-routing-key` must delete that
+// queue once so it re-declares with this key (else boot fails 406 PRECONDITION_FAILED).
+const EMAIL_DEAD_KEY = 'order.created.email.dead';
+const INVENTORY_DEAD_KEY = 'order.created.inventory.dead';
+
+/** Declares one main queue + its DLQ, both bound to the topic exchange / DLX. */
+async function assertConsumerQueue(
+  ch: Channel | ConfirmChannel,
+  queue: string,
+  dlq: string,
+  deadKey: string,
+  bindingKey: string,
+): Promise<void> {
+  await ch.assertQueue(queue, {
+    durable: true,
+    deadLetterExchange: ORDER_EVENTS_DLX,
+    deadLetterRoutingKey: deadKey,
+  });
+  await ch.bindQueue(queue, ORDER_EVENTS_EXCHANGE, bindingKey);
+  await ch.assertQueue(dlq, { durable: true });
+  await ch.bindQueue(dlq, ORDER_EVENTS_DLX, deadKey);
+}
 
 /**
- * Declares the exchange/queue/binding topology (idempotent — safe to call at every
- * boot). The main queue dead-letters to a DLX → DLQ so a message that fails
- * repeatedly lands in the DLQ instead of looping forever.
+ * Declares the exchange/queue/binding topology (idempotent — safe to call at every boot).
+ * Each consumer gets its OWN queue bound to `order.created`, so email and inventory are
+ * independent subscribers (fan-out) rather than competing consumers. Each main queue
+ * dead-letters to a DLX → per-consumer DLQ so a repeatedly failing message parks there.
  */
 export async function assertTopology(ch: Channel | ConfirmChannel): Promise<void> {
   await ch.assertExchange(ORDER_EVENTS_EXCHANGE, 'topic', { durable: true });
   await ch.assertExchange(ORDER_EVENTS_DLX, 'topic', { durable: true });
 
-  await ch.assertQueue(ORDER_EMAIL_QUEUE, {
-    durable: true,
-    deadLetterExchange: ORDER_EVENTS_DLX,
-    deadLetterRoutingKey: DEAD_ROUTING_KEY,
-  });
-  await ch.bindQueue(ORDER_EMAIL_QUEUE, ORDER_EVENTS_EXCHANGE, ORDER_CREATED_EVENT);
-
-  await ch.assertQueue(ORDER_EMAIL_DLQ, { durable: true });
-  await ch.bindQueue(ORDER_EMAIL_DLQ, ORDER_EVENTS_DLX, DEAD_ROUTING_KEY);
+  await assertConsumerQueue(
+    ch,
+    ORDER_EMAIL_QUEUE,
+    ORDER_EMAIL_DLQ,
+    EMAIL_DEAD_KEY,
+    ORDER_CREATED_EVENT,
+  );
+  await assertConsumerQueue(
+    ch,
+    ORDER_INVENTORY_QUEUE,
+    ORDER_INVENTORY_DLQ,
+    INVENTORY_DEAD_KEY,
+    ORDER_CREATED_EVENT,
+  );
 }

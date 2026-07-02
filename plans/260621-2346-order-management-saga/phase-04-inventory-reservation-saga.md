@@ -1,7 +1,7 @@
 ---
 phase: 4
 title: 'Inventory Reservation Saga'
-status: pending
+status: completed
 priority: P1
 effort: '6h'
 dependencies: [3]
@@ -67,3 +67,15 @@ First saga step: an `OrderCreated` consumer reserves stock atomically (`stock_av
 - **Create the shared stock helper here, at first use.** Reserve logic must live in `src/modules/inventory/adjust-stock.ts` from this phase (not introduced later in phase 6). Phase 6 commit/release reuse the SAME helper — one implementation of the column arithmetic, no divergent copy.
 - **Pin the `InventoryReserved` payload item shape.** Emit `InventoryReserved { orderId, items: [{ productId, quantity }] }` (same item shape as `OrderCreated`) so the phase-6 per-item commit/release does not re-query the order. Lock this in `outbox-event-types.ts`.
 - **Composite dedup.** This consumer dedups on (`consumer_name`='inventory', logical `event_id`) per the phase-1 hardening — so it does not collide with the email consumer on the same `OrderCreated`.
+
+## Implementation Notes (done 2026-07-02)
+
+- **Worker consolidation:** `email-worker.ts` → generic `src/workers/worker.ts` running BOTH the email and inventory consumers (separate channels) + the outbox relay + the reaper. Renamed everywhere (compose service `email-worker`→`worker`, container `order-management-worker`, package scripts, OTEL name, deployment-guide). Standard "one generic worker hosts all consumers" pattern.
+- **All-or-nothing reserve:** the reserve loop runs inside a Postgres SAVEPOINT (`tx.transaction`); a short line throws → savepoint rolls back the partial reserves while the dedup insert + cancel writes stay in the outer tx. Verified by the out-of-stock integration test (sufficient line rolls back to `[10,0]`).
+- **Shared guard:** `inventory/adjust-stock.ts` `reserveStock` (guarded `WHERE stock_available >= q RETURNING`) is the sole arithmetic path; phase 6 adds commit/release to the same file. Non-negative CHECKs (from phase 2) are the last line of defence.
+- **Status machine:** `orders/order-status.ts` locks the canonical transition table (rejects `cancelled → paid`). Reserve cancel uses CAS `WHERE status='pending'`; wire `assertTransition` into write paths in phases 5/6.
+- **Fan-out topology:** `order.created.email` and `order.created.inventory` each bind `order.created` (independent subscribers, not competing) — each with its own DLQ.
+- **Relay-in-worker + reaper (red-team):** worker runs `createOutboxRelay` (two relays API+worker, safe via `FOR UPDATE SKIP LOCKED`) + `createOrderReaper` (log-only sweep of stuck `pending` orders; env `ORDER_REAPER_INTERVAL_MS`/`STUCK_ORDER_THRESHOLD_MS`).
+- **Review fixes:** `order.cancelled` emitted only when the CAS cancels a row (no spurious cancel for already-terminal orders); deployment-guide entrypoint updated to `worker.js`.
+- **Migration 0007:** `orders.cancel_reason text` nullable.
+- **Tests:** +9 — order-status unit, reserveStock unit (suffic/insuffic/boundary), inventory-saga integration (success / out_of_stock all-or-nothing / idempotency). Full suite 67 green.

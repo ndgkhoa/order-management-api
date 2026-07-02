@@ -70,6 +70,7 @@ export const orders = pgTable(
     status: text('status').notNull().default('pending'),
     totalCents: integer('total_cents').notNull(),
     currency: text('currency').notNull().default('USD'),
+    cancelReason: text('cancel_reason'), // set when a saga step cancels (e.g. out_of_stock)
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },

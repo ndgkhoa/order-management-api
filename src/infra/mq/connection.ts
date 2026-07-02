@@ -9,7 +9,7 @@ let connecting: Promise<AmqpConnection> | null = null;
 /**
  * Singleton AMQP connection. On error/close it drops the cached connection so the
  * next caller lazily reconnects. (Production upgrade: auto-resume consumers after a
- * reconnect; here the worker relies on a restart policy — see email-worker.ts.)
+ * reconnect; here the worker relies on a restart policy — see workers/worker.ts.)
  */
 export async function getConnection(log: FastifyBaseLogger): Promise<AmqpConnection> {
   if (connection) return connection;
