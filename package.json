@@ -64,7 +64,7 @@
     "argon2": "^0.44.0",
     "drizzle-orm": "^0.45.2",
     "fastify": "^5.9.0",
-    "fastify-metrics": "^13.2.0",
+    "fastify-metrics": "^13.2.1",
     "ioredis": "^5.11.1",
     "nodemailer": "^9.0.3",
     "pg": "^8.21.0",
