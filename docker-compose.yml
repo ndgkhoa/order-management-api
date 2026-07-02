@@ -21,6 +21,7 @@ name: order-management
 
 services:
   postgres:
+    container_name: order-management-postgres
     image: postgres:18.4
     environment:
       # left = keys the image requires; values come from our DATABASE_* vars
@@ -35,6 +36,7 @@ services:
       retries: 10
 
   rabbitmq:
+    container_name: order-management-rabbitmq
     image: rabbitmq:4.3.2-management
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:?}
@@ -47,7 +49,8 @@ services:
       retries: 10
 
   redis:
-    image: redis:7.4
+    container_name: order-management-redis
+    image: redis:8.8.0
     command: ['redis-server', '--appendonly', 'yes']
     volumes: ['redis-data:/data']
     healthcheck:
@@ -57,18 +60,21 @@ services:
       retries: 10
 
   jaeger:
+    container_name: order-management-jaeger
     image: jaegertracing/all-in-one:1.76.0
     environment:
       COLLECTOR_OTLP_ENABLED: 'true'
     tmpfs: ['/tmp']
 
   prometheus:
+    container_name: order-management-prometheus
     image: prom/prometheus:v3.12.0
     volumes:
       - './prometheus.yml:/etc/prometheus/prometheus.yml:ro'
       - 'prometheus-data:/prometheus'
 
   loki:
+    container_name: order-management-loki
     image: grafana/loki:3.5.1
     command: ['-config.file=/etc/loki/loki-config.yml']
     volumes:
@@ -83,6 +89,7 @@ services:
   # Tails container stdout via the Docker socket → Loki. Needs the socket and (on Linux)
   # root to read it; it's a log shipper on a single VM, so that trade-off is acceptable.
   alloy:
+    container_name: order-management-alloy
     image: grafana/alloy:v1.10.0
     user: root
     command:
@@ -96,6 +103,7 @@ services:
     depends_on: [loki]
 
   grafana:
+    container_name: order-management-grafana
     image: grafana/grafana:13.0.2
     environment:
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?}
@@ -105,6 +113,7 @@ services:
     depends_on: [prometheus, loki]
 
   api:
+    container_name: order-management-api
     build: .
     command: ['node', '--import', './dist/infra/telemetry/otel.js', 'dist/server.js']
     environment:
@@ -126,6 +135,7 @@ services:
         condition: service_healthy
 
   email-worker:
+    container_name: order-management-email-worker
     build: .
     command: ['node', '--import', './dist/infra/telemetry/otel.js', 'dist/workers/email-worker.js']
     # The shared image bakes an HTTP /health probe for the API; the worker has no HTTP server, so disable it.

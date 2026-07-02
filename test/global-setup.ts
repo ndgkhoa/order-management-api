@@ -20,7 +20,7 @@ export default async function setup(): Promise<() => Promise<void>> {
     .withStartupTimeout(120_000)
     .start();
 
-  const redis = await new GenericContainer('redis:7.4')
+  const redis = await new GenericContainer('redis:8.8.0')
     .withExposedPorts(6379)
     .withWaitStrategy(Wait.forLogMessage('Ready to accept connections'))
     .start();
