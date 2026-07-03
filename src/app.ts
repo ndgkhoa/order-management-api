@@ -20,6 +20,7 @@ import { usersRoutes } from '@modules/users/users-routes.js';
 import { productsRoutes } from '@modules/products/products-routes.js';
 import { ordersRoutes } from '@modules/orders/orders-routes.js';
 import { paymentsRoutes } from '@modules/payments/payments-routes.js';
+import { shipmentsRoutes } from '@modules/shipping/shipments-routes.js';
 
 /** Pretty logs in dev, structured JSON in production. */
 function loggerOptions(): FastifyServerOptions['logger'] {
@@ -66,6 +67,7 @@ export async function buildApp() {
   await app.register(productsRoutes, { prefix: '/products' });
   await app.register(ordersRoutes, { prefix: '/orders' });
   await app.register(paymentsRoutes); // /webhooks/payment + /mock-payments/* (own raw-body parser)
+  await app.register(shipmentsRoutes, { prefix: '/shipments' }); // admin manual advance
 
   return app;
 }

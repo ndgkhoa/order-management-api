@@ -30,6 +30,9 @@ export const envSchema = Type.Object({
   PAYMENT_WEBHOOK_URL: Type.String({ default: 'http://localhost:3000/webhooks/payment' }),
   WEBHOOK_TIMESTAMP_SKEW_MS: Type.Number({ default: 300_000 }), // 5 min
 
+  // Fake shipping worker: delay between each shipment status advance.
+  SHIPPING_STEP_MS: Type.Number({ default: 3000 }),
+
   SMTP_HOST: Type.String({ default: 'localhost' }),
   SMTP_PORT: Type.Number({ default: 1025 }),
   MAIL_FROM: Type.String({ default: 'no-reply@orders.local' }),
