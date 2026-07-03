@@ -131,6 +131,47 @@ export const payments = pgTable(
 );
 
 /**
+ * Shipment aggregate — one per order, created when the order is paid. Status machine
+ * (guarded in `shipment-status.ts`): pending → ready_for_pickup → in_transit → delivered.
+ * `carrier`/`tracking_no` are mock metadata. Unique `order_id` = one shipment per order.
+ */
+export const shipments = pgTable(
+  'shipments',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    orderId: uuid('order_id')
+      .notNull()
+      .references(() => orders.id),
+    status: text('status').notNull().default('pending'),
+    carrier: text('carrier').notNull().default('MockPost'),
+    trackingNo: text('tracking_no'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex('shipments_order_id_uq').on(t.orderId)],
+);
+
+/**
+ * Append-only audit of every order status transition (from → to, with a reason). Written in
+ * the same transaction as the status change so the trail can never drift from the order row.
+ * `from_status` is null for the initial creation.
+ */
+export const orderStatusHistory = pgTable(
+  'order_status_history',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    orderId: uuid('order_id')
+      .notNull()
+      .references(() => orders.id),
+    fromStatus: text('from_status'),
+    toStatus: text('to_status').notNull(),
+    reason: text('reason'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('order_status_history_order_id_idx').on(t.orderId)],
+);
+
+/**
  * Transactional Outbox: an event row written in the SAME transaction as the order.
  * A relay later publishes unsent rows to RabbitMQ and stamps `publishedAt`.
  * `publishedAt IS NULL` = not yet published (indexed for the relay's poll query).

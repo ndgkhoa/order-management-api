@@ -49,6 +49,25 @@ export async function commitReservation(
 }
 
 /**
+ * Restock on refund of an already-PAID order: `available += q` only. The reservation was
+ * already committed at payment (reserved returned to 0), so unlike `releaseReservation` this
+ * does not touch `reserved`. Always succeeds (adding stock can't violate the non-negative
+ * guards); returns `true` if the product row existed.
+ */
+export async function restockAvailable(
+  tx: Tx,
+  productId: string,
+  quantity: number,
+): Promise<boolean> {
+  const rows = await tx
+    .update(products)
+    .set({ stockAvailable: sql`${products.stockAvailable} + ${quantity}`, updatedAt: new Date() })
+    .where(eq(products.id, productId))
+    .returning({ id: products.id });
+  return rows.length > 0;
+}
+
+/**
  * Release a reservation on payment failure / compensation: `available += q`, `reserved -= q`,
  * only if `reserved >= q`. The guard makes a double-release a no-op (returns `false`) rather
  * than over-crediting available stock.
