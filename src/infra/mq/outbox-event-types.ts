@@ -3,6 +3,10 @@ export const ORDER_EVENTS_EXCHANGE = 'order.events';
 export const ORDER_CREATED_EVENT = 'order.created';
 export const INVENTORY_RESERVED_EVENT = 'inventory.reserved';
 export const ORDER_CANCELLED_EVENT = 'order.cancelled';
+export const PAYMENT_CREATED_EVENT = 'payment.created';
+export const PAYMENT_SUCCEEDED_EVENT = 'payment.succeeded';
+export const PAYMENT_FAILED_EVENT = 'payment.failed';
+export const ORDER_PAID_EVENT = 'order.paid';
 
 /** A single snapshotted line of an order, carried in the OrderCreated event. */
 export interface OrderCreatedItem {
@@ -39,4 +43,24 @@ export interface InventoryReservedPayload {
 export interface OrderCancelledPayload {
   orderId: string;
   reason: string;
+}
+
+/** Emitted after a pending payment row is created for a reserved order. */
+export interface PaymentCreatedPayload {
+  orderId: string;
+  paymentId: string;
+  amountCents: number;
+}
+
+/** Emitted by the webhook when the provider reports a payment outcome. Carries `orderId`
+ *  so the completion/compensation consumers act on the order without a payment lookup. */
+export interface PaymentSettledPayload {
+  orderId: string;
+  paymentId: string;
+}
+
+/** Emitted after an order is marked paid and its reservation committed. */
+export interface OrderPaidPayload {
+  orderId: string;
+  paymentId: string;
 }
