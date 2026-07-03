@@ -1,4 +1,4 @@
-import type { FastifyReply, FastifyRequest } from 'fastify';
+import type { FastifyReply } from 'fastify';
 import type { Redis } from 'ioredis';
 import type { AppConfig } from '@config/env-schema.js';
 import type { DB } from '@infra/db/client.js';
@@ -12,6 +12,12 @@ declare module 'fastify' {
     redis: Redis; // redis plugin
     authenticate: (request: FastifyRequest, reply: FastifyReply) => Promise<void>; // jwt plugin
     requireRole: (role: UserRole) => (request: FastifyRequest) => Promise<void>; // rbac plugin
+    // idempotency plugin — use in a route preHandler AFTER authenticate
+    idempotency: (request: FastifyRequest, reply: FastifyReply) => Promise<FastifyReply | void>;
+  }
+
+  interface FastifyRequest {
+    idempotencyKey?: string; // set by idempotency preHandler when this request owns the key
   }
 }
 
