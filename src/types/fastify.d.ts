@@ -18,6 +18,7 @@ declare module 'fastify' {
 
   interface FastifyRequest {
     idempotencyKey?: string; // set by idempotency preHandler when this request owns the key
+    rawBody?: string; // raw request body captured by the payments webhook parser (HMAC verify)
   }
 }
 

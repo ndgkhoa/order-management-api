@@ -24,6 +24,12 @@ export const envSchema = Type.Object({
   // route verifies (phase 6). Declared now so boot validation covers it early.
   WEBHOOK_HMAC_SECRET: Type.String({ minLength: 32 }),
 
+  // Mock payment provider (phase 6): delay before it calls the webhook back, the URL it
+  // posts the signed result to, and the max clock skew a webhook timestamp may drift.
+  MOCK_PAYMENT_DELAY_MS: Type.Number({ default: 2000 }),
+  PAYMENT_WEBHOOK_URL: Type.String({ default: 'http://localhost:3000/webhooks/payment' }),
+  WEBHOOK_TIMESTAMP_SKEW_MS: Type.Number({ default: 300_000 }), // 5 min
+
   SMTP_HOST: Type.String({ default: 'localhost' }),
   SMTP_PORT: Type.Number({ default: 1025 }),
   MAIL_FROM: Type.String({ default: 'no-reply@orders.local' }),
