@@ -1,7 +1,7 @@
 ---
 phase: 6
 title: 'Payment Saga & Webhook'
-status: pending
+status: completed
 priority: P1
 effort: '8h'
 dependencies: [4]
@@ -58,11 +58,24 @@ The saga heart: `InventoryReserved` → create payment → a mock provider calls
 
 ## Success Criteria
 
-- [ ] Full happy path: reserved → paid → OrderPaid, reservation committed (reserved decremented).
-- [ ] Forced failure: inventory released, order cancelled (compensation verified).
-- [ ] Webhook rejects bad HMAC (401) before side effects; duplicate webhook → single effect.
-- [ ] All payment/inventory transitions idempotent + status-guarded.
-- [ ] typecheck + lint + tests green.
+- [x] Full happy path: reserved → paid → OrderPaid, reservation committed (reserved decremented).
+- [x] Forced failure: inventory released, order cancelled (compensation verified).
+- [x] Webhook rejects bad HMAC (401) before side effects; duplicate webhook → single effect.
+- [x] All payment/inventory transitions idempotent + status-guarded.
+- [x] typecheck + lint + tests green (94/94, 17 new).
+
+## Implementation Notes (delta from spec)
+
+- Migration is `drizzle/0008_*.sql` (next sequential number), not `0006`.
+- Raw body captured via a content-type parser SCOPED to the payments plugin (`req.rawBody`),
+  not `@fastify/raw-body` — zero new dependency (user choice).
+- Durable webhook dedup reuses `processed_messages` (`consumer='webhook'`,
+  `eventId=providerEventId`); Redis SETNX is the fast-path in front of it.
+- Commit/release items are read from `order_items` (not threaded through payment events).
+- Tests drive the webhook directly via `app.inject` with signed payloads (deterministic);
+  the mock provider's timer/HTTP self-delivery is a dev convenience (signing unit-tested).
+- `order.paid` is emitted but has no bound consumer yet — the shipment consumer binds it in
+  phase 7 (topic exchange discards unbound events, by design).
 
 ## Risk Assessment
 

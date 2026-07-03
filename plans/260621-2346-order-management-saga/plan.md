@@ -40,7 +40,7 @@ POST /orders ─TX→ order(pending)+items+outbox(OrderCreated) → 201 pending
 | 3     | [Order Aggregate Refactor](./phase-03-order-aggregate-refactor.md)     | ✅ Completed |
 | 4     | [Inventory Reservation Saga](./phase-04-inventory-reservation-saga.md) | ✅ Completed |
 | 5     | [Idempotency & Rate-Limit](./phase-05-idempotency-rate-limit.md)       | ✅ Completed |
-| 6     | [Payment Saga & Webhook](./phase-06-payment-saga-webhook.md)           | Pending      |
+| 6     | [Payment Saga & Webhook](./phase-06-payment-saga-webhook.md)           | ✅ Completed |
 | 7     | [Lifecycle & Shipping](./phase-07-lifecycle-shipping.md)               | Pending      |
 | 8     | [Notifications](./phase-08-notifications.md)                           | Pending      |
 | 9     | [Docs Diagrams & Tests](./phase-09-docs-diagrams-tests.md)             | Pending      |
