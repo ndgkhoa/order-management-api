@@ -19,11 +19,13 @@ export const ordersRoutes: FastifyPluginAsyncTypebox = (app) => {
   app.post(
     '/',
     {
-      preHandler: app.authenticate,
+      // idempotency runs after authenticate so the key is scoped to the verified user;
+      // a retried Idempotency-Key replays the original 201 instead of creating a duplicate.
+      preHandler: [app.authenticate, app.idempotency],
       schema: {
         tags: ['orders'],
         body: CreateOrderBody,
-        response: { 201: OrderDetail, ...errorResponses(400, 401) },
+        response: { 201: OrderDetail, ...errorResponses(400, 401, 409) },
       },
     },
     controller.create,

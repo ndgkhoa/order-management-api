@@ -18,3 +18,6 @@ process.env.MAILPIT_HTTP = env.mailpitHttp;
 process.env.JWT_SECRET ??= 'test-jwt-secret-at-least-32-characters-long';
 process.env.WEBHOOK_HMAC_SECRET ??= 'test-webhook-hmac-secret-at-least-32-chars';
 process.env.OUTBOX_POLL_INTERVAL_MS ??= '500';
+// Raise the rate-limit ceiling: the whole suite hits the app from one client IP, so the
+// default 100/min would spuriously 429. The rate-limit test forces the limit deterministically.
+process.env.RATE_LIMIT_MAX ??= '100000';

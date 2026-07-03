@@ -1,7 +1,7 @@
 ---
 phase: 5
 title: 'Idempotency & Rate-Limit'
-status: pending
+status: completed
 priority: P2
 effort: '5h'
 dependencies: [3]
@@ -45,11 +45,28 @@ Add an HTTP `Idempotency-Key` layer (Redis-backed) so retried mutating POSTs ret
 
 ## Success Criteria
 
-- [ ] Retried POST /orders with same key → single order, replayed response.
-- [ ] Concurrent same-key handled (no double create).
-- [ ] Keys scoped per user+route, TTL'd.
-- [ ] Rate-limit backed by Redis (shared across instances).
-- [ ] typecheck + lint + tests green.
+- [x] Retried POST /orders with same key → single order, replayed response.
+- [x] Concurrent same-key handled (no double create).
+- [x] Keys scoped per user+route, TTL'd.
+- [x] Rate-limit backed by Redis (shared across instances).
+- [x] typecheck + lint + tests green.
+
+## Implementation Notes (delta from spec)
+
+- Idempotency wired as a route-level preHandler decorator `app.idempotency` (used as
+  `preHandler: [app.authenticate, app.idempotency]`), NOT a global preHandler + route config
+  flag: an instance-level preHandler runs before the route's `authenticate`, so `req.user.sub`
+  (the key's tenant scope) wouldn't exist yet. Storage stays a global `onSend` hook gated on a
+  `request.idempotencyKey` ownership flag.
+- Rate limit uses a DEDICATED fail-fast Redis connection (`connectTimeout` + `enableOfflineQueue:false`)
+  with `skipOnError: true`, not the shared `app.redis`. The shared client waits through reconnects
+  (`maxRetriesPerRequest:null`); on the app-wide onRequest path that would hang every route (incl.
+  health) during a Redis blip. Rate limiting now degrades OPEN.
+- Added `RATE_LIMIT_MAX` / `RATE_LIMIT_TIME_WINDOW` env (defaults 100 / '1 minute'); test env raises
+  the ceiling so the shared client IP doesn't self-trip during the suite.
+- Known accepted tradeoffs (availability over strict dedup): a crash between DB commit and the
+  onSend store, or a create handler exceeding the 30s processing-marker TTL, can allow a duplicate
+  order on retry. Consistent with the async-saga design; order create is fast today.
 
 ## Risk Assessment
 

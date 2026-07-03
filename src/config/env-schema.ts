@@ -30,6 +30,11 @@ export const envSchema = Type.Object({
 
   OUTBOX_POLL_INTERVAL_MS: Type.Number({ default: 1000 }),
 
+  // Redis-backed rate limit (shared across instances). Configurable so tests can raise
+  // the ceiling without tripping on the shared client IP.
+  RATE_LIMIT_MAX: Type.Number({ default: 100 }),
+  RATE_LIMIT_TIME_WINDOW: Type.String({ default: '1 minute' }),
+
   // Stuck-order reaper (worker): how often to sweep, and how old a `pending` order must be
   // to be flagged as stuck (default 15 min).
   ORDER_REAPER_INTERVAL_MS: Type.Number({ default: 60_000 }),
