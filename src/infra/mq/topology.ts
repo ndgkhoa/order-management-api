@@ -1,8 +1,19 @@
 import type { Channel, ConfirmChannel } from 'amqplib';
-import { ORDER_CREATED_EVENT, ORDER_EVENTS_EXCHANGE } from '@infra/mq/outbox-event-types.js';
+import {
+  ORDER_CREATED_EVENT,
+  ORDER_EVENTS_EXCHANGE,
+  INVENTORY_RESERVED_EVENT,
+  PAYMENT_CREATED_EVENT,
+  PAYMENT_SUCCEEDED_EVENT,
+  PAYMENT_FAILED_EVENT,
+} from '@infra/mq/outbox-event-types.js';
 
 export const ORDER_EMAIL_QUEUE = 'order.created.email';
 export const ORDER_INVENTORY_QUEUE = 'order.created.inventory';
+export const PAYMENT_CREATE_QUEUE = 'inventory.reserved.payment';
+export const MOCK_PROVIDER_QUEUE = 'payment.created.mock';
+export const PAYMENT_COMPLETE_QUEUE = 'payment.succeeded.order';
+export const PAYMENT_COMPENSATE_QUEUE = 'payment.failed.order';
 export const ORDER_EVENTS_DLX = 'order.events.dlx';
 export const ORDER_EMAIL_DLQ = 'order.created.email.dlq';
 export const ORDER_INVENTORY_DLQ = 'order.created.inventory.dlq';
@@ -12,6 +23,10 @@ export const ORDER_INVENTORY_DLQ = 'order.created.inventory.dlq';
 // queue once so it re-declares with this key (else boot fails 406 PRECONDITION_FAILED).
 const EMAIL_DEAD_KEY = 'order.created.email.dead';
 const INVENTORY_DEAD_KEY = 'order.created.inventory.dead';
+const PAYMENT_CREATE_DEAD_KEY = 'inventory.reserved.payment.dead';
+const MOCK_PROVIDER_DEAD_KEY = 'payment.created.mock.dead';
+const PAYMENT_COMPLETE_DEAD_KEY = 'payment.succeeded.order.dead';
+const PAYMENT_COMPENSATE_DEAD_KEY = 'payment.failed.order.dead';
 
 /** Declares one main queue + its DLQ, both bound to the topic exchange / DLX. */
 async function assertConsumerQueue(
@@ -54,5 +69,35 @@ export async function assertTopology(ch: Channel | ConfirmChannel): Promise<void
     ORDER_INVENTORY_DLQ,
     INVENTORY_DEAD_KEY,
     ORDER_CREATED_EVENT,
+  );
+
+  // Payment saga: reserve → create payment → mock provider → succeeded/failed → order.
+  await assertConsumerQueue(
+    ch,
+    PAYMENT_CREATE_QUEUE,
+    `${PAYMENT_CREATE_QUEUE}.dlq`,
+    PAYMENT_CREATE_DEAD_KEY,
+    INVENTORY_RESERVED_EVENT,
+  );
+  await assertConsumerQueue(
+    ch,
+    MOCK_PROVIDER_QUEUE,
+    `${MOCK_PROVIDER_QUEUE}.dlq`,
+    MOCK_PROVIDER_DEAD_KEY,
+    PAYMENT_CREATED_EVENT,
+  );
+  await assertConsumerQueue(
+    ch,
+    PAYMENT_COMPLETE_QUEUE,
+    `${PAYMENT_COMPLETE_QUEUE}.dlq`,
+    PAYMENT_COMPLETE_DEAD_KEY,
+    PAYMENT_SUCCEEDED_EVENT,
+  );
+  await assertConsumerQueue(
+    ch,
+    PAYMENT_COMPENSATE_QUEUE,
+    `${PAYMENT_COMPENSATE_QUEUE}.dlq`,
+    PAYMENT_COMPENSATE_DEAD_KEY,
+    PAYMENT_FAILED_EVENT,
   );
 }

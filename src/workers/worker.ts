@@ -4,7 +4,15 @@ import { db } from '@infra/db/client.js';
 import { closePool } from '@infra/db/pool.js';
 import { closeMq, getConnection } from '@infra/mq/connection.js';
 import { startConsumer } from '@infra/mq/consumer.js';
-import { ORDER_EMAIL_QUEUE, ORDER_INVENTORY_QUEUE, assertTopology } from '@infra/mq/topology.js';
+import {
+  ORDER_EMAIL_QUEUE,
+  ORDER_INVENTORY_QUEUE,
+  PAYMENT_CREATE_QUEUE,
+  MOCK_PROVIDER_QUEUE,
+  PAYMENT_COMPLETE_QUEUE,
+  PAYMENT_COMPENSATE_QUEUE,
+  assertTopology,
+} from '@infra/mq/topology.js';
 import { createRabbitPublisher } from '@infra/mq/publisher.js';
 import { createOutboxRelay } from '@infra/mq/outbox-relay.js';
 import { createMailer } from '@infra/mail/mailer.js';
@@ -12,6 +20,13 @@ import { makeMailAdapter } from '@infra/mail/mail-adapter.js';
 import { handleOrderCreated } from '@modules/orders/order-created-handler.js';
 import { reserveOnOrderCreated } from '@modules/inventory/reserve-on-order-created.js';
 import { createOrderReaper } from '@modules/orders/order-reaper.js';
+import { createPaymentOnReserved } from '@modules/payments/create-payment-on-reserved.js';
+import { completeOnPaymentSucceeded } from '@modules/payments/complete-on-payment-succeeded.js';
+import { compensateOnPaymentFailed } from '@modules/payments/compensate-on-payment-failed.js';
+import {
+  mockProviderOnPaymentCreated,
+  type MockProviderConfig,
+} from '@modules/payments/mock-payment-provider.js';
 
 function buildLogger() {
   const options = { level: process.env.LOG_LEVEL ?? 'info' };
@@ -54,6 +69,41 @@ async function main(): Promise<void> {
     { log },
   );
 
+  // Payment saga consumers, each on its own channel.
+  const mockConfig: MockProviderConfig = {
+    webhookUrl: process.env.PAYMENT_WEBHOOK_URL ?? 'http://localhost:3000/webhooks/payment',
+    secret: process.env.WEBHOOK_HMAC_SECRET ?? '',
+    delayMs: num(process.env.MOCK_PAYMENT_DELAY_MS, 2000),
+  };
+  const paymentCreateChannel = await conn.createChannel();
+  const mockProviderChannel = await conn.createChannel();
+  const paymentCompleteChannel = await conn.createChannel();
+  const paymentCompensateChannel = await conn.createChannel();
+  await startConsumer(
+    paymentCreateChannel,
+    PAYMENT_CREATE_QUEUE,
+    (msg) => createPaymentOnReserved(msg, { db, log }),
+    { log },
+  );
+  await startConsumer(
+    mockProviderChannel,
+    MOCK_PROVIDER_QUEUE,
+    (msg) => mockProviderOnPaymentCreated(msg, { db, config: mockConfig, log }),
+    { log },
+  );
+  await startConsumer(
+    paymentCompleteChannel,
+    PAYMENT_COMPLETE_QUEUE,
+    (msg) => completeOnPaymentSucceeded(msg, { db, log }),
+    { log },
+  );
+  await startConsumer(
+    paymentCompensateChannel,
+    PAYMENT_COMPENSATE_QUEUE,
+    (msg) => compensateOnPaymentFailed(msg, { db, log }),
+    { log },
+  );
+
   const publisher = await createRabbitPublisher(log);
   const relay = createOutboxRelay({
     db,
@@ -72,8 +122,17 @@ async function main(): Promise<void> {
   reaper.start();
 
   log.info(
-    { queues: [ORDER_EMAIL_QUEUE, ORDER_INVENTORY_QUEUE] },
-    'worker consuming (email + inventory) with relay + reaper',
+    {
+      queues: [
+        ORDER_EMAIL_QUEUE,
+        ORDER_INVENTORY_QUEUE,
+        PAYMENT_CREATE_QUEUE,
+        MOCK_PROVIDER_QUEUE,
+        PAYMENT_COMPLETE_QUEUE,
+        PAYMENT_COMPENSATE_QUEUE,
+      ],
+    },
+    'worker consuming (email + inventory + payment saga) with relay + reaper',
   );
 
   let shuttingDown = false;
@@ -88,6 +147,10 @@ async function main(): Promise<void> {
           relay.stop();
           await emailChannel.close();
           await inventoryChannel.close();
+          await paymentCreateChannel.close();
+          await mockProviderChannel.close();
+          await paymentCompleteChannel.close();
+          await paymentCompensateChannel.close();
           await publisher.close();
           await closeMq();
           await closePool();
