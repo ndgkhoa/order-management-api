@@ -26,3 +26,46 @@ export async function reserveStock(tx: Tx, productId: string, quantity: number):
     .returning({ id: products.id });
   return rows.length > 0;
 }
+
+/**
+ * Commit a reservation on payment success: `reserved -= q`, only if `reserved >= q`.
+ * `available` is NOT touched — it was already decremented at reserve time; the goods
+ * simply leave the reserved hold.
+ */
+export async function commitReservation(
+  tx: Tx,
+  productId: string,
+  quantity: number,
+): Promise<boolean> {
+  const rows = await tx
+    .update(products)
+    .set({
+      stockReserved: sql`${products.stockReserved} - ${quantity}`,
+      updatedAt: new Date(),
+    })
+    .where(and(eq(products.id, productId), gte(products.stockReserved, quantity)))
+    .returning({ id: products.id });
+  return rows.length > 0;
+}
+
+/**
+ * Release a reservation on payment failure / compensation: `available += q`, `reserved -= q`,
+ * only if `reserved >= q`. The guard makes a double-release a no-op (returns `false`) rather
+ * than over-crediting available stock.
+ */
+export async function releaseReservation(
+  tx: Tx,
+  productId: string,
+  quantity: number,
+): Promise<boolean> {
+  const rows = await tx
+    .update(products)
+    .set({
+      stockAvailable: sql`${products.stockAvailable} + ${quantity}`,
+      stockReserved: sql`${products.stockReserved} - ${quantity}`,
+      updatedAt: new Date(),
+    })
+    .where(and(eq(products.id, productId), gte(products.stockReserved, quantity)))
+    .returning({ id: products.id });
+  return rows.length > 0;
+}

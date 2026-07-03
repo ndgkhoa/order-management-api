@@ -10,6 +10,7 @@ import {
   primaryKey,
   check,
   pgEnum,
+  uniqueIndex,
 } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 import { USER_ROLES, UserRoles } from '@/types/user-role.js';
@@ -103,6 +104,30 @@ export const orderItems = pgTable(
     index('order_items_order_id_idx').on(t.orderId),
     index('order_items_product_id_idx').on(t.productId),
   ],
+);
+
+/**
+ * Payment aggregate — one per order, created when inventory is reserved. `amount_cents`
+ * snapshots the order total. Status machine (guarded in `payment-status.ts`):
+ * pending → paid | failed, and paid → refunded. `provider_event_id` records the last
+ * webhook event applied (audit); duplicate webhooks are deduped upstream (Redis +
+ * `processed_messages`). A unique `order_id` guarantees a single payment per order.
+ */
+export const payments = pgTable(
+  'payments',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    orderId: uuid('order_id')
+      .notNull()
+      .references(() => orders.id),
+    amountCents: integer('amount_cents').notNull(),
+    currency: text('currency').notNull().default('USD'),
+    status: text('status').notNull().default('pending'), // pending|paid|failed|refunded
+    providerEventId: uuid('provider_event_id'), // last applied webhook event id (audit)
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex('payments_order_id_uq').on(t.orderId)],
 );
 
 /**
