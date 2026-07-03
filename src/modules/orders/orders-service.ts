@@ -36,6 +36,9 @@ export function makeOrdersService({ ordersRepo, productsRepo, httpErrors }: Orde
 
     list: (userId: string) => ordersRepo.listByUser(userId),
 
+    /** Admin listing: all orders regardless of owner. */
+    listAll: () => ordersRepo.listAll(),
+
     async getForUser(orderId: string, userId: string) {
       const found = await ordersRepo.findByIdForUser(orderId, userId);
       if (!found) throw httpErrors.notFound('order not found');
