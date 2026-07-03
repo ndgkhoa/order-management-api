@@ -13,6 +13,7 @@ import {
   type OrderCancelledPayload,
 } from '@infra/mq/outbox-event-types.js';
 import { reserveStock } from '@modules/inventory/adjust-stock.js';
+import { recordOrderTransition } from '@modules/orders/order-status-history.js';
 
 interface HandlerDeps {
   db: DB;
@@ -105,6 +106,12 @@ export async function reserveOnOrderCreated(
           .where(and(eq(orders.id, orderId), eq(orders.status, 'pending')))
           .returning({ id: orders.id });
         if (cancelledRows.length > 0) {
+          await recordOrderTransition(tx, {
+            orderId,
+            from: 'pending',
+            to: 'cancelled',
+            reason: OUT_OF_STOCK,
+          });
           const payload: OrderCancelledPayload = { orderId, reason: OUT_OF_STOCK };
           await tx.insert(outboxMessages).values({
             aggregateType: 'order',

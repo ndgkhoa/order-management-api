@@ -4,6 +4,7 @@ import type { DB } from '@infra/db/client.js';
 import { orders, orderItems, outboxMessages } from '@infra/db/schema.js';
 import { ORDER_CREATED_EVENT, type OrderCreatedPayload } from '@infra/mq/outbox-event-types.js';
 import type { OrderLine } from '@modules/orders/order-total.js';
+import { recordOrderTransition } from '@modules/orders/order-status-history.js';
 
 interface CreateOrderInput {
   userId: string;
@@ -61,6 +62,13 @@ export function makeOrdersRepository(db: DB) {
           traceContext: Object.keys(carrier).length > 0 ? carrier : null,
         });
 
+        await recordOrderTransition(tx, {
+          orderId: order.id,
+          from: null,
+          to: 'pending',
+          reason: 'created',
+        });
+
         return { order, items: itemRows };
       });
     },
@@ -70,6 +78,9 @@ export function makeOrdersRepository(db: DB) {
         where: eq(orders.userId, userId),
         orderBy: desc(orders.createdAt),
       }),
+
+    /** Admin: every order, newest first. */
+    listAll: () => db.query.orders.findMany({ orderBy: desc(orders.createdAt) }),
 
     /** Owner-scoped fetch (order + items). Returns undefined if missing or not owned. */
     async findByIdForUser(orderId: string, userId: string) {
