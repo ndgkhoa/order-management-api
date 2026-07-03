@@ -12,6 +12,7 @@ import {
   PAYMENT_COMPLETE_QUEUE,
   PAYMENT_COMPENSATE_QUEUE,
   SHIPPING_QUEUE,
+  NOTIFICATION_QUEUE,
   assertTopology,
 } from '@infra/mq/topology.js';
 import { createRabbitPublisher } from '@infra/mq/publisher.js';
@@ -29,6 +30,9 @@ import {
   type MockProviderConfig,
 } from '@modules/payments/mock-payment-provider.js';
 import { makeShippingConsumer } from '@modules/shipping/fake-shipping-worker.js';
+import { makeNotificationHandler } from '@modules/notifications/notification-handler.js';
+import { makeEmailProvider } from '@infra/notify/email-provider.js';
+import { makeSmsProvider } from '@infra/notify/sms-provider.js';
 
 function buildLogger() {
   const options = { level: process.env.LOG_LEVEL ?? 'info' };
@@ -54,10 +58,9 @@ async function main(): Promise<void> {
   await assertTopology(emailChannel); // idempotent; declares all queues once
   const inventoryChannel = await conn.createChannel();
 
-  const mailAdapter = makeMailAdapter(
-    createMailer(),
-    process.env.MAIL_FROM ?? 'no-reply@orders.local',
-  );
+  const mailer = createMailer();
+  const mailFrom = process.env.MAIL_FROM ?? 'no-reply@orders.local';
+  const mailAdapter = makeMailAdapter(mailer, mailFrom);
   await startConsumer(
     emailChannel,
     ORDER_EMAIL_QUEUE,
@@ -114,6 +117,15 @@ async function main(): Promise<void> {
   });
   await startConsumer(shippingChannel, SHIPPING_QUEUE, shippingConsumer, { log });
 
+  // Notifications: one consumer fans user-facing events out to channel providers.
+  const notificationChannel = await conn.createChannel();
+  const notificationHandler = makeNotificationHandler({
+    db,
+    providers: { email: makeEmailProvider(mailer, mailFrom), sms: makeSmsProvider(log) },
+    log,
+  });
+  await startConsumer(notificationChannel, NOTIFICATION_QUEUE, notificationHandler, { log });
+
   const publisher = await createRabbitPublisher(log);
   const relay = createOutboxRelay({
     db,
@@ -141,9 +153,10 @@ async function main(): Promise<void> {
         PAYMENT_COMPLETE_QUEUE,
         PAYMENT_COMPENSATE_QUEUE,
         SHIPPING_QUEUE,
+        NOTIFICATION_QUEUE,
       ],
     },
-    'worker consuming (email + inventory + payment saga + shipping) with relay + reaper',
+    'worker consuming (email + inventory + payment saga + shipping + notifications) with relay + reaper',
   );
 
   let shuttingDown = false;
@@ -163,6 +176,7 @@ async function main(): Promise<void> {
           await paymentCompleteChannel.close();
           await paymentCompensateChannel.close();
           await shippingChannel.close();
+          await notificationChannel.close();
           await publisher.close();
           await closeMq();
           await closePool();

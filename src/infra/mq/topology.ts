@@ -7,6 +7,10 @@ import {
   PAYMENT_SUCCEEDED_EVENT,
   PAYMENT_FAILED_EVENT,
   ORDER_PAID_EVENT,
+  ORDER_CANCELLED_EVENT,
+  ORDER_REFUNDED_EVENT,
+  SHIPMENT_IN_TRANSIT_EVENT,
+  SHIPMENT_DELIVERED_EVENT,
 } from '@infra/mq/outbox-event-types.js';
 
 export const ORDER_EMAIL_QUEUE = 'order.created.email';
@@ -16,6 +20,7 @@ export const MOCK_PROVIDER_QUEUE = 'payment.created.mock';
 export const PAYMENT_COMPLETE_QUEUE = 'payment.succeeded.order';
 export const PAYMENT_COMPENSATE_QUEUE = 'payment.failed.order';
 export const SHIPPING_QUEUE = 'order.paid.shipping';
+export const NOTIFICATION_QUEUE = 'notifications';
 export const ORDER_EVENTS_DLX = 'order.events.dlx';
 export const ORDER_EMAIL_DLQ = 'order.created.email.dlq';
 export const ORDER_INVENTORY_DLQ = 'order.created.inventory.dlq';
@@ -30,6 +35,16 @@ const MOCK_PROVIDER_DEAD_KEY = 'payment.created.mock.dead';
 const PAYMENT_COMPLETE_DEAD_KEY = 'payment.succeeded.order.dead';
 const PAYMENT_COMPENSATE_DEAD_KEY = 'payment.failed.order.dead';
 const SHIPPING_DEAD_KEY = 'order.paid.shipping.dead';
+const NOTIFICATION_DEAD_KEY = 'notifications.dead';
+
+/** Events that trigger a user-facing notification (bound to the single notifications queue). */
+const NOTIFICATION_KEYS = [
+  ORDER_PAID_EVENT,
+  ORDER_CANCELLED_EVENT,
+  ORDER_REFUNDED_EVENT,
+  SHIPMENT_IN_TRANSIT_EVENT,
+  SHIPMENT_DELIVERED_EVENT,
+];
 
 /** Declares one main queue + its DLQ, both bound to the topic exchange / DLX. */
 async function assertConsumerQueue(
@@ -112,4 +127,16 @@ export async function assertTopology(ch: Channel | ConfirmChannel): Promise<void
     SHIPPING_DEAD_KEY,
     ORDER_PAID_EVENT,
   );
+
+  // Notifications: ONE queue subscribing to several user-facing events (multiple bindings).
+  await assertConsumerQueue(
+    ch,
+    NOTIFICATION_QUEUE,
+    `${NOTIFICATION_QUEUE}.dlq`,
+    NOTIFICATION_DEAD_KEY,
+    NOTIFICATION_KEYS[0]!,
+  );
+  for (const key of NOTIFICATION_KEYS.slice(1)) {
+    await ch.bindQueue(NOTIFICATION_QUEUE, ORDER_EVENTS_EXCHANGE, key);
+  }
 }
