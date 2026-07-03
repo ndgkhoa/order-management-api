@@ -1,11 +1,7 @@
 {
-  // Build-only: emits src → dist. Extends the broad config but restricts inputs to src
-  // and adds rootDir/outDir so tests never land in the build output.
+  // Build type-check: `tsc --noEmit -p tsconfig.build.json` verifies src only (tests are
+  // excluded). esbuild does the actual emit (see scripts/bundle.mjs), so no tsc output here.
   "extends": "./tsconfig.json",
-  "compilerOptions": {
-    "rootDir": "src",
-    "outDir": "dist"
-  },
   "include": ["src/**/*.ts"],
   "exclude": ["node_modules", "dist", "test"]
 }

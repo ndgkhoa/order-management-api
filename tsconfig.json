@@ -16,14 +16,17 @@
     "forceConsistentCasingInFileNames": true,
     "declaration": false,
     "sourceMap": true,
-    "baseUrl": "src",
+    // No `baseUrl` (deprecated in TS 6.0, removed in TS 7.0). With `paths` and no baseUrl,
+    // TS resolves targets relative to this config's directory, so every target is an
+    // explicit `./`-relative path. tsc typechecks, tsx (dev) and Vitest (test) resolve these
+    // at runtime, and esbuild rewrites them at build (replacing tsc-alias, which needed baseUrl).
     "paths": {
-      "@/*": ["*"],
-      "@config/*": ["config/*"],
-      "@infra/*": ["infra/*"],
-      "@modules/*": ["modules/*"],
-      "@plugins/*": ["plugins/*"],
-      "@test/*": ["../test/*"]
+      "@/*": ["./src/*"],
+      "@config/*": ["./src/config/*"],
+      "@infra/*": ["./src/infra/*"],
+      "@modules/*": ["./src/modules/*"],
+      "@plugins/*": ["./src/plugins/*"],
+      "@test/*": ["./test/*"]
     }
   },
   "include": ["src/**/*.ts", "test/**/*.ts"],
