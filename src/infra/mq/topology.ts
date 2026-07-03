@@ -6,6 +6,7 @@ import {
   PAYMENT_CREATED_EVENT,
   PAYMENT_SUCCEEDED_EVENT,
   PAYMENT_FAILED_EVENT,
+  ORDER_PAID_EVENT,
 } from '@infra/mq/outbox-event-types.js';
 
 export const ORDER_EMAIL_QUEUE = 'order.created.email';
@@ -14,6 +15,7 @@ export const PAYMENT_CREATE_QUEUE = 'inventory.reserved.payment';
 export const MOCK_PROVIDER_QUEUE = 'payment.created.mock';
 export const PAYMENT_COMPLETE_QUEUE = 'payment.succeeded.order';
 export const PAYMENT_COMPENSATE_QUEUE = 'payment.failed.order';
+export const SHIPPING_QUEUE = 'order.paid.shipping';
 export const ORDER_EVENTS_DLX = 'order.events.dlx';
 export const ORDER_EMAIL_DLQ = 'order.created.email.dlq';
 export const ORDER_INVENTORY_DLQ = 'order.created.inventory.dlq';
@@ -27,6 +29,7 @@ const PAYMENT_CREATE_DEAD_KEY = 'inventory.reserved.payment.dead';
 const MOCK_PROVIDER_DEAD_KEY = 'payment.created.mock.dead';
 const PAYMENT_COMPLETE_DEAD_KEY = 'payment.succeeded.order.dead';
 const PAYMENT_COMPENSATE_DEAD_KEY = 'payment.failed.order.dead';
+const SHIPPING_DEAD_KEY = 'order.paid.shipping.dead';
 
 /** Declares one main queue + its DLQ, both bound to the topic exchange / DLX. */
 async function assertConsumerQueue(
@@ -99,5 +102,14 @@ export async function assertTopology(ch: Channel | ConfirmChannel): Promise<void
     `${PAYMENT_COMPENSATE_QUEUE}.dlq`,
     PAYMENT_COMPENSATE_DEAD_KEY,
     PAYMENT_FAILED_EVENT,
+  );
+
+  // Shipping: order.paid → create shipment and drive its lifecycle.
+  await assertConsumerQueue(
+    ch,
+    SHIPPING_QUEUE,
+    `${SHIPPING_QUEUE}.dlq`,
+    SHIPPING_DEAD_KEY,
+    ORDER_PAID_EVENT,
   );
 }

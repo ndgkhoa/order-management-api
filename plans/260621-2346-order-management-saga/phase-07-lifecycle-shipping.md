@@ -1,7 +1,7 @@
 ---
 phase: 7
 title: 'Lifecycle & Shipping'
-status: pending
+status: completed
 priority: P2
 effort: '6h'
 dependencies: [6]
@@ -54,11 +54,26 @@ Complete the order lifecycle: on `OrderPaid` create a shipment and drive it thro
 
 ## Success Criteria
 
-- [ ] OrderPaid → shipment auto-advances pending→ready_for_pickup→in_transit→delivered, each emitting an event.
-- [ ] Order ends `delivered`; status-history captures every transition.
-- [ ] Admin manual status update works; customer cancel allowed only pre-ship.
-- [ ] Cancel-after-paid (pre-ship) → mock refund + restock + event.
-- [ ] typecheck + lint + tests green.
+- [x] OrderPaid → shipment auto-advances pending→ready_for_pickup→in_transit→delivered, each emitting an event.
+- [x] Order ends `delivered`; status-history captures every transition.
+- [x] Admin manual status update works; customer cancel allowed only pre-ship.
+- [x] Cancel-after-paid (pre-ship) → mock refund + restock + event.
+- [x] typecheck + lint + tests green (104/104, 10 new).
+
+## Implementation Notes (delta from spec)
+
+- Migration is `drizzle/0009_*.sql` (next sequential), not `0007`.
+- `order-status.ts` needed NO change — the machine already covered paid→fulfilling→delivered
+  and the cancel edges.
+- Shipment creation is gated on WINNING the order CAS `paid→fulfilling` first (acquires the
+  order row lock) so a concurrent cancel serializes behind and loses — no orphaned shipment
+  for a cancelled/refunded order.
+- Admin manual advance `PATCH /shipments/:id/status` reuses `advanceShipment` (same CAS +
+  machine) and is the manual recovery path for a shipment stranded by a lost in-process timer.
+- Full history coverage: `recordOrderTransition` added at create (null→pending) and every
+  transition point incl. the phase-4/6 consumers (out-of-stock, payment paid, payment-failed).
+- `shipment.*` and `order.refunded` are emitted but have no bound consumer yet — phase 8
+  (notifications) binds them (topic exchange discards unrouted events, by design).
 
 ## Risk Assessment
 

@@ -7,6 +7,11 @@ export const PAYMENT_CREATED_EVENT = 'payment.created';
 export const PAYMENT_SUCCEEDED_EVENT = 'payment.succeeded';
 export const PAYMENT_FAILED_EVENT = 'payment.failed';
 export const ORDER_PAID_EVENT = 'order.paid';
+export const SHIPMENT_CREATED_EVENT = 'shipment.created';
+export const SHIPMENT_READY_EVENT = 'shipment.ready_for_pickup';
+export const SHIPMENT_IN_TRANSIT_EVENT = 'shipment.in_transit';
+export const SHIPMENT_DELIVERED_EVENT = 'shipment.delivered';
+export const ORDER_REFUNDED_EVENT = 'order.refunded';
 
 /** A single snapshotted line of an order, carried in the OrderCreated event. */
 export interface OrderCreatedItem {
@@ -61,6 +66,19 @@ export interface PaymentSettledPayload {
 
 /** Emitted after an order is marked paid and its reservation committed. */
 export interface OrderPaidPayload {
+  orderId: string;
+  paymentId: string;
+}
+
+/** Shipment lifecycle events (created + each advance). `status` is the new shipment status. */
+export interface ShipmentEventPayload {
+  orderId: string;
+  shipmentId: string;
+  status: string;
+}
+
+/** Emitted when a paid order is cancelled pre-ship and refunded (mock) + restocked. */
+export interface OrderRefundedPayload {
   orderId: string;
   paymentId: string;
 }

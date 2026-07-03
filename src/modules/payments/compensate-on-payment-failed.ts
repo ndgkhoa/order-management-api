@@ -11,6 +11,7 @@ import {
   type OrderCancelledPayload,
 } from '@infra/mq/outbox-event-types.js';
 import { releaseReservation } from '@modules/inventory/adjust-stock.js';
+import { recordOrderTransition } from '@modules/orders/order-status-history.js';
 
 const CONSUMER_NAME = 'payment-compensate';
 const PAYMENT_FAILED_REASON = 'payment_failed';
@@ -60,6 +61,12 @@ export async function compensateOnPaymentFailed(
         log.warn({ orderId }, 'order not pending at payment failure; skipping release');
         return;
       }
+      await recordOrderTransition(tx, {
+        orderId,
+        from: 'pending',
+        to: 'cancelled',
+        reason: PAYMENT_FAILED_REASON,
+      });
 
       const items = await tx
         .select({ productId: orderItems.productId, quantity: orderItems.quantity })

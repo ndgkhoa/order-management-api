@@ -11,6 +11,7 @@ import {
   MOCK_PROVIDER_QUEUE,
   PAYMENT_COMPLETE_QUEUE,
   PAYMENT_COMPENSATE_QUEUE,
+  SHIPPING_QUEUE,
   assertTopology,
 } from '@infra/mq/topology.js';
 import { createRabbitPublisher } from '@infra/mq/publisher.js';
@@ -27,6 +28,7 @@ import {
   mockProviderOnPaymentCreated,
   type MockProviderConfig,
 } from '@modules/payments/mock-payment-provider.js';
+import { makeShippingConsumer } from '@modules/shipping/fake-shipping-worker.js';
 
 function buildLogger() {
   const options = { level: process.env.LOG_LEVEL ?? 'info' };
@@ -104,6 +106,14 @@ async function main(): Promise<void> {
     { log },
   );
 
+  const shippingChannel = await conn.createChannel();
+  const shippingConsumer = makeShippingConsumer({
+    db,
+    config: { stepMs: num(process.env.SHIPPING_STEP_MS, 3000) },
+    log,
+  });
+  await startConsumer(shippingChannel, SHIPPING_QUEUE, shippingConsumer, { log });
+
   const publisher = await createRabbitPublisher(log);
   const relay = createOutboxRelay({
     db,
@@ -130,9 +140,10 @@ async function main(): Promise<void> {
         MOCK_PROVIDER_QUEUE,
         PAYMENT_COMPLETE_QUEUE,
         PAYMENT_COMPENSATE_QUEUE,
+        SHIPPING_QUEUE,
       ],
     },
-    'worker consuming (email + inventory + payment saga) with relay + reaper',
+    'worker consuming (email + inventory + payment saga + shipping) with relay + reaper',
   );
 
   let shuttingDown = false;
@@ -151,6 +162,7 @@ async function main(): Promise<void> {
           await mockProviderChannel.close();
           await paymentCompleteChannel.close();
           await paymentCompensateChannel.close();
+          await shippingChannel.close();
           await publisher.close();
           await closeMq();
           await closePool();

@@ -11,6 +11,7 @@ import {
   type OrderPaidPayload,
 } from '@infra/mq/outbox-event-types.js';
 import { commitReservation } from '@modules/inventory/adjust-stock.js';
+import { recordOrderTransition } from '@modules/orders/order-status-history.js';
 
 const CONSUMER_NAME = 'payment-complete';
 
@@ -59,6 +60,12 @@ export async function completeOnPaymentSucceeded(
         log.warn({ orderId }, 'order not pending at payment success; skipping commit');
         return;
       }
+      await recordOrderTransition(tx, {
+        orderId,
+        from: 'pending',
+        to: 'paid',
+        reason: 'payment_succeeded',
+      });
 
       const items = await tx
         .select({ productId: orderItems.productId, quantity: orderItems.quantity })
