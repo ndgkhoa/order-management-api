@@ -4,7 +4,7 @@ import type { FastifyBaseLogger } from 'fastify';
 import type { DB } from '@infra/db/client.js';
 import { orders, users } from '@infra/db/schema.js';
 import type { HandlerResult } from '@infra/mq/consumer.js';
-import type { NotificationProvider } from '@infra/channels/notification-provider.js';
+import type { NotificationProvider } from '@infra/providers/notification-provider.js';
 import { parseEnvelope, claimOnce } from '@infra/mq/idempotent-consumer.js';
 import {
   routeNotification,

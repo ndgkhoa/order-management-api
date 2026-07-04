@@ -1,6 +1,6 @@
 import type { FastifyReply, FastifyRequest } from 'fastify';
-import { Permissions } from '@/domain/permission.js';
-import { hasPermission } from '@/domain/role-permissions.js';
+import { Permissions } from '@/types/permission.js';
+import { hasPermission } from '@plugins/rbac.js';
 import type { OrdersService } from '@modules/orders/orders-service.js';
 import {
   type CreateOrderBody,
@@ -33,6 +33,16 @@ export function makeOrdersController(service: OrdersService) {
       const { id } = req.params as { id: string };
       const { order, items } = await service.getForUser(id, req.user.sub);
       return toOrderDetail(order, items);
+    },
+
+    cancel: async (req: FastifyRequest, reply: FastifyReply) => {
+      const { id } = req.params as { id: string };
+      const { order, items } = await service.cancel({
+        orderId: id,
+        requesterId: req.user.sub,
+        canCancelAny: hasPermission(req.user.roles, Permissions.Order.CancelAny),
+      });
+      return reply.code(200).send(toOrderDetail(order, items));
     },
   };
 }

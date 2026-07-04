@@ -4,7 +4,7 @@ import type { ConsumeMessage } from 'amqplib';
 import type { FastifyBaseLogger } from 'fastify';
 import { db } from '@infra/db/client.js';
 import { processedMessages } from '@infra/db/schema.js';
-import { sendEmailOnOrderCreated } from '@modules/orders/sagas/send-email-on-order-created.js';
+import { sendEmailOnOrderCreated } from '@/sagas/send-email-on-order-created.js';
 import type { MailAdapter } from '@infra/mail/mail-adapter.js';
 import type { OrderCreatedPayload } from '@infra/mq/outbox-event-types.js';
 import { resetDb } from '@test/helpers/reset-db.js';

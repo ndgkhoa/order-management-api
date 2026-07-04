@@ -4,7 +4,7 @@ import type { FastifyBaseLogger } from 'fastify';
 import type { DB } from '@infra/db/client.js';
 import { outboxMessages } from '@infra/db/schema.js';
 import { ORDER_EVENTS_EXCHANGE } from '@infra/mq/outbox-event-types.js';
-import { createEventEnvelope } from '@infra/mq/event-envelope.js';
+import { buildEventEnvelope } from '@infra/mq/event-envelope.js';
 import type { OutboxPublisher } from '@infra/mq/outbox-publisher.js';
 
 interface OutboxRelayDeps {
@@ -22,7 +22,7 @@ interface OutboxRelayDeps {
  * the consumer must be idempotent). `FOR UPDATE SKIP LOCKED` lets multiple instances
  * run without double-processing a row.
  */
-export function createOutboxRelay({
+export function makeOutboxRelay({
   db,
   publisher,
   log,
@@ -54,7 +54,7 @@ export function createOutboxRelay({
           const parentCtx = propagation.extract(ROOT_CONTEXT, row.traceContext ?? {});
           // Publish the versioned envelope as the message body; the AMQP messageId is the
           // logical eventId so consumers dedupe on the same key the envelope carries.
-          const envelope = createEventEnvelope({
+          const envelope = buildEventEnvelope({
             eventId: row.eventId,
             eventType: row.eventType,
             correlationId: row.correlationId ?? row.aggregateId,
@@ -99,4 +99,4 @@ export function createOutboxRelay({
   };
 }
 
-export type OutboxRelay = ReturnType<typeof createOutboxRelay>;
+export type OutboxRelay = ReturnType<typeof makeOutboxRelay>;

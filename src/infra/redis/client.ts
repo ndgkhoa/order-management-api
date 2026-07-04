@@ -6,6 +6,6 @@ import { Redis } from 'ioredis';
  * connection. `maxRetriesPerRequest: null` lets commands wait through reconnects
  * instead of failing fast, matching the at-least-once nature of the saga.
  */
-export function createRedisClient(url: string): Redis {
+export function makeRedisClient(url: string): Redis {
   return new Redis(url, { maxRetriesPerRequest: null });
 }

@@ -8,10 +8,16 @@ import {
   SHIPMENT_DELIVERED_EVENT,
   type ShipmentEventPayload,
 } from '@infra/mq/outbox-event-types.js';
-import { transitionOrder } from '@modules/orders/transition-order.js';
-import { OrderStatuses } from '@/domain/order-status.js';
-import { ShipmentStatuses, type ShipmentStatus } from '@/domain/shipment-status.js';
-import { nextShipmentStatus } from '@/domain/shipment-status.js';
+import { makeOrdersRepository } from '@modules/orders/orders-repository.js';
+import { OrderStatuses } from '@/types/order-status.js';
+import {
+  ShipmentStatuses,
+  SHIPMENT_TRANSITIONS,
+  type ShipmentStatus,
+  type AdvancedShipmentStatus,
+} from '@/types/shipment-status.js';
+import { nextStatus } from '@/utils/state-machine.js';
+import { OrderReasons } from '@/types/order-reasons.js';
 import { sagaMetrics } from '@infra/telemetry/saga-metrics.js';
 
 const EVENT_BY_STATUS: Record<Exclude<ShipmentStatus, 'pending'>, string> = {
@@ -32,11 +38,12 @@ export async function advanceShipment(
   shipmentId: string,
   log: FastifyBaseLogger,
 ): Promise<ShipmentStatus | null> {
+  const ordersRepo = makeOrdersRepository(db);
   const result = await db.transaction(async (tx) => {
     const [ship] = await tx.select().from(shipments).where(eq(shipments.id, shipmentId));
     if (!ship) return null;
     const from = ship.status as ShipmentStatus;
-    const to = nextShipmentStatus(from);
+    const to = nextStatus(SHIPMENT_TRANSITIONS, from);
     if (!to) return null; // already delivered
 
     const advanced = await tx
@@ -52,17 +59,17 @@ export async function advanceShipment(
       aggregateType: 'order',
       aggregateId: orderId,
       correlationId: orderId,
-      eventType: EVENT_BY_STATUS[to],
+      eventType: EVENT_BY_STATUS[to as AdvancedShipmentStatus],
       payload,
     });
 
     if (to === ShipmentStatuses.Delivered) {
-      const delivered = await transitionOrder(
+      const delivered = await ordersRepo.transition(
         tx,
         orderId,
         OrderStatuses.Fulfilling,
         OrderStatuses.Delivered,
-        { reason: 'shipment_delivered' },
+        { reason: OrderReasons.ShipmentDelivered },
       );
       if (!delivered) {
         log.warn({ orderId }, 'order not fulfilling at delivery; skipping order transition');

@@ -1,6 +1,6 @@
 import type { FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';
 import type { FastifyRequest } from 'fastify';
-import { Permissions } from '@/domain/permission.js';
+import { Permissions } from '@/types/permission.js';
 import { makePaymentsService } from '@modules/payments/payments-service.js';
 import { makePaymentsController } from '@modules/payments/payments-controller.js';
 import {

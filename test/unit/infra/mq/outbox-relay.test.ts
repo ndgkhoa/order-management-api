@@ -4,7 +4,7 @@ import { eq, isNull } from 'drizzle-orm';
 import type { FastifyBaseLogger } from 'fastify';
 import { db } from '@infra/db/client.js';
 import { outboxMessages } from '@infra/db/schema.js';
-import { createOutboxRelay } from '@infra/mq/outbox-relay.js';
+import { makeOutboxRelay } from '@infra/mq/outbox-relay.js';
 import type { OutboxMessage, OutboxPublisher } from '@infra/mq/outbox-publisher.js';
 import { resetDb } from '@test/helpers/reset-db.js';
 
@@ -43,7 +43,7 @@ describe('outbox-relay (real Postgres)', () => {
     const first = await insertOutboxRow('order.created', new Date('2026-01-01T00:00:00Z'));
     const second = await insertOutboxRow('order.created', new Date('2026-01-01T00:00:01Z'));
     const publisher = recordingPublisher();
-    const relay = createOutboxRelay({ db, publisher, log, intervalMs: 1000 });
+    const relay = makeOutboxRelay({ db, publisher, log, intervalMs: 1000 });
 
     await relay.tick();
 
@@ -59,7 +59,7 @@ describe('outbox-relay (real Postgres)', () => {
   it('wraps the payload in a versioned envelope (eventId, correlationId, occurredAt)', async () => {
     const row = await insertOutboxRow('order.created', new Date('2026-01-01T00:00:00Z'));
     const publisher = recordingPublisher();
-    const relay = createOutboxRelay({ db, publisher, log, intervalMs: 1000 });
+    const relay = makeOutboxRelay({ db, publisher, log, intervalMs: 1000 });
 
     await relay.tick();
 
@@ -80,7 +80,7 @@ describe('outbox-relay (real Postgres)', () => {
   it('leaves the row unpublished when the publisher throws (retry next tick)', async () => {
     const row = await insertOutboxRow('order.created', new Date('2026-01-01T00:00:00Z'));
     const failing: OutboxPublisher = { publish: () => Promise.reject(new Error('broker down')) };
-    const relay = createOutboxRelay({ db, publisher: failing, log, intervalMs: 1000 });
+    const relay = makeOutboxRelay({ db, publisher: failing, log, intervalMs: 1000 });
 
     await relay.tick(); // relay swallows the error and rolls back the tx
 

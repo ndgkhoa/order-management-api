@@ -1,10 +1,19 @@
 import fp from 'fastify-plugin';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
-import type { Permission } from '@/domain/permission.js';
-import { hasPermission } from '@/domain/role-permissions.js';
+import type { UserRole } from '@/types/user-role.js';
+import type { Permission } from '@/types/permission.js';
+import { ROLE_PERMISSIONS } from '@/types/role-permissions.js';
 
 /** A permission-guard preHandler. Async + plain (no `this`) so it is directly callable in unit tests. */
 export type PermissionGuard = (request: FastifyRequest) => Promise<void>;
+
+/** True if any of the caller's roles grants `permission`. Unknown roles grant nothing (fail-closed). */
+export function hasPermission(
+  roles: readonly UserRole[] | undefined,
+  permission: Permission,
+): boolean {
+  return (roles ?? []).some((role) => (ROLE_PERMISSIONS[role] ?? []).includes(permission));
+}
 
 /**
  * Factory for a permission-guard preHandler. Kept separate from the plugin so it is unit

@@ -1,8 +1,8 @@
 import '@config/env-loader.js'; // loads .env before db pool reads process.env (OTel preloaded via --import)
 import { buildApp } from '@/app.js';
 import { db } from '@infra/db/client.js';
-import { createOutboxRelay } from '@infra/mq/outbox-relay.js';
-import { createRabbitPublisher } from '@infra/mq/publisher.js';
+import { makeOutboxRelay } from '@infra/mq/outbox-relay.js';
+import { makeRabbitPublisher } from '@infra/mq/publisher.js';
 import { closeMq } from '@infra/mq/connection.js';
 
 /**
@@ -13,8 +13,8 @@ import { closeMq } from '@infra/mq/connection.js';
 async function main(): Promise<void> {
   const app = await buildApp();
 
-  const publisher = await createRabbitPublisher(app.log);
-  const relay = createOutboxRelay({
+  const publisher = await makeRabbitPublisher(app.log);
+  const relay = makeOutboxRelay({
     db,
     publisher,
     log: app.log,

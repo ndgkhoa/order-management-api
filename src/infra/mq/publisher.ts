@@ -12,7 +12,7 @@ export interface RabbitPublisher extends OutboxPublisher {
  * Uses a CONFIRM channel: publish resolves only after the broker acks, so the
  * relay marks `published_at` only once the message is durably accepted.
  */
-export async function createRabbitPublisher(log: FastifyBaseLogger): Promise<RabbitPublisher> {
+export async function makeRabbitPublisher(log: FastifyBaseLogger): Promise<RabbitPublisher> {
   const conn = await getConnection(log);
   const channel = await conn.createConfirmChannel();
   await assertTopology(channel);

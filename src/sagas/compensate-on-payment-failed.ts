@@ -11,8 +11,8 @@ import {
   type OrderCancelledPayload,
 } from '@infra/mq/outbox-event-types.js';
 import { releaseReservation } from '@modules/inventory/adjust-stock.js';
-import { transitionOrder } from '@modules/orders/transition-order.js';
-import { OrderStatuses } from '@/domain/order-status.js';
+import { makeOrdersRepository } from '@modules/orders/orders-repository.js';
+import { OrderStatuses } from '@/types/order-status.js';
 import { sagaMetrics } from '@infra/telemetry/saga-metrics.js';
 
 const CONSUMER_NAME = 'payment-compensate';
@@ -40,11 +40,12 @@ export async function compensateOnPaymentFailed(
   const correlationId = envelope.correlationId || orderId;
 
   try {
+    const ordersRepo = makeOrdersRepository(db);
     let cancelled = false;
     await db.transaction(async (tx) => {
       if (!(await claimOnce(tx, CONSUMER_NAME, eventId))) return; // duplicate delivery
 
-      const didCancel = await transitionOrder(
+      const didCancel = await ordersRepo.transition(
         tx,
         orderId,
         OrderStatuses.Pending,

@@ -10,8 +10,8 @@ import {
   PAYMENT_SUCCEEDED_EVENT,
   ORDER_PAID_EVENT,
 } from '@infra/mq/outbox-event-types.js';
-import { createPaymentOnReserved } from '@modules/payments/sagas/create-payment-on-reserved.js';
-import { completeOnPaymentSucceeded } from '@modules/payments/sagas/complete-on-payment-succeeded.js';
+import { createPaymentOnReserved } from '@/sagas/create-payment-on-reserved.js';
+import { completeOnPaymentSucceeded } from '@/sagas/complete-on-payment-succeeded.js';
 import { buildTestApp } from '@test/helpers/build-test-app.js';
 import { resetDb } from '@test/helpers/reset-db.js';
 import { envelopeMsg, postSignedWebhook } from '@test/helpers/envelope.js';

@@ -12,13 +12,13 @@ import {
   products,
 } from '@infra/db/schema.js';
 import { getConnection, closeMq } from '@infra/mq/connection.js';
-import { createRabbitPublisher, type RabbitPublisher } from '@infra/mq/publisher.js';
-import { createOutboxRelay } from '@infra/mq/outbox-relay.js';
+import { makeRabbitPublisher, type RabbitPublisher } from '@infra/mq/publisher.js';
+import { makeOutboxRelay } from '@infra/mq/outbox-relay.js';
 import { startConsumer } from '@infra/mq/consumer.js';
 import { assertTopology, ORDER_EMAIL_QUEUE } from '@infra/mq/topology.js';
-import { sendEmailOnOrderCreated } from '@modules/orders/sagas/send-email-on-order-created.js';
+import { sendEmailOnOrderCreated } from '@/sagas/send-email-on-order-created.js';
 import { makeMailAdapter } from '@infra/mail/mail-adapter.js';
-import { createMailer } from '@infra/mail/mailer.js';
+import { makeMailer } from '@infra/mail/mailer.js';
 import { buildTestApp, registerAndLogin } from '@test/helpers/build-test-app.js';
 import { resetDb } from '@test/helpers/reset-db.js';
 
@@ -58,12 +58,12 @@ describe('order flow integration (pg + rabbit + mailpit)', () => {
     await fetch(`${process.env.MAILPIT_HTTP}/api/v1/messages`, { method: 'DELETE' });
 
     app = await buildTestApp();
-    publisher = await createRabbitPublisher(log);
+    publisher = await makeRabbitPublisher(log);
 
     const conn = await getConnection(log);
     consumerChannel = await conn.createChannel();
     await assertTopology(consumerChannel);
-    const mailAdapter = makeMailAdapter(createMailer(), 'no-reply@orders.test');
+    const mailAdapter = makeMailAdapter(makeMailer(), 'no-reply@orders.test');
     await startConsumer(
       consumerChannel,
       ORDER_EMAIL_QUEUE,
@@ -99,7 +99,7 @@ describe('order flow integration (pg + rabbit + mailpit)', () => {
       .then((r) => r.json<{ id: string; status: string }>());
 
     // relay publishes the outbox row to RabbitMQ
-    const relay = createOutboxRelay({ db, publisher, log, intervalMs: 1000 });
+    const relay = makeOutboxRelay({ db, publisher, log, intervalMs: 1000 });
     await relay.tick();
 
     // worker consumed → email arrived in Mailpit

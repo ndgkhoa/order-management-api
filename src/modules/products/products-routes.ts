@@ -1,7 +1,7 @@
 import { Type } from '@sinclair/typebox';
 import type { FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';
 import type { FastifyRequest } from 'fastify';
-import { Permissions } from '@/domain/permission.js';
+import { Permissions } from '@/types/permission.js';
 import { makeProductsRepository } from '@modules/products/products-repository.js';
 import { makeProductsCache } from '@modules/products/products-cache.js';
 import { makeProductsService } from '@modules/products/products-service.js';

@@ -1,5 +1,5 @@
-import { type UserRole, UserRoles } from '@/domain/user-role.js';
-import { type Permission, Permissions } from '@/domain/permission.js';
+import { type UserRole, UserRoles } from '@/types/user-role.js';
+import { type Permission, Permissions } from '@/types/permission.js';
 
 /**
  * Role → permissions mapping — the single source of truth binding roles to capabilities.
@@ -21,11 +21,3 @@ export const ROLE_PERMISSIONS: Record<UserRole, readonly Permission[]> = {
     Permissions.Payment.Force,
   ],
 };
-
-/** True if any of the caller's roles grants `permission`. Unknown roles grant nothing (fail-closed). */
-export function hasPermission(
-  roles: readonly UserRole[] | undefined,
-  permission: Permission,
-): boolean {
-  return (roles ?? []).some((role) => (ROLE_PERMISSIONS[role] ?? []).includes(permission));
-}

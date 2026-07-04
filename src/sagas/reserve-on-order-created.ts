@@ -12,8 +12,8 @@ import {
   type OrderCancelledPayload,
 } from '@infra/mq/outbox-event-types.js';
 import { reserveStock } from '@modules/inventory/adjust-stock.js';
-import { transitionOrder } from '@modules/orders/transition-order.js';
-import { OrderStatuses } from '@/domain/order-status.js';
+import { makeOrdersRepository } from '@modules/orders/orders-repository.js';
+import { OrderStatuses } from '@/types/order-status.js';
 import { sagaMetrics } from '@infra/telemetry/saga-metrics.js';
 
 interface HandlerDeps {
@@ -48,6 +48,7 @@ export async function reserveOnOrderCreated(
   const correlationId = envelope.correlationId || orderId;
 
   try {
+    const ordersRepo = makeOrdersRepository(db);
     let duplicate = false;
     let reserved = true;
 
@@ -86,7 +87,7 @@ export async function reserveOnOrderCreated(
         // Compare-and-set: only cancel an order still pending. Emit order.cancelled ONLY if
         // this update actually transitioned a row — so a redelivery or an already-terminal
         // order (future pay/cancel race) never produces a spurious cancellation event.
-        const cancelled = await transitionOrder(
+        const cancelled = await ordersRepo.transition(
           tx,
           orderId,
           OrderStatuses.Pending,

@@ -11,8 +11,8 @@ import {
   type OrderPaidPayload,
 } from '@infra/mq/outbox-event-types.js';
 import { commitReservation } from '@modules/inventory/adjust-stock.js';
-import { transitionOrder } from '@modules/orders/transition-order.js';
-import { OrderStatuses } from '@/domain/order-status.js';
+import { makeOrdersRepository } from '@modules/orders/orders-repository.js';
+import { OrderStatuses } from '@/types/order-status.js';
 import { sagaMetrics } from '@infra/telemetry/saga-metrics.js';
 
 const CONSUMER_NAME = 'payment-complete';
@@ -39,12 +39,19 @@ export async function completeOnPaymentSucceeded(
   const correlationId = envelope.correlationId || orderId;
 
   try {
+    const ordersRepo = makeOrdersRepository(db);
     await db.transaction(async (tx) => {
       if (!(await claimOnce(tx, CONSUMER_NAME, eventId))) return; // duplicate delivery
 
-      const paid = await transitionOrder(tx, orderId, OrderStatuses.Pending, OrderStatuses.Paid, {
-        reason: 'payment_succeeded',
-      });
+      const paid = await ordersRepo.transition(
+        tx,
+        orderId,
+        OrderStatuses.Pending,
+        OrderStatuses.Paid,
+        {
+          reason: 'payment_succeeded',
+        },
+      );
       if (!paid) {
         log.warn({ orderId }, 'order not pending at payment success; skipping commit');
         return;

@@ -15,24 +15,24 @@ import {
   NOTIFICATION_QUEUE,
   assertTopology,
 } from '@infra/mq/topology.js';
-import { createRabbitPublisher } from '@infra/mq/publisher.js';
-import { createOutboxRelay } from '@infra/mq/outbox-relay.js';
-import { createMailer } from '@infra/mail/mailer.js';
+import { makeRabbitPublisher } from '@infra/mq/publisher.js';
+import { makeOutboxRelay } from '@infra/mq/outbox-relay.js';
+import { makeMailer } from '@infra/mail/mailer.js';
 import { makeMailAdapter } from '@infra/mail/mail-adapter.js';
-import { sendEmailOnOrderCreated } from '@modules/orders/sagas/send-email-on-order-created.js';
-import { reserveOnOrderCreated } from '@modules/inventory/sagas/reserve-on-order-created.js';
-import { createOrderReaper } from '@modules/orders/order-reaper.js';
-import { createPaymentOnReserved } from '@modules/payments/sagas/create-payment-on-reserved.js';
-import { completeOnPaymentSucceeded } from '@modules/payments/sagas/complete-on-payment-succeeded.js';
-import { compensateOnPaymentFailed } from '@modules/payments/sagas/compensate-on-payment-failed.js';
+import { sendEmailOnOrderCreated } from '@/sagas/send-email-on-order-created.js';
+import { reserveOnOrderCreated } from '@/sagas/reserve-on-order-created.js';
+import { makeOrderReaper } from './order-reaper-worker.js';
+import { createPaymentOnReserved } from '@/sagas/create-payment-on-reserved.js';
+import { completeOnPaymentSucceeded } from '@/sagas/complete-on-payment-succeeded.js';
+import { compensateOnPaymentFailed } from '@/sagas/compensate-on-payment-failed.js';
 import {
   fakeProviderOnPaymentCreated,
   type FakeProviderConfig,
-} from '@modules/payments/sagas/fake-payment-provider.js';
-import { makeShippingConsumer } from '@modules/shipping/sagas/fake-shipping-worker.js';
-import { makeNotificationDispatcher } from '@modules/notifications/sagas/dispatch-notifications.js';
-import { makeEmailProvider } from '@infra/channels/email-provider.js';
-import { makeSmsProvider } from '@infra/channels/sms-provider.js';
+} from '@infra/providers/fake-payment-provider.js';
+import { makeShippingConsumer } from './fake-shipping-worker.js';
+import { makeNotificationDispatcher } from '@modules/notifications/dispatch-notifications.js';
+import { makeEmailProvider } from '@infra/providers/email-provider.js';
+import { makeSmsProvider } from '@infra/providers/sms-provider.js';
 
 function buildLogger() {
   const options = { level: process.env.LOG_LEVEL ?? 'info' };
@@ -58,7 +58,7 @@ async function main(): Promise<void> {
   await assertTopology(emailChannel); // idempotent; declares all queues once
   const inventoryChannel = await conn.createChannel();
 
-  const mailer = createMailer();
+  const mailer = makeMailer();
   const mailFrom = process.env.MAIL_FROM ?? 'no-reply@orders.local';
   const mailAdapter = makeMailAdapter(mailer, mailFrom);
   await startConsumer(
@@ -126,8 +126,8 @@ async function main(): Promise<void> {
   });
   await startConsumer(notificationChannel, NOTIFICATION_QUEUE, notificationHandler, { log });
 
-  const publisher = await createRabbitPublisher(log);
-  const relay = createOutboxRelay({
+  const publisher = await makeRabbitPublisher(log);
+  const relay = makeOutboxRelay({
     db,
     publisher,
     log,
@@ -135,7 +135,7 @@ async function main(): Promise<void> {
   });
   relay.start();
 
-  const reaper = createOrderReaper({
+  const reaper = makeOrderReaper({
     db,
     log,
     intervalMs: num(process.env.ORDER_REAPER_INTERVAL_MS, 60_000),

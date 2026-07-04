@@ -1,8 +1,6 @@
-import { and, eq, lt } from 'drizzle-orm';
 import type { FastifyBaseLogger } from 'fastify';
 import type { DB } from '@infra/db/client.js';
-import { orders } from '@infra/db/schema.js';
-import { OrderStatuses } from '@/domain/order-status.js';
+import { makeOrdersRepository } from '@modules/orders/orders-repository.js';
 
 interface OrderReaperDeps {
   db: DB;
@@ -17,7 +15,7 @@ interface OrderReaperDeps {
  * for alerting / manual recovery; it does NOT auto-cancel (that risks cancelling a
  * legitimately slow order). Runs in the worker process alongside the relay.
  */
-export function createOrderReaper({ db, log, intervalMs, thresholdMs }: OrderReaperDeps) {
+export function makeOrderReaper({ db, log, intervalMs, thresholdMs }: OrderReaperDeps) {
   let timer: NodeJS.Timeout | null = null;
   let running = false;
 
@@ -26,10 +24,8 @@ export function createOrderReaper({ db, log, intervalMs, thresholdMs }: OrderRea
     running = true;
     try {
       const cutoff = new Date(Date.now() - thresholdMs);
-      const stuck = await db
-        .select({ id: orders.id, createdAt: orders.createdAt })
-        .from(orders)
-        .where(and(eq(orders.status, OrderStatuses.Pending), lt(orders.createdAt, cutoff)));
+      const ordersRepo = makeOrdersRepository(db);
+      const stuck = await ordersRepo.findStuckOrders(cutoff);
       if (stuck.length > 0) {
         log.warn(
           { count: stuck.length, orderIds: stuck.map((o) => o.id), thresholdMs },
@@ -61,4 +57,4 @@ export function createOrderReaper({ db, log, intervalMs, thresholdMs }: OrderRea
   };
 }
 
-export type OrderReaper = ReturnType<typeof createOrderReaper>;
+export type OrderReaper = ReturnType<typeof makeOrderReaper>;

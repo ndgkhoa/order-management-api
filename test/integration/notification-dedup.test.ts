@@ -4,8 +4,8 @@ import type { ConsumeMessage } from 'amqplib';
 import type { FastifyBaseLogger } from 'fastify';
 import { db } from '@infra/db/client.js';
 import { users, orders } from '@infra/db/schema.js';
-import { makeNotificationDispatcher } from '@modules/notifications/sagas/dispatch-notifications.js';
-import type { NotificationProvider } from '@infra/channels/notification-provider.js';
+import { makeNotificationDispatcher } from '@modules/notifications/dispatch-notifications.js';
+import type { NotificationProvider } from '@infra/providers/notification-provider.js';
 import { resetDb } from '@test/helpers/reset-db.js';
 
 const log = pino({ level: 'silent' }) as unknown as FastifyBaseLogger;

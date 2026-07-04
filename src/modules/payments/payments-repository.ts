@@ -1,7 +1,7 @@
 import { and, eq } from 'drizzle-orm';
 import { payments } from '@infra/db/schema.js';
-import type { Tx } from '@modules/inventory/adjust-stock.js';
-import { PaymentStatuses } from '@/domain/payment-status.js';
+import type { Tx } from '@infra/db/client.js';
+import { PaymentStatuses } from '@/types/payment-status.js';
 
 /**
  * Insert the single pending payment for an order. `onConflictDoNothing` on the unique

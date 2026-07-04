@@ -14,7 +14,7 @@ import {
   orderStatusHistory,
 } from '@infra/db/schema.js';
 import { SHIPMENT_CREATED_EVENT, SHIPMENT_DELIVERED_EVENT } from '@infra/mq/outbox-event-types.js';
-import { createShipmentOnOrderPaid } from '@modules/shipping/sagas/create-shipment-on-order-paid.js';
+import { createShipmentOnOrderPaid } from '@/sagas/create-shipment-on-order-paid.js';
 import { advanceShipment } from '@modules/shipping/advance-shipment.js';
 import { resetDb } from '@test/helpers/reset-db.js';
 

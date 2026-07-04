@@ -1,9 +1,6 @@
 import { and, eq, gte, sql } from 'drizzle-orm';
-import type { DB } from '@infra/db/client.js';
+import type { Tx } from '@infra/db/client.js';
 import { products } from '@infra/db/schema.js';
-
-/** A Drizzle transaction handle (the callback arg of `db.transaction`). */
-export type Tx = Parameters<Parameters<DB['transaction']>[0]>[0];
 
 /**
  * Guarded stock mutations — the single implementation of the reserve/commit/release

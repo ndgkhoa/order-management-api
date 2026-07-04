@@ -1,5 +1,5 @@
 import fp from 'fastify-plugin';
-import { createRedisClient } from '@infra/redis/client.js';
+import { makeRedisClient } from '@infra/redis/client.js';
 
 /**
  * Exposes an ioredis client as `fastify.redis` and closes it on shutdown.
@@ -8,7 +8,7 @@ import { createRedisClient } from '@infra/redis/client.js';
  * Registered after envPlugin so `app.config.REDIS_URL` is available.
  */
 export const redisPlugin = fp(async (app) => {
-  const redis = createRedisClient(app.config.REDIS_URL);
+  const redis = makeRedisClient(app.config.REDIS_URL);
   await redis.ping(); // fail fast at boot if Redis is unreachable
   app.decorate('redis', redis);
   app.addHook('onClose', async () => {

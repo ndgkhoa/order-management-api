@@ -17,7 +17,7 @@ export interface OutboxPublisher {
  * STUB used until phase 07: logs instead of sending to RabbitMQ, so the relay
  * loop is fully exercisable now. Swap for the RabbitMQ publisher in phase 07.
  */
-export function createLogPublisher(log: FastifyBaseLogger): OutboxPublisher {
+export function makeLogPublisher(log: FastifyBaseLogger): OutboxPublisher {
   return {
     publish(message) {
       log.info(

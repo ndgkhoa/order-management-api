@@ -6,7 +6,7 @@ import {
   type PaymentSettledPayload,
 } from '@infra/mq/outbox-event-types.js';
 import { applyPaymentOutcome } from '@modules/payments/payments-repository.js';
-import { PaymentStatuses } from '@/domain/payment-status.js';
+import { PaymentStatuses } from '@/types/payment-status.js';
 
 /** Durable dedup dimension for inbound webhook events (keyed by provider event id). */
 const WEBHOOK_CONSUMER = 'webhook';

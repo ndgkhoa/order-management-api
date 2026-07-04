@@ -1,24 +1,27 @@
 import { describe, it, expect } from 'vitest';
-import { canTransition, assertTransition } from '@/domain/order-status.js';
+import { canTransition, assertTransition } from '@/utils/state-machine.js';
+import { ORDER_TRANSITIONS } from '@/types/order-status.js';
 
 describe('order status machine', () => {
   it('allows the legal transitions', () => {
-    expect(canTransition('pending', 'paid')).toBe(true);
-    expect(canTransition('pending', 'cancelled')).toBe(true);
-    expect(canTransition('paid', 'fulfilling')).toBe(true);
-    expect(canTransition('paid', 'cancelled')).toBe(true);
-    expect(canTransition('fulfilling', 'delivered')).toBe(true);
+    expect(canTransition(ORDER_TRANSITIONS, 'pending', 'paid')).toBe(true);
+    expect(canTransition(ORDER_TRANSITIONS, 'pending', 'cancelled')).toBe(true);
+    expect(canTransition(ORDER_TRANSITIONS, 'paid', 'fulfilling')).toBe(true);
+    expect(canTransition(ORDER_TRANSITIONS, 'paid', 'cancelled')).toBe(true);
+    expect(canTransition(ORDER_TRANSITIONS, 'fulfilling', 'delivered')).toBe(true);
   });
 
   it('rejects illegal + terminal transitions', () => {
-    expect(canTransition('cancelled', 'paid')).toBe(false); // no reviving a cancelled order
-    expect(canTransition('delivered', 'cancelled')).toBe(false);
-    expect(canTransition('pending', 'delivered')).toBe(false);
-    expect(canTransition('paid', 'pending')).toBe(false);
+    expect(canTransition(ORDER_TRANSITIONS, 'cancelled', 'paid')).toBe(false); // no reviving
+    expect(canTransition(ORDER_TRANSITIONS, 'delivered', 'cancelled')).toBe(false);
+    expect(canTransition(ORDER_TRANSITIONS, 'pending', 'delivered')).toBe(false);
+    expect(canTransition(ORDER_TRANSITIONS, 'paid', 'pending')).toBe(false);
   });
 
   it('assertTransition throws on an illegal move', () => {
-    expect(() => assertTransition('cancelled', 'paid')).toThrowError(/illegal order status/);
-    expect(() => assertTransition('pending', 'cancelled')).not.toThrow();
+    expect(() => assertTransition(ORDER_TRANSITIONS, 'cancelled', 'paid')).toThrowError(
+      /illegal status/,
+    );
+    expect(() => assertTransition(ORDER_TRANSITIONS, 'pending', 'cancelled')).not.toThrow();
   });
 });

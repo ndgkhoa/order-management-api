@@ -23,7 +23,7 @@ interface CreateEnvelopeInput<T> {
 }
 
 /** Builds an EventEnvelope, defaulting `eventId` and `occurredAt` when not supplied. */
-export function createEventEnvelope<T>({
+export function buildEventEnvelope<T>({
   eventType,
   correlationId,
   payload,

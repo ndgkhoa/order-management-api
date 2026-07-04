@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
-import { UserRoles } from '@/domain/user-role.js';
-import { Permissions } from '@/domain/permission.js';
+import { UserRoles } from '@/types/user-role.js';
+import { Permissions } from '@/types/permission.js';
 import { makeRequirePermission } from '@plugins/rbac.js';
 
 // Minimal httpErrors stub: forbidden() returns a throwable 403 (matches @fastify/sensible shape).

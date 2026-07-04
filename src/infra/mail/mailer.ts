@@ -1,7 +1,7 @@
 import nodemailer from 'nodemailer';
 
 /** Nodemailer transport (Mailpit in dev — plain SMTP, no auth/TLS). */
-export function createMailer() {
+export function makeMailer() {
   return nodemailer.createTransport({
     host: process.env.SMTP_HOST ?? 'localhost',
     port: Number(process.env.SMTP_PORT ?? 1025),
@@ -9,4 +9,4 @@ export function createMailer() {
   });
 }
 
-export type Mailer = ReturnType<typeof createMailer>;
+export type Mailer = ReturnType<typeof makeMailer>;

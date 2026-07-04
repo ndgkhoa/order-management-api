@@ -73,3 +73,39 @@ function toOrderItemPublic(i: OrderItemRow): OrderItemPublic {
 export function toOrderDetail(o: OrderRow, items: OrderItemRow[]): OrderDetail {
   return { ...toOrderPublic(o), items: items.map(toOrderItemPublic) };
 }
+
+// ---------------------------------------------------------------------------
+// Internal DTOs (not HTTP-validated, so plain `type` aliases rather than TypeBox).
+// ---------------------------------------------------------------------------
+
+/** A product snapshot the service reads when pricing an order line. */
+export type SnapshotProduct = {
+  id: string;
+  sku: string;
+  priceCents: number;
+};
+
+/** An immutable priced order line (price + SKU snapshotted at order time). */
+export type OrderLine = {
+  productId: string;
+  skuSnapshot: string;
+  unitPriceCents: number;
+  quantity: number;
+  lineTotalCents: number;
+};
+
+/** Repository input for the atomic create — the service builds this after pricing. */
+export type CreateOrderInput = {
+  userId: string;
+  email: string; // carried into the event payload (no extra query in the worker)
+  lines: OrderLine[]; // pre-validated + price-snapshotted by the service
+  totalCents: number;
+};
+
+/** Input for cancelling an order (owner or `order:cancel:any`). */
+export type CancelOrderInput = {
+  orderId: string;
+  requesterId: string;
+  /** True when the caller holds `order:cancel:any` — lets them cancel an order they do not own. */
+  canCancelAny: boolean;
+};

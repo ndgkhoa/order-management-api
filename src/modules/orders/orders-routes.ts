@@ -1,18 +1,10 @@
 import { Type } from '@sinclair/typebox';
 import type { FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';
-import { Permissions } from '@/domain/permission.js';
-import { hasPermission } from '@/domain/role-permissions.js';
 import { makeOrdersRepository } from '@modules/orders/orders-repository.js';
 import { makeProductsRepository } from '@modules/products/products-repository.js';
 import { makeOrdersService } from '@modules/orders/orders-service.js';
 import { makeOrdersController } from '@modules/orders/orders-controller.js';
-import {
-  CreateOrderBody,
-  OrderPublic,
-  OrderDetail,
-  toOrderDetail,
-} from '@modules/orders/orders-schema.js';
-import { cancelOrder } from '@modules/orders/cancel-order.js';
+import { CreateOrderBody, OrderPublic, OrderDetail } from '@modules/orders/orders-schema.js';
 import { errorResponses } from '@infra/http/error-responses.js';
 
 const IdParams = Type.Object({ id: Type.String({ format: 'uuid' }) });
@@ -65,7 +57,7 @@ export const ordersRoutes: FastifyPluginAsyncTypebox = (app) => {
   );
 
   // Customer (owner) or admin cancel. Pre-ship only: paid → refund+restock, pending → release;
-  // fulfilling/delivered → 409. Ownership is enforced inside cancelOrder (IDOR guard).
+  // fulfilling/delivered → 409. Ownership is enforced inside service.cancel (IDOR guard).
   app.post(
     '/:id/cancel',
     {
@@ -76,15 +68,7 @@ export const ordersRoutes: FastifyPluginAsyncTypebox = (app) => {
         response: { 200: OrderDetail, ...errorResponses(401, 404, 409) },
       },
     },
-    async (req, reply) => {
-      const { id } = req.params;
-      const { order, items } = await cancelOrder(app.db, app.httpErrors, {
-        orderId: id,
-        requesterId: req.user.sub,
-        canCancelAny: hasPermission(req.user.roles, Permissions.Order.CancelAny),
-      });
-      return reply.code(200).send(toOrderDetail(order, items));
-    },
+    controller.cancel,
   );
 
   return Promise.resolve();

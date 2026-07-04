@@ -1,7 +1,7 @@
 import type { ConsumeMessage } from 'amqplib';
 import type { FastifyBaseLogger } from 'fastify';
 import { processedMessages } from '@infra/db/schema.js';
-import type { Tx } from '@modules/inventory/adjust-stock.js';
+import type { Tx } from '@infra/db/client.js';
 import type { EventEnvelope } from '@infra/mq/event-envelope.js';
 
 /**

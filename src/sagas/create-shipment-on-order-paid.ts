@@ -9,9 +9,9 @@ import {
   type OrderPaidPayload,
   type ShipmentEventPayload,
 } from '@infra/mq/outbox-event-types.js';
-import { transitionOrder } from '@modules/orders/transition-order.js';
-import { OrderStatuses } from '@/domain/order-status.js';
-import { ShipmentStatuses } from '@/domain/shipment-status.js';
+import { makeOrdersRepository } from '@modules/orders/orders-repository.js';
+import { OrderStatuses } from '@/types/order-status.js';
+import { ShipmentStatuses } from '@/types/shipment-status.js';
 
 const CONSUMER_NAME = 'shipping';
 
@@ -37,6 +37,7 @@ export async function createShipmentOnOrderPaid(
   const correlationId = envelope.correlationId || orderId;
 
   try {
+    const ordersRepo = makeOrdersRepository(db);
     let shipmentId: string | undefined;
     await db.transaction(async (tx) => {
       if (!(await claimOnce(tx, CONSUMER_NAME, eventId))) return; // duplicate delivery
@@ -44,7 +45,7 @@ export async function createShipmentOnOrderPaid(
       // Win the order first: this CAS acquires the order row lock, so a concurrent cancel is
       // serialized behind us and will find status='fulfilling' → rejected. Only if we win do we
       // create the shipment — never leave an orphaned/advancing shipment for a cancelled order.
-      const moved = await transitionOrder(
+      const moved = await ordersRepo.transition(
         tx,
         orderId,
         OrderStatuses.Paid,

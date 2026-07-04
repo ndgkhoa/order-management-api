@@ -6,7 +6,7 @@ import type { AppInstance } from '@/app.js';
 import { db } from '@infra/db/client.js';
 import { orders, orderItems, products, users, payments, outboxMessages } from '@infra/db/schema.js';
 import { PAYMENT_SUCCEEDED_EVENT } from '@infra/mq/outbox-event-types.js';
-import { createPaymentOnReserved } from '@modules/payments/sagas/create-payment-on-reserved.js';
+import { createPaymentOnReserved } from '@/sagas/create-payment-on-reserved.js';
 import { signWebhook } from '@modules/payments/webhook-signature.js';
 import { buildTestApp } from '@test/helpers/build-test-app.js';
 import { resetDb } from '@test/helpers/reset-db.js';
