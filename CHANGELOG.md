@@ -2,13 +2,12 @@
 
 ## [0.1.4](https://github.com/ndgkhoa/order-management-api/compare/v0.1.3...v0.1.4) (2026-07-04)
 
-
 ### Features
 
-* channel-agnostic notification system for saga events ([#41](https://github.com/ndgkhoa/order-management-api/issues/41)) ([3990746](https://github.com/ndgkhoa/order-management-api/commit/3990746d41a868444e1e21783815f82d3581e537))
-* order lifecycle, fake shipping and pre-ship cancel/refund ([#40](https://github.com/ndgkhoa/order-management-api/issues/40)) ([72854d1](https://github.com/ndgkhoa/order-management-api/commit/72854d132812bdd11a5b752c97d09fa522c084d7))
-* payment saga with HMAC-signed webhook and compensation ([#38](https://github.com/ndgkhoa/order-management-api/issues/38)) ([d0b8625](https://github.com/ndgkhoa/order-management-api/commit/d0b86252adb3ef83538922a410546a476907f557))
-* saga metrics, end-to-end tests and architecture docs ([#42](https://github.com/ndgkhoa/order-management-api/issues/42)) ([8f08289](https://github.com/ndgkhoa/order-management-api/commit/8f08289a86cac57d63e5ecc408b89032aa002fb8))
+- **payments:** payment saga with HMAC-signed webhook and compensation ([#38](https://github.com/ndgkhoa/order-management-api/issues/38)) ([d0b8625](https://github.com/ndgkhoa/order-management-api/commit/d0b86252adb3ef83538922a410546a476907f557))
+- **shipping:** order lifecycle, fake shipping and pre-ship cancel/refund ([#40](https://github.com/ndgkhoa/order-management-api/issues/40)) ([72854d1](https://github.com/ndgkhoa/order-management-api/commit/72854d132812bdd11a5b752c97d09fa522c084d7))
+- **notifications:** channel-agnostic notification system for saga events ([#41](https://github.com/ndgkhoa/order-management-api/issues/41)) ([3990746](https://github.com/ndgkhoa/order-management-api/commit/3990746d41a868444e1e21783815f82d3581e537))
+- **observability:** saga metrics, end-to-end tests and architecture docs ([#42](https://github.com/ndgkhoa/order-management-api/issues/42)) ([8f08289](https://github.com/ndgkhoa/order-management-api/commit/8f08289a86cac57d63e5ecc408b89032aa002fb8))
 
 ## [0.1.3](https://github.com/ndgkhoa/order-management-api/compare/v0.1.2...v0.1.3) (2026-07-03)
 
