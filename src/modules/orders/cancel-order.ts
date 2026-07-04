@@ -10,8 +10,8 @@ import {
 } from '@infra/mq/outbox-event-types.js';
 import { releaseReservation, restockAvailable } from '@modules/inventory/adjust-stock.js';
 import { transitionOrder } from '@modules/orders/transition-order.js';
-import { OrderStatuses } from '@/types/order-status.js';
-import { PaymentStatuses } from '@/types/payment-status.js';
+import { OrderStatuses } from '@/domain/order-status.js';
+import { PaymentStatuses } from '@/domain/payment-status.js';
 import { sagaMetrics } from '@infra/telemetry/saga-metrics.js';
 
 const CUSTOMER_REASON = 'customer_cancelled';

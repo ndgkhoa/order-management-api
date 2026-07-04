@@ -1,7 +1,7 @@
 import argon2 from 'argon2';
 import { db } from '@infra/db/client.js';
 import { users } from '@infra/db/schema.js';
-import { UserRoles } from '@/types/user-role.js';
+import { UserRoles } from '@/domain/user-role.js';
 
 /**
  * Seeds (or promotes) the bootstrap admin so RBAC-guarded routes are usable locally.

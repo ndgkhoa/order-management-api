@@ -2,10 +2,10 @@ import { eq } from 'drizzle-orm';
 import type { ConsumeMessage } from 'amqplib';
 import type { FastifyBaseLogger } from 'fastify';
 import type { DB } from '@infra/db/client.js';
-import { orders, users, processedMessages } from '@infra/db/schema.js';
+import { orders, users } from '@infra/db/schema.js';
 import type { HandlerResult } from '@infra/mq/consumer.js';
-import type { EventEnvelope } from '@infra/mq/event-envelope.js';
 import type { NotificationProvider } from '@infra/notify/notification-provider.js';
+import { parseEnvelope, claimOnce } from '@infra/mq/idempotent-consumer.js';
 import {
   routeNotification,
   type NotifyPayload,
@@ -29,15 +29,9 @@ interface HandlerDeps {
  */
 export function makeNotificationHandler({ db, providers, log }: HandlerDeps) {
   return async (msg: ConsumeMessage): Promise<HandlerResult> => {
-    let envelope: EventEnvelope<NotifyPayload>;
-    try {
-      envelope = JSON.parse(msg.content.toString()) as EventEnvelope<NotifyPayload>;
-    } catch (err) {
-      log.error({ err }, 'malformed notification message; dropping');
-      return 'ack';
-    }
+    const envelope = parseEnvelope<NotifyPayload>(msg, log);
+    if (!envelope) return 'ack';
     const eventId = envelope.eventId;
-    if (!eventId) return 'ack';
 
     const route = routeNotification(envelope.eventType);
     if (!route) return 'ack'; // not a notification-worthy event → no-op
@@ -45,12 +39,7 @@ export function makeNotificationHandler({ db, providers, log }: HandlerDeps) {
     try {
       let duplicate = false;
       await db.transaction(async (tx) => {
-        const inserted = await tx
-          .insert(processedMessages)
-          .values({ consumerName: CONSUMER_NAME, eventId })
-          .onConflictDoNothing()
-          .returning();
-        if (inserted.length === 0) {
+        if (!(await claimOnce(tx, CONSUMER_NAME, eventId))) {
           duplicate = true;
           return;
         }

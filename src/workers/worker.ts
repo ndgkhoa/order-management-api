@@ -19,18 +19,18 @@ import { createRabbitPublisher } from '@infra/mq/publisher.js';
 import { createOutboxRelay } from '@infra/mq/outbox-relay.js';
 import { createMailer } from '@infra/mail/mailer.js';
 import { makeMailAdapter } from '@infra/mail/mail-adapter.js';
-import { handleOrderCreated } from '@modules/orders/order-created-handler.js';
-import { reserveOnOrderCreated } from '@modules/inventory/reserve-on-order-created.js';
+import { handleOrderCreated } from '@modules/orders/sagas/order-created-handler.js';
+import { reserveOnOrderCreated } from '@modules/inventory/sagas/reserve-on-order-created.js';
 import { createOrderReaper } from '@modules/orders/order-reaper.js';
-import { createPaymentOnReserved } from '@modules/payments/create-payment-on-reserved.js';
-import { completeOnPaymentSucceeded } from '@modules/payments/complete-on-payment-succeeded.js';
-import { compensateOnPaymentFailed } from '@modules/payments/compensate-on-payment-failed.js';
+import { createPaymentOnReserved } from '@modules/payments/sagas/create-payment-on-reserved.js';
+import { completeOnPaymentSucceeded } from '@modules/payments/sagas/complete-on-payment-succeeded.js';
+import { compensateOnPaymentFailed } from '@modules/payments/sagas/compensate-on-payment-failed.js';
 import {
   mockProviderOnPaymentCreated,
   type MockProviderConfig,
-} from '@modules/payments/mock-payment-provider.js';
-import { makeShippingConsumer } from '@modules/shipping/fake-shipping-worker.js';
-import { makeNotificationHandler } from '@modules/notifications/notification-handler.js';
+} from '@modules/payments/sagas/mock-payment-provider.js';
+import { makeShippingConsumer } from '@modules/shipping/sagas/fake-shipping-worker.js';
+import { makeNotificationHandler } from '@modules/notifications/sagas/notification-handler.js';
 import { makeEmailProvider } from '@infra/notify/email-provider.js';
 import { makeSmsProvider } from '@infra/notify/sms-provider.js';
 

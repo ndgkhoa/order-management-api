@@ -2,7 +2,7 @@ import { eq } from 'drizzle-orm';
 import { buildApp, type AppInstance } from '@/app.js';
 import { db } from '@infra/db/client.js';
 import { users } from '@infra/db/schema.js';
-import { UserRoles } from '@/types/user-role.js';
+import { UserRoles } from '@/domain/user-role.js';
 
 // Memoized: the metrics plugin registers default metrics on prom-client's GLOBAL
 // registry, so building the app twice in one process throws "already registered".

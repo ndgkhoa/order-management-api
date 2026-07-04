@@ -1,9 +1,9 @@
 import type { ConsumeMessage } from 'amqplib';
 import type { FastifyBaseLogger } from 'fastify';
 import type { DB } from '@infra/db/client.js';
-import { outboxMessages, processedMessages } from '@infra/db/schema.js';
+import { outboxMessages } from '@infra/db/schema.js';
 import type { HandlerResult } from '@infra/mq/consumer.js';
-import type { EventEnvelope } from '@infra/mq/event-envelope.js';
+import { parseEnvelope, claimOnce } from '@infra/mq/idempotent-consumer.js';
 import {
   INVENTORY_RESERVED_EVENT,
   ORDER_CANCELLED_EVENT,
@@ -13,7 +13,7 @@ import {
 } from '@infra/mq/outbox-event-types.js';
 import { reserveStock } from '@modules/inventory/adjust-stock.js';
 import { transitionOrder } from '@modules/orders/transition-order.js';
-import { OrderStatuses } from '@/types/order-status.js';
+import { OrderStatuses } from '@/domain/order-status.js';
 import { sagaMetrics } from '@infra/telemetry/saga-metrics.js';
 
 interface HandlerDeps {
@@ -40,20 +40,10 @@ export async function reserveOnOrderCreated(
   msg: ConsumeMessage,
   { db, log }: HandlerDeps,
 ): Promise<HandlerResult> {
-  let envelope: EventEnvelope<OrderCreatedPayload>;
-  try {
-    envelope = JSON.parse(msg.content.toString()) as EventEnvelope<OrderCreatedPayload>;
-  } catch (err) {
-    log.error({ err }, 'malformed message body; dropping to avoid poison loop');
-    return 'ack';
-  }
+  const envelope = parseEnvelope<OrderCreatedPayload>(msg, log);
+  if (!envelope) return 'ack';
 
   const eventId = envelope.eventId;
-  if (!eventId) {
-    log.error('message missing eventId; dropping to avoid poison loop');
-    return 'ack';
-  }
-
   const { orderId, items } = envelope.payload;
   const correlationId = envelope.correlationId || orderId;
 
@@ -62,12 +52,7 @@ export async function reserveOnOrderCreated(
     let reserved = true;
 
     await db.transaction(async (tx) => {
-      const inserted = await tx
-        .insert(processedMessages)
-        .values({ consumerName: CONSUMER_NAME, eventId })
-        .onConflictDoNothing()
-        .returning();
-      if (inserted.length === 0) {
+      if (!(await claimOnce(tx, CONSUMER_NAME, eventId))) {
         duplicate = true; // already processed → don't reserve again
         return;
       }

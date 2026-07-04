@@ -12,16 +12,16 @@ import {
   uniqueIndex,
 } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
-import { UserRoles } from '@/types/user-role.js';
-import { OrderStatuses } from '@/types/order-status.js';
-import { PaymentStatuses } from '@/types/payment-status.js';
-import { ShipmentStatuses } from '@/types/shipment-status.js';
-import { DEFAULT_CURRENCY } from '@/types/currency.js';
+import { UserRoles } from '@/domain/user-role.js';
+import { OrderStatuses } from '@/domain/order-status.js';
+import { PaymentStatuses } from '@/domain/payment-status.js';
+import { ShipmentStatuses } from '@/domain/shipment-status.js';
+import { DEFAULT_CURRENCY } from '@/domain/currency.js';
 
 /** Application users. Only the argon2 hash is stored — never the plaintext password.
- *  `roles` is a text array (values are the single source of truth in `@/types/user-role`,
+ *  `roles` is a text array (values are the single source of truth in `@/domain/user-role`,
  *  enforced in the app layer — no pg enum). A user can hold several roles; the JWT carries them
- *  and RBAC resolves roles → permissions (`@/types/role-permissions`) at guard time. */
+ *  and RBAC resolves roles → permissions (`@/domain/role-permissions`) at guard time. */
 export const users = pgTable('users', {
   id: uuid('id').primaryKey().defaultRandom(),
   email: text('email').notNull().unique(),

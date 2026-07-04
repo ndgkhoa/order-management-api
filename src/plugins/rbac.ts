@@ -1,7 +1,7 @@
 import fp from 'fastify-plugin';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
-import type { Permission } from '@/types/permission.js';
-import { hasPermission } from '@/types/role-permissions.js';
+import type { Permission } from '@/domain/permission.js';
+import { hasPermission } from '@/domain/role-permissions.js';
 
 /** A permission-guard preHandler. Async + plain (no `this`) so it is directly callable in unit tests. */
 export type PermissionGuard = (request: FastifyRequest) => Promise<void>;

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { canTransition, assertTransition } from '@modules/payments/payment-status.js';
+import { canTransition, assertTransition } from '@/domain/payment-status.js';
 
 describe('payment status machine', () => {
   it('allows pending → paid and pending → failed', () => {

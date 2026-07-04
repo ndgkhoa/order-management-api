@@ -32,4 +32,14 @@ export const sagaMetrics = {
     name: 'saga_shipments_delivered_total',
     help: 'Shipments delivered',
   }),
+  /**
+   * Saga invariant/guard anomalies that "should never happen" (e.g. a stock guard failing while
+   * committing/releasing a reservation). Normally flat at 0 — a rising `type` indicates state
+   * drift worth investigating, so it can be alerted on instead of being buried in warn logs.
+   */
+  anomalies: new Counter({
+    name: 'saga_anomalies_total',
+    help: 'Saga guard/invariant anomalies detected',
+    labelNames: ['type'] as const,
+  }),
 };

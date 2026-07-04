@@ -2,9 +2,9 @@ import { eq } from 'drizzle-orm';
 import type { ConsumeMessage } from 'amqplib';
 import type { FastifyBaseLogger } from 'fastify';
 import type { DB } from '@infra/db/client.js';
-import { orders, outboxMessages, processedMessages } from '@infra/db/schema.js';
+import { orders, outboxMessages } from '@infra/db/schema.js';
 import type { HandlerResult } from '@infra/mq/consumer.js';
-import type { EventEnvelope } from '@infra/mq/event-envelope.js';
+import { parseEnvelope, claimOnce } from '@infra/mq/idempotent-consumer.js';
 import {
   PAYMENT_CREATED_EVENT,
   type InventoryReservedPayload,
@@ -29,26 +29,15 @@ export async function createPaymentOnReserved(
   msg: ConsumeMessage,
   { db, log }: HandlerDeps,
 ): Promise<HandlerResult> {
-  let envelope: EventEnvelope<InventoryReservedPayload>;
-  try {
-    envelope = JSON.parse(msg.content.toString()) as EventEnvelope<InventoryReservedPayload>;
-  } catch (err) {
-    log.error({ err }, 'malformed inventory.reserved; dropping');
-    return 'ack';
-  }
+  const envelope = parseEnvelope<InventoryReservedPayload>(msg, log);
+  if (!envelope) return 'ack';
   const eventId = envelope.eventId;
-  if (!eventId) return 'ack';
   const { orderId } = envelope.payload;
   const correlationId = envelope.correlationId || orderId;
 
   try {
     await db.transaction(async (tx) => {
-      const inserted = await tx
-        .insert(processedMessages)
-        .values({ consumerName: CONSUMER_NAME, eventId })
-        .onConflictDoNothing()
-        .returning();
-      if (inserted.length === 0) return; // duplicate delivery
+      if (!(await claimOnce(tx, CONSUMER_NAME, eventId))) return; // duplicate delivery
 
       const [order] = await tx
         .select({ totalCents: orders.totalCents })

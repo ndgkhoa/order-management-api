@@ -1,5 +1,5 @@
-import { type UserRole, UserRoles } from '@/types/user-role.js';
-import { type Permission, Permissions } from '@/types/permission.js';
+import { type UserRole, UserRoles } from '@/domain/user-role.js';
+import { type Permission, Permissions } from '@/domain/permission.js';
 
 /**
  * Role → permissions mapping — the single source of truth binding roles to capabilities.

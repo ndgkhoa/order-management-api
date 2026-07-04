@@ -17,7 +17,7 @@ import {
   ORDER_CANCELLED_EVENT,
   type OrderCreatedPayload,
 } from '@infra/mq/outbox-event-types.js';
-import { reserveOnOrderCreated } from '@modules/inventory/reserve-on-order-created.js';
+import { reserveOnOrderCreated } from '@modules/inventory/sagas/reserve-on-order-created.js';
 import { resetDb } from '@test/helpers/reset-db.js';
 
 const log = pino({ level: 'silent' }) as unknown as FastifyBaseLogger;

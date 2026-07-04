@@ -4,7 +4,7 @@ import type { ConsumeMessage } from 'amqplib';
 import type { FastifyBaseLogger } from 'fastify';
 import { db } from '@infra/db/client.js';
 import { users, orders } from '@infra/db/schema.js';
-import { makeNotificationHandler } from '@modules/notifications/notification-handler.js';
+import { makeNotificationHandler } from '@modules/notifications/sagas/notification-handler.js';
 import type { NotificationProvider } from '@infra/notify/notification-provider.js';
 import { resetDb } from '@test/helpers/reset-db.js';
 

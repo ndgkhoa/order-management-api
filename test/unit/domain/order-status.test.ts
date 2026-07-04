@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { canTransition, assertTransition } from '@modules/orders/order-status.js';
+import { canTransition, assertTransition } from '@/domain/order-status.js';
 
 describe('order status machine', () => {
   it('allows the legal transitions', () => {

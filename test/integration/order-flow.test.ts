@@ -16,7 +16,7 @@ import { createRabbitPublisher, type RabbitPublisher } from '@infra/mq/publisher
 import { createOutboxRelay } from '@infra/mq/outbox-relay.js';
 import { startConsumer } from '@infra/mq/consumer.js';
 import { assertTopology, ORDER_EMAIL_QUEUE } from '@infra/mq/topology.js';
-import { handleOrderCreated } from '@modules/orders/order-created-handler.js';
+import { handleOrderCreated } from '@modules/orders/sagas/order-created-handler.js';
 import { makeMailAdapter } from '@infra/mail/mail-adapter.js';
 import { createMailer } from '@infra/mail/mailer.js';
 import { buildTestApp, registerAndLogin } from '@test/helpers/build-test-app.js';

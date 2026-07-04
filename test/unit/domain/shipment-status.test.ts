@@ -1,9 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  canTransition,
-  assertTransition,
-  nextShipmentStatus,
-} from '@modules/shipping/shipment-status.js';
+import { canTransition, assertTransition, nextShipmentStatus } from '@/domain/shipment-status.js';
 
 describe('shipment status machine', () => {
   it('allows only adjacent forward transitions', () => {

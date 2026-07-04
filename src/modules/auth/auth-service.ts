@@ -1,6 +1,6 @@
 import argon2 from 'argon2';
 import type { FastifyInstance } from 'fastify';
-import type { UserRole } from '@/types/user-role.js';
+import type { UserRole } from '@/domain/user-role.js';
 import type { UsersRepository } from '@modules/users/users-repository.js';
 
 interface AuthServiceDeps {

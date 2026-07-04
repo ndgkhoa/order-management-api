@@ -1,17 +1,17 @@
 import type { ConsumeMessage } from 'amqplib';
 import type { FastifyBaseLogger } from 'fastify';
 import type { DB } from '@infra/db/client.js';
-import { shipments, outboxMessages, processedMessages } from '@infra/db/schema.js';
+import { shipments, outboxMessages } from '@infra/db/schema.js';
 import type { HandlerResult } from '@infra/mq/consumer.js';
-import type { EventEnvelope } from '@infra/mq/event-envelope.js';
+import { parseEnvelope, claimOnce } from '@infra/mq/idempotent-consumer.js';
 import {
   SHIPMENT_CREATED_EVENT,
   type OrderPaidPayload,
   type ShipmentEventPayload,
 } from '@infra/mq/outbox-event-types.js';
 import { transitionOrder } from '@modules/orders/transition-order.js';
-import { OrderStatuses } from '@/types/order-status.js';
-import { ShipmentStatuses } from '@/types/shipment-status.js';
+import { OrderStatuses } from '@/domain/order-status.js';
+import { ShipmentStatuses } from '@/domain/shipment-status.js';
 
 const CONSUMER_NAME = 'shipping';
 
@@ -30,27 +30,16 @@ export async function createShipmentOnOrderPaid(
   msg: ConsumeMessage,
   { db, log }: HandlerDeps,
 ): Promise<{ result: HandlerResult; shipmentId?: string }> {
-  let envelope: EventEnvelope<OrderPaidPayload>;
-  try {
-    envelope = JSON.parse(msg.content.toString()) as EventEnvelope<OrderPaidPayload>;
-  } catch (err) {
-    log.error({ err }, 'malformed order.paid; dropping');
-    return { result: 'ack' };
-  }
+  const envelope = parseEnvelope<OrderPaidPayload>(msg, log);
+  if (!envelope) return { result: 'ack' };
   const eventId = envelope.eventId;
-  if (!eventId) return { result: 'ack' };
   const { orderId } = envelope.payload;
   const correlationId = envelope.correlationId || orderId;
 
   try {
     let shipmentId: string | undefined;
     await db.transaction(async (tx) => {
-      const inserted = await tx
-        .insert(processedMessages)
-        .values({ consumerName: CONSUMER_NAME, eventId })
-        .onConflictDoNothing()
-        .returning();
-      if (inserted.length === 0) return; // duplicate delivery
+      if (!(await claimOnce(tx, CONSUMER_NAME, eventId))) return; // duplicate delivery
 
       // Win the order first: this CAS acquires the order row lock, so a concurrent cancel is
       // serialized behind us and will find status='fulfilling' → rejected. Only if we win do we

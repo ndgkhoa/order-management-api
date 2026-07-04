@@ -2,9 +2,9 @@ import { eq } from 'drizzle-orm';
 import type { ConsumeMessage } from 'amqplib';
 import type { FastifyBaseLogger } from 'fastify';
 import type { DB } from '@infra/db/client.js';
-import { orderItems, outboxMessages, processedMessages } from '@infra/db/schema.js';
+import { orderItems, outboxMessages } from '@infra/db/schema.js';
 import type { HandlerResult } from '@infra/mq/consumer.js';
-import type { EventEnvelope } from '@infra/mq/event-envelope.js';
+import { parseEnvelope, claimOnce } from '@infra/mq/idempotent-consumer.js';
 import {
   ORDER_PAID_EVENT,
   type PaymentSettledPayload,
@@ -12,7 +12,8 @@ import {
 } from '@infra/mq/outbox-event-types.js';
 import { commitReservation } from '@modules/inventory/adjust-stock.js';
 import { transitionOrder } from '@modules/orders/transition-order.js';
-import { OrderStatuses } from '@/types/order-status.js';
+import { OrderStatuses } from '@/domain/order-status.js';
+import { sagaMetrics } from '@infra/telemetry/saga-metrics.js';
 
 const CONSUMER_NAME = 'payment-complete';
 
@@ -31,26 +32,15 @@ export async function completeOnPaymentSucceeded(
   msg: ConsumeMessage,
   { db, log }: HandlerDeps,
 ): Promise<HandlerResult> {
-  let envelope: EventEnvelope<PaymentSettledPayload>;
-  try {
-    envelope = JSON.parse(msg.content.toString()) as EventEnvelope<PaymentSettledPayload>;
-  } catch (err) {
-    log.error({ err }, 'malformed payment.succeeded; dropping');
-    return 'ack';
-  }
+  const envelope = parseEnvelope<PaymentSettledPayload>(msg, log);
+  if (!envelope) return 'ack';
   const eventId = envelope.eventId;
-  if (!eventId) return 'ack';
   const { orderId, paymentId } = envelope.payload;
   const correlationId = envelope.correlationId || orderId;
 
   try {
     await db.transaction(async (tx) => {
-      const inserted = await tx
-        .insert(processedMessages)
-        .values({ consumerName: CONSUMER_NAME, eventId })
-        .onConflictDoNothing()
-        .returning();
-      if (inserted.length === 0) return; // duplicate delivery
+      if (!(await claimOnce(tx, CONSUMER_NAME, eventId))) return; // duplicate delivery
 
       const paid = await transitionOrder(tx, orderId, OrderStatuses.Pending, OrderStatuses.Paid, {
         reason: 'payment_succeeded',
@@ -66,7 +56,10 @@ export async function completeOnPaymentSucceeded(
         .where(eq(orderItems.orderId, orderId));
       for (const it of items) {
         const ok = await commitReservation(tx, it.productId, it.quantity);
-        if (!ok) log.warn({ orderId, productId: it.productId }, 'commit guard failed');
+        if (!ok) {
+          sagaMetrics.anomalies.inc({ type: 'commit_guard_failed' });
+          log.warn({ orderId, productId: it.productId }, 'commit guard failed');
+        }
       }
 
       const payload: OrderPaidPayload = { orderId, paymentId };

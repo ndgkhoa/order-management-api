@@ -1,6 +1,6 @@
 import { orderStatusHistory } from '@infra/db/schema.js';
 import type { Tx } from '@modules/inventory/adjust-stock.js';
-import type { OrderStatus } from '@/types/order-status.js';
+import type { OrderStatus } from '@/domain/order-status.js';
 
 /**
  * Appends one order status-transition audit row. MUST be called inside the same transaction

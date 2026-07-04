@@ -2,8 +2,8 @@ import type { FastifyReply } from 'fastify';
 import type { Redis } from 'ioredis';
 import type { AppConfig } from '@config/env-schema.js';
 import type { DB } from '@infra/db/client.js';
-import type { UserRole } from '@/types/user-role.js';
-import type { Permission } from '@/types/permission.js';
+import type { UserRole } from '@/domain/user-role.js';
+import type { Permission } from '@/domain/permission.js';
 
 // Decorators added by our plugins, surfaced on the Fastify types.
 declare module 'fastify' {

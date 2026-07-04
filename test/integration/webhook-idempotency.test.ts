@@ -1,34 +1,19 @@
 import { describe, it, expect, beforeAll, beforeEach } from 'vitest';
 import { pino } from 'pino';
 import { and, eq } from 'drizzle-orm';
-import type { ConsumeMessage } from 'amqplib';
 import type { FastifyBaseLogger } from 'fastify';
 import type { AppInstance } from '@/app.js';
 import { db } from '@infra/db/client.js';
 import { orders, orderItems, products, users, payments, outboxMessages } from '@infra/db/schema.js';
 import { PAYMENT_SUCCEEDED_EVENT } from '@infra/mq/outbox-event-types.js';
-import { createPaymentOnReserved } from '@modules/payments/create-payment-on-reserved.js';
+import { createPaymentOnReserved } from '@modules/payments/sagas/create-payment-on-reserved.js';
 import { signWebhook } from '@modules/payments/webhook-signature.js';
 import { buildTestApp } from '@test/helpers/build-test-app.js';
 import { resetDb } from '@test/helpers/reset-db.js';
+import { envelopeMsg } from '@test/helpers/envelope.js';
 
 const log = pino({ level: 'silent' }) as unknown as FastifyBaseLogger;
 const SECRET = process.env.WEBHOOK_HMAC_SECRET!;
-
-function envelopeMsg(eventType: string, payload: unknown): ConsumeMessage {
-  const envelope = {
-    eventId: crypto.randomUUID(),
-    eventType,
-    correlationId: (payload as { orderId: string }).orderId,
-    occurredAt: new Date().toISOString(),
-    payload,
-  };
-  return {
-    content: Buffer.from(JSON.stringify(envelope)),
-    properties: { messageId: envelope.eventId },
-    fields: {},
-  } as unknown as ConsumeMessage;
-}
 
 async function seedPayment() {
   const [u] = await db

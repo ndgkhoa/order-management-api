@@ -1,6 +1,6 @@
 import type { FastifyReply, FastifyRequest } from 'fastify';
-import { Permissions } from '@/types/permission.js';
-import { hasPermission } from '@/types/role-permissions.js';
+import { Permissions } from '@/domain/permission.js';
+import { hasPermission } from '@/domain/role-permissions.js';
 import type { ProductsService } from '@modules/products/products-service.js';
 import {
   type CreateProductBody,

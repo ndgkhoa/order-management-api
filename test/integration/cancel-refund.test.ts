@@ -4,7 +4,7 @@ import type { AppInstance } from '@/app.js';
 import { db } from '@infra/db/client.js';
 import { users, orders, orderItems, products, payments, outboxMessages } from '@infra/db/schema.js';
 import { ORDER_REFUNDED_EVENT, ORDER_CANCELLED_EVENT } from '@infra/mq/outbox-event-types.js';
-import type { OrderStatus } from '@/types/order-status.js';
+import type { OrderStatus } from '@/domain/order-status.js';
 import { buildTestApp, registerAndLogin } from '@test/helpers/build-test-app.js';
 import { resetDb } from '@test/helpers/reset-db.js';
 

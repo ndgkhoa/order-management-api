@@ -6,7 +6,7 @@ import type { WebhookBody } from '@modules/payments/payments-schema.js';
 import {
   deliverPaymentResult,
   type MockProviderConfig,
-} from '@modules/payments/mock-payment-provider.js';
+} from '@modules/payments/sagas/mock-payment-provider.js';
 import { sagaMetrics } from '@infra/telemetry/saga-metrics.js';
 
 const WEBHOOK_DEDUP_TTL_SECONDS = 60 * 60 * 24; // 24h Redis fast-path (durable backstop in DB)

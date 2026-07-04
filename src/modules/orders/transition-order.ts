@@ -1,8 +1,8 @@
 import { and, eq } from 'drizzle-orm';
-import type { OrderStatus } from '@/types/order-status.js';
+import type { OrderStatus } from '@/domain/order-status.js';
 import { orders } from '@infra/db/schema.js';
 import type { Tx } from '@modules/inventory/adjust-stock.js';
-import { assertTransition } from '@modules/orders/order-status.js';
+import { assertTransition } from '@/domain/order-status.js';
 import { recordOrderTransition } from '@modules/orders/order-status-history.js';
 
 interface TransitionOptions {

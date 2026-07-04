@@ -1,6 +1,6 @@
 import { Type } from '@sinclair/typebox';
 import type { FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';
-import { Permissions } from '@/types/permission.js';
+import { Permissions } from '@/domain/permission.js';
 import { makeShipmentsController } from '@modules/shipping/shipments-controller.js';
 import { ShipmentPublic } from '@modules/shipping/shipments-schema.js';
 import { errorResponses } from '@infra/http/error-responses.js';

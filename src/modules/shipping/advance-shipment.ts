@@ -9,9 +9,9 @@ import {
   type ShipmentEventPayload,
 } from '@infra/mq/outbox-event-types.js';
 import { transitionOrder } from '@modules/orders/transition-order.js';
-import { OrderStatuses } from '@/types/order-status.js';
-import { ShipmentStatuses, type ShipmentStatus } from '@/types/shipment-status.js';
-import { nextShipmentStatus } from '@modules/shipping/shipment-status.js';
+import { OrderStatuses } from '@/domain/order-status.js';
+import { ShipmentStatuses, type ShipmentStatus } from '@/domain/shipment-status.js';
+import { nextShipmentStatus } from '@/domain/shipment-status.js';
 import { sagaMetrics } from '@infra/telemetry/saga-metrics.js';
 
 const EVENT_BY_STATUS: Record<Exclude<ShipmentStatus, 'pending'>, string> = {

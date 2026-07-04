@@ -2,10 +2,9 @@ import { randomUUID } from 'node:crypto';
 import type { ConsumeMessage } from 'amqplib';
 import type { FastifyBaseLogger } from 'fastify';
 import type { DB } from '@infra/db/client.js';
-import { processedMessages } from '@infra/db/schema.js';
-import type { EventEnvelope } from '@infra/mq/event-envelope.js';
 import type { PaymentCreatedPayload } from '@infra/mq/outbox-event-types.js';
 import type { HandlerResult } from '@infra/mq/consumer.js';
+import { parseEnvelope, claimOnce } from '@infra/mq/idempotent-consumer.js';
 import { signWebhook } from '@modules/payments/webhook-signature.js';
 import type { SettleOutcome } from '@modules/payments/payments-service.js';
 
@@ -65,26 +64,15 @@ export async function mockProviderOnPaymentCreated(
   msg: ConsumeMessage,
   { db, config, log }: HandlerDeps,
 ): Promise<HandlerResult> {
-  let envelope: EventEnvelope<PaymentCreatedPayload>;
-  try {
-    envelope = JSON.parse(msg.content.toString()) as EventEnvelope<PaymentCreatedPayload>;
-  } catch (err) {
-    log.error({ err }, 'malformed payment.created; dropping');
-    return 'ack';
-  }
+  const envelope = parseEnvelope<PaymentCreatedPayload>(msg, log);
+  if (!envelope) return 'ack';
   const eventId = envelope.eventId;
-  if (!eventId) return 'ack';
   const { paymentId } = envelope.payload;
 
   try {
     let duplicate = false;
     await db.transaction(async (tx) => {
-      const inserted = await tx
-        .insert(processedMessages)
-        .values({ consumerName: CONSUMER_NAME, eventId })
-        .onConflictDoNothing()
-        .returning();
-      if (inserted.length === 0) duplicate = true;
+      if (!(await claimOnce(tx, CONSUMER_NAME, eventId))) duplicate = true;
     });
     if (duplicate) return 'ack';
 

@@ -2,7 +2,7 @@ import { and, eq, lt } from 'drizzle-orm';
 import type { FastifyBaseLogger } from 'fastify';
 import type { DB } from '@infra/db/client.js';
 import { orders } from '@infra/db/schema.js';
-import { OrderStatuses } from '@/types/order-status.js';
+import { OrderStatuses } from '@/domain/order-status.js';
 
 interface OrderReaperDeps {
   db: DB;
