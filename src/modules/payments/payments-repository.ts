@@ -8,9 +8,7 @@ import {
 } from '@infra/mq/outbox-event-types.js';
 import { PaymentStatuses } from '@/types/payment-status.js';
 import type { SettleInput, SettleResult } from '@modules/payments/payments-schema.js';
-
-/** Durable dedup dimension for inbound webhook events (keyed by provider event id). */
-const WEBHOOK_CONSUMER = 'webhook';
+import { WEBHOOK_CONSUMER } from '@/constants/index.js';
 
 /** Data access for payments. The settle path is the transactional exactly-once webhook handler. */
 export function makePaymentsRepository(db: DB) {

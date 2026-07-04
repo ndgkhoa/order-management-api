@@ -1,13 +1,11 @@
 import fp from 'fastify-plugin';
 import type { FastifyReply, FastifyRequest } from 'fastify';
-
-const HEADER = 'idempotency-key';
-const PROCESSING = '__processing__';
-// Short marker TTL: if the owner crashes between acquiring the marker and persisting
-// the response, retries are blocked only for seconds — not the full replay window.
-const PROCESSING_TTL_SECONDS = 30;
-// Replay window for a completed response.
-const DONE_TTL_SECONDS = 60 * 60 * 24; // 24h
+import {
+  IDEMPOTENCY_HEADER,
+  PROCESSING_MARKER,
+  PROCESSING_TTL_SECONDS,
+  DONE_TTL_SECONDS,
+} from '@/constants/index.js';
 
 /** Redis key for an idempotent request. Scoped by user AND route so a client key can
  *  never replay another user's — or another endpoint's — stored response. */
@@ -43,7 +41,7 @@ export const idempotencyPlugin = fp((app) => {
     req: FastifyRequest,
     reply: FastifyReply,
   ): Promise<FastifyReply | void> {
-    const header = req.headers[HEADER];
+    const header = req.headers[IDEMPOTENCY_HEADER];
     if (typeof header !== 'string' || header.length === 0) return; // no key → normal path
     const userId = req.user?.sub;
     if (!userId) return; // runs after authenticate; a missing user is handled upstream
@@ -51,7 +49,13 @@ export const idempotencyPlugin = fp((app) => {
     const key = deriveIdempotencyKey(userId, routeIdOf(req), header);
 
     // Become the owner: atomically claim the key with a short-lived processing marker.
-    const acquired = await app.redis.set(key, PROCESSING, 'EX', PROCESSING_TTL_SECONDS, 'NX');
+    const acquired = await app.redis.set(
+      key,
+      PROCESSING_MARKER,
+      'EX',
+      PROCESSING_TTL_SECONDS,
+      'NX',
+    );
     if (acquired === 'OK') {
       req.idempotencyKey = key; // owner → onSend persists the response
       return;
@@ -59,7 +63,7 @@ export const idempotencyPlugin = fp((app) => {
 
     const existing = await app.redis.get(key);
     if (existing === null) return; // marker expired between SET and GET (rare) → proceed
-    if (existing === PROCESSING) {
+    if (existing === PROCESSING_MARKER) {
       throw app.httpErrors.conflict('a request with this Idempotency-Key is still processing');
     }
 

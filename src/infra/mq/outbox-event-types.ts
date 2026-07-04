@@ -21,12 +21,10 @@ export interface OrderCreatedItem {
   quantity: number;
 }
 
-/** Payload stored in the outbox row and delivered to the worker.
- *  Includes the recipient email so the worker needs no extra DB query. */
+/** Payload stored in the outbox row and delivered to the worker. */
 export interface OrderCreatedPayload {
   orderId: string;
   userId: string;
-  email: string;
   items: OrderCreatedItem[];
   totalCents: number;
 }

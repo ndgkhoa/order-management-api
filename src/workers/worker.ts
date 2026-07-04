@@ -5,7 +5,6 @@ import { closePool } from '@infra/db/pool.js';
 import { closeMq, getConnection } from '@infra/mq/connection.js';
 import { startConsumer } from '@infra/mq/consumer.js';
 import {
-  ORDER_EMAIL_QUEUE,
   ORDER_INVENTORY_QUEUE,
   PAYMENT_CREATE_QUEUE,
   MOCK_PROVIDER_QUEUE,
@@ -18,8 +17,6 @@ import {
 import { makeRabbitPublisher } from '@infra/mq/publisher.js';
 import { makeOutboxRelay } from '@infra/mq/outbox-relay.js';
 import { makeMailer } from '@infra/mail/mailer.js';
-import { makeMailAdapter } from '@infra/mail/mail-adapter.js';
-import { sendEmailOnOrderCreated } from '@/sagas/send-email-on-order-created.js';
 import { reserveOnOrderCreated } from '@/sagas/reserve-on-order-created.js';
 import { makeOrderReaper } from './order-reaper-worker.js';
 import { createPaymentOnReserved } from '@/sagas/create-payment-on-reserved.js';
@@ -30,7 +27,7 @@ import {
   type FakeProviderConfig,
 } from '@infra/providers/fake-payment-provider.js';
 import { makeShippingConsumer } from './fake-shipping-worker.js';
-import { makeNotificationDispatcher } from '@modules/notifications/dispatch-notifications.js';
+import { makeNotificationDispatcher } from '@modules/notifications/notifications-dispatch.js';
 import { makeEmailProvider } from '@infra/providers/email-provider.js';
 import { makeSmsProvider } from '@infra/providers/sms-provider.js';
 
@@ -54,19 +51,11 @@ async function main(): Promise<void> {
   const log = buildLogger();
   const conn = await getConnection(log);
 
-  const emailChannel = await conn.createChannel();
-  await assertTopology(emailChannel); // idempotent; declares all queues once
   const inventoryChannel = await conn.createChannel();
+  await assertTopology(inventoryChannel); // idempotent; declares all queues once
 
   const mailer = makeMailer();
   const mailFrom = process.env.MAIL_FROM ?? 'no-reply@orders.local';
-  const mailAdapter = makeMailAdapter(mailer, mailFrom);
-  await startConsumer(
-    emailChannel,
-    ORDER_EMAIL_QUEUE,
-    (msg) => sendEmailOnOrderCreated(msg, { db, mailAdapter, log }),
-    { log },
-  );
   await startConsumer(
     inventoryChannel,
     ORDER_INVENTORY_QUEUE,
@@ -146,7 +135,6 @@ async function main(): Promise<void> {
   log.info(
     {
       queues: [
-        ORDER_EMAIL_QUEUE,
         ORDER_INVENTORY_QUEUE,
         PAYMENT_CREATE_QUEUE,
         MOCK_PROVIDER_QUEUE,
@@ -156,7 +144,7 @@ async function main(): Promise<void> {
         NOTIFICATION_QUEUE,
       ],
     },
-    'worker consuming (email + inventory + payment saga + shipping + notifications) with relay + reaper',
+    'worker consuming (inventory + payment saga + shipping + notifications) with relay + reaper',
   );
 
   let shuttingDown = false;
@@ -169,7 +157,6 @@ async function main(): Promise<void> {
         try {
           reaper.stop();
           relay.stop();
-          await emailChannel.close();
           await inventoryChannel.close();
           await paymentCreateChannel.close();
           await mockProviderChannel.close();

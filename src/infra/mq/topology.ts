@@ -13,7 +13,6 @@ import {
   SHIPMENT_DELIVERED_EVENT,
 } from '@infra/mq/outbox-event-types.js';
 
-export const ORDER_EMAIL_QUEUE = 'order.created.email';
 export const ORDER_INVENTORY_QUEUE = 'order.created.inventory';
 export const PAYMENT_CREATE_QUEUE = 'inventory.reserved.payment';
 export const MOCK_PROVIDER_QUEUE = 'payment.created.mock';
@@ -22,13 +21,11 @@ export const PAYMENT_COMPENSATE_QUEUE = 'payment.failed.order';
 export const SHIPPING_QUEUE = 'order.paid.shipping';
 export const NOTIFICATION_QUEUE = 'notifications';
 export const ORDER_EVENTS_DLX = 'order.events.dlx';
-export const ORDER_EMAIL_DLQ = 'order.created.email.dlq';
 export const ORDER_INVENTORY_DLQ = 'order.created.inventory.dlq';
 // Per-consumer dead-letter keys — each consumer's failures route to its own DLQ.
-// NOTE: a RabbitMQ queue is immutable. An environment that already declared
-// `order.created.email` with a different `x-dead-letter-routing-key` must delete that
-// queue once so it re-declares with this key (else boot fails 406 PRECONDITION_FAILED).
-const EMAIL_DEAD_KEY = 'order.created.email.dead';
+// NOTE: a RabbitMQ queue is immutable. An environment that already declared a queue with a
+// different `x-dead-letter-routing-key` must delete that queue once so it re-declares with this
+// key (else boot fails 406 PRECONDITION_FAILED).
 const INVENTORY_DEAD_KEY = 'order.created.inventory.dead';
 const PAYMENT_CREATE_DEAD_KEY = 'inventory.reserved.payment.dead';
 const MOCK_PROVIDER_DEAD_KEY = 'payment.created.mock.dead';
@@ -39,6 +36,7 @@ const NOTIFICATION_DEAD_KEY = 'notifications.dead';
 
 /** Events that trigger a user-facing notification (bound to the single notifications queue). */
 const NOTIFICATION_KEYS = [
+  ORDER_CREATED_EVENT,
   ORDER_PAID_EVENT,
   ORDER_CANCELLED_EVENT,
   ORDER_REFUNDED_EVENT,
@@ -66,21 +64,14 @@ async function assertConsumerQueue(
 
 /**
  * Declares the exchange/queue/binding topology (idempotent — safe to call at every boot).
- * Each consumer gets its OWN queue bound to `order.created`, so email and inventory are
- * independent subscribers (fan-out) rather than competing consumers. Each main queue
- * dead-letters to a DLX → per-consumer DLQ so a repeatedly failing message parks there.
+ * Each consumer gets its OWN queue, so independent subscribers (e.g. inventory and notifications
+ * both on `order.created`) fan out rather than compete. Each main queue dead-letters to a DLX →
+ * per-consumer DLQ so a repeatedly failing message parks there.
  */
 export async function assertTopology(ch: Channel | ConfirmChannel): Promise<void> {
   await ch.assertExchange(ORDER_EVENTS_EXCHANGE, 'topic', { durable: true });
   await ch.assertExchange(ORDER_EVENTS_DLX, 'topic', { durable: true });
 
-  await assertConsumerQueue(
-    ch,
-    ORDER_EMAIL_QUEUE,
-    ORDER_EMAIL_DLQ,
-    EMAIL_DEAD_KEY,
-    ORDER_CREATED_EVENT,
-  );
   await assertConsumerQueue(
     ch,
     ORDER_INVENTORY_QUEUE,

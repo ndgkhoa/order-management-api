@@ -9,10 +9,9 @@ import {
   CreateProductBody,
   UpdateProductBody,
   ProductPublic,
+  IdParams,
 } from '@modules/products/products-schema.js';
 import { errorResponses } from '@infra/http/error-responses.js';
-
-const IdParams = Type.Object({ id: Type.String({ format: 'uuid' }) });
 
 /**
  * /products routes. Each mutation requires its own `product:{create|update|delete}` permission

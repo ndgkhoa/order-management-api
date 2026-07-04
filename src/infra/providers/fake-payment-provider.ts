@@ -5,11 +5,11 @@ import type { DB } from '@infra/db/client.js';
 import type { PaymentCreatedPayload } from '@infra/mq/outbox-event-types.js';
 import type { HandlerResult } from '@infra/mq/consumer.js';
 import { parseEnvelope, claimOnce } from '@infra/mq/idempotent-consumer.js';
+import { MOCK_PROVIDER_CONSUMER } from '@/constants/index.js';
 import { signWebhook } from '@infra/http/webhook-signature.js';
 import type { SettleOutcome } from '@modules/payments/payments-schema.js';
 
 /** Distinct dedup dimension so the mock provider processes each payment.created once. */
-const CONSUMER_NAME = 'mock-provider';
 
 export interface FakeProviderConfig {
   webhookUrl: string;
@@ -72,7 +72,7 @@ export async function fakeProviderOnPaymentCreated(
   try {
     let duplicate = false;
     await db.transaction(async (tx) => {
-      if (!(await claimOnce(tx, CONSUMER_NAME, eventId))) duplicate = true;
+      if (!(await claimOnce(tx, MOCK_PROVIDER_CONSUMER, eventId))) duplicate = true;
     });
     if (duplicate) return 'ack';
 

@@ -37,7 +37,7 @@ export const ProductPublic = Type.Object({
 });
 export type ProductPublic = Static<typeof ProductPublic>;
 
-type ProductRow = InferSelectModel<typeof products>;
+export type ProductRow = InferSelectModel<typeof products>;
 
 /** Maps a DB row to the public DTO (Dates → ISO strings, reserved dropped). */
 export function toProductPublic(p: ProductRow): ProductPublic {
@@ -53,3 +53,6 @@ export function toProductPublic(p: ProductRow): ProductPublic {
     updatedAt: p.updatedAt.toISOString(),
   };
 }
+
+/** Route param: a single UUID `id` (`/resource/:id`). */
+export const IdParams = Type.Object({ id: Type.String({ format: 'uuid' }) });

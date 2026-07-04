@@ -17,7 +17,7 @@ import {
   type OrderRefundedPayload,
 } from '@infra/mq/outbox-event-types.js';
 import type { CreateOrderInput, CancelOrderInput } from '@modules/orders/orders-schema.js';
-import { releaseReservation, restockAvailable } from '@modules/inventory/adjust-stock.js';
+import { makeInventoryRepository } from '@modules/inventory/inventory-repository.js';
 import { type OrderStatus, OrderStatuses, ORDER_TRANSITIONS } from '@/types/order-status.js';
 import { assertTransition } from '@/utils/state-machine.js';
 import { PaymentStatuses } from '@/types/payment-status.js';
@@ -28,6 +28,7 @@ import { sagaMetrics } from '@infra/telemetry/saga-metrics.js';
  *  cross-aggregate compensation transaction (orders + payment + stock + outbox) rooted here.
  *  Methods call each other via `this`, so always invoke them as `repository.method(...)`. */
 export function makeOrdersRepository(db: DB) {
+  const inventoryRepo = makeInventoryRepository();
   return {
     /** Appends one order status-transition audit row inside the caller's transaction. */
     async recordTransition(
@@ -92,7 +93,6 @@ export function makeOrdersRepository(db: DB) {
         const payload: OrderCreatedPayload = {
           orderId: order.id,
           userId: order.userId,
-          email: input.email,
           items: input.lines.map((line) => ({
             productId: line.productId,
             sku: line.skuSnapshot,
@@ -169,7 +169,7 @@ export function makeOrdersRepository(db: DB) {
           { reason: OrderReasons.Refund, cancelReason: OrderReasons.CustomerCancelled },
         );
         if (didRefund) {
-          for (const item of items) await restockAvailable(tx, item.productId, item.quantity);
+          for (const item of items) await inventoryRepo.restock(tx, item.productId, item.quantity);
           const [refunded] = await tx
             .update(payments)
             .set({ status: PaymentStatuses.Refunded, updatedAt: new Date() })
@@ -200,7 +200,7 @@ export function makeOrdersRepository(db: DB) {
           { reason: OrderReasons.CustomerCancelled, cancelReason: OrderReasons.CustomerCancelled },
         );
         if (released) {
-          for (const item of items) await releaseReservation(tx, item.productId, item.quantity);
+          for (const item of items) await inventoryRepo.release(tx, item.productId, item.quantity);
           const payload: OrderCancelledPayload = {
             orderId: input.orderId,
             reason: OrderReasons.CustomerCancelled,

@@ -4,6 +4,7 @@ import type { DB } from '@infra/db/client.js';
 import { outboxMessages } from '@infra/db/schema.js';
 import type { HandlerResult } from '@infra/mq/consumer.js';
 import { parseEnvelope, claimOnce } from '@infra/mq/idempotent-consumer.js';
+import { INVENTORY_CONSUMER } from '@/constants/index.js';
 import {
   INVENTORY_RESERVED_EVENT,
   ORDER_CANCELLED_EVENT,
@@ -11,9 +12,10 @@ import {
   type InventoryReservedPayload,
   type OrderCancelledPayload,
 } from '@infra/mq/outbox-event-types.js';
-import { reserveStock } from '@modules/inventory/adjust-stock.js';
+import { makeInventoryRepository } from '@modules/inventory/inventory-repository.js';
 import { makeOrdersRepository } from '@modules/orders/orders-repository.js';
 import { OrderStatuses } from '@/types/order-status.js';
+import { OrderReasons } from '@/types/order-reasons.js';
 import { sagaMetrics } from '@infra/telemetry/saga-metrics.js';
 
 interface HandlerDeps {
@@ -22,8 +24,6 @@ interface HandlerDeps {
 }
 
 /** This consumer's identity in the per-consumer dedupe key (distinct from 'email'). */
-const CONSUMER_NAME = 'inventory';
-const OUT_OF_STOCK = 'out_of_stock';
 
 /** Thrown inside the reserve savepoint so a single insufficient line rolls back ALL reserves. */
 class InsufficientStockError extends Error {}
@@ -49,11 +49,12 @@ export async function reserveOnOrderCreated(
 
   try {
     const ordersRepo = makeOrdersRepository(db);
+    const inventoryRepo = makeInventoryRepository();
     let duplicate = false;
     let reserved = true;
 
     await db.transaction(async (tx) => {
-      if (!(await claimOnce(tx, CONSUMER_NAME, eventId))) {
+      if (!(await claimOnce(tx, INVENTORY_CONSUMER, eventId))) {
         duplicate = true; // already processed → don't reserve again
         return;
       }
@@ -62,7 +63,7 @@ export async function reserveOnOrderCreated(
       try {
         await tx.transaction(async (sp) => {
           for (const item of items) {
-            const ok = await reserveStock(sp, item.productId, item.quantity);
+            const ok = await inventoryRepo.reserve(sp, item.productId, item.quantity);
             if (!ok) throw new InsufficientStockError();
           }
         });
@@ -92,10 +93,10 @@ export async function reserveOnOrderCreated(
           orderId,
           OrderStatuses.Pending,
           OrderStatuses.Cancelled,
-          { reason: OUT_OF_STOCK, cancelReason: OUT_OF_STOCK },
+          { reason: OrderReasons.OutOfStock, cancelReason: OrderReasons.OutOfStock },
         );
         if (cancelled) {
-          const payload: OrderCancelledPayload = { orderId, reason: OUT_OF_STOCK };
+          const payload: OrderCancelledPayload = { orderId, reason: OrderReasons.OutOfStock };
           await tx.insert(outboxMessages).values({
             aggregateType: 'order',
             aggregateId: orderId,

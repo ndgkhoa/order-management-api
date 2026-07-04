@@ -5,14 +5,13 @@ import type { DB } from '@infra/db/client.js';
 import { orders, outboxMessages } from '@infra/db/schema.js';
 import type { HandlerResult } from '@infra/mq/consumer.js';
 import { parseEnvelope, claimOnce } from '@infra/mq/idempotent-consumer.js';
+import { PAYMENT_CREATE_CONSUMER } from '@/constants/index.js';
 import {
   PAYMENT_CREATED_EVENT,
   type InventoryReservedPayload,
   type PaymentCreatedPayload,
 } from '@infra/mq/outbox-event-types.js';
 import { makePaymentsRepository } from '@modules/payments/payments-repository.js';
-
-const CONSUMER_NAME = 'payment-create';
 
 interface HandlerDeps {
   db: DB;
@@ -38,7 +37,7 @@ export async function createPaymentOnReserved(
   const paymentsRepo = makePaymentsRepository(db);
   try {
     await db.transaction(async (tx) => {
-      if (!(await claimOnce(tx, CONSUMER_NAME, eventId))) return; // duplicate delivery
+      if (!(await claimOnce(tx, PAYMENT_CREATE_CONSUMER, eventId))) return; // duplicate delivery
 
       const [order] = await tx
         .select({ totalCents: orders.totalCents })

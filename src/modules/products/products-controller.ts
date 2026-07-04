@@ -15,9 +15,6 @@ import {
  * already validated it.
  */
 export function makeProductsController(service: ProductsService) {
-  const canReadAll = (req: FastifyRequest) =>
-    hasPermission(req.user?.roles, Permissions.Product.Read);
-
   return {
     create: async (req: FastifyRequest, reply: FastifyReply) => {
       const product = await service.create(req.body as CreateProductBody);
@@ -37,13 +34,17 @@ export function makeProductsController(service: ProductsService) {
     },
 
     list: async (req: FastifyRequest) => {
-      const rows = canReadAll(req) ? await service.listAll() : await service.listPublic();
+      const rows = hasPermission(req.user?.roles, Permissions.Product.Read)
+        ? await service.listAll()
+        : await service.listPublic();
       return rows.map(toProductPublic);
     },
 
     get: async (req: FastifyRequest) => {
       const { id } = req.params as { id: string };
-      const product = canReadAll(req) ? await service.getAny(id) : await service.getPublic(id);
+      const product = hasPermission(req.user?.roles, Permissions.Product.Read)
+        ? await service.getAny(id)
+        : await service.getPublic(id);
       return toProductPublic(product);
     },
   };

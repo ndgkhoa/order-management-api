@@ -45,8 +45,8 @@ export const OrderDetail = Type.Composite([
 ]);
 export type OrderDetail = Static<typeof OrderDetail>;
 
-type OrderRow = InferSelectModel<typeof orders>;
-type OrderItemRow = InferSelectModel<typeof orderItems>;
+export type OrderRow = InferSelectModel<typeof orders>;
+export type OrderItemRow = InferSelectModel<typeof orderItems>;
 
 export function toOrderPublic(o: OrderRow): OrderPublic {
   return {
@@ -97,7 +97,6 @@ export type OrderLine = {
 /** Repository input for the atomic create — the service builds this after pricing. */
 export type CreateOrderInput = {
   userId: string;
-  email: string; // carried into the event payload (no extra query in the worker)
   lines: OrderLine[]; // pre-validated + price-snapshotted by the service
   totalCents: number;
 };
@@ -109,3 +108,6 @@ export type CancelOrderInput = {
   /** True when the caller holds `order:cancel:any` — lets them cancel an order they do not own. */
   canCancelAny: boolean;
 };
+
+/** Route param: a single UUID `id` (`/resource/:id`). */
+export const IdParams = Type.Object({ id: Type.String({ format: 'uuid' }) });

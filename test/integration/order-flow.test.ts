@@ -15,9 +15,9 @@ import { getConnection, closeMq } from '@infra/mq/connection.js';
 import { makeRabbitPublisher, type RabbitPublisher } from '@infra/mq/publisher.js';
 import { makeOutboxRelay } from '@infra/mq/outbox-relay.js';
 import { startConsumer } from '@infra/mq/consumer.js';
-import { assertTopology, ORDER_EMAIL_QUEUE } from '@infra/mq/topology.js';
-import { sendEmailOnOrderCreated } from '@/sagas/send-email-on-order-created.js';
-import { makeMailAdapter } from '@infra/mail/mail-adapter.js';
+import { assertTopology, NOTIFICATION_QUEUE } from '@infra/mq/topology.js';
+import { makeNotificationDispatcher } from '@modules/notifications/notifications-dispatch.js';
+import { makeEmailProvider } from '@infra/providers/email-provider.js';
 import { makeMailer } from '@infra/mail/mailer.js';
 import { buildTestApp, registerAndLogin } from '@test/helpers/build-test-app.js';
 import { resetDb } from '@test/helpers/reset-db.js';
@@ -63,13 +63,12 @@ describe('order flow integration (pg + rabbit + mailpit)', () => {
     const conn = await getConnection(log);
     consumerChannel = await conn.createChannel();
     await assertTopology(consumerChannel);
-    const mailAdapter = makeMailAdapter(makeMailer(), 'no-reply@orders.test');
-    await startConsumer(
-      consumerChannel,
-      ORDER_EMAIL_QUEUE,
-      (msg) => sendEmailOnOrderCreated(msg, { db, mailAdapter, log }),
-      { log },
-    );
+    const dispatcher = makeNotificationDispatcher({
+      db,
+      providers: { email: makeEmailProvider(makeMailer(), 'no-reply@orders.test') },
+      log,
+    });
+    await startConsumer(consumerChannel, NOTIFICATION_QUEUE, dispatcher, { log });
   });
 
   afterAll(async () => {

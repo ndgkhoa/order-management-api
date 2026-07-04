@@ -23,7 +23,7 @@ interface OrdersServiceDeps {
  */
 export function makeOrdersService({ ordersRepo, productsRepo, httpErrors }: OrdersServiceDeps) {
   return {
-    async create(userId: string, email: string, dto: CreateOrderBody) {
+    async create(userId: string, dto: CreateOrderBody) {
       // One pass: validate each product is active, dedupe the DB lookup, and snapshot its price
       // into an immutable line. An unknown/inactive product is rejected synchronously as a 400.
       const seen = new Map<string, SnapshotProduct>();
@@ -45,7 +45,7 @@ export function makeOrdersService({ ordersRepo, productsRepo, httpErrors }: Orde
         });
       }
       const totalCents = lines.reduce((sum, line) => sum + line.lineTotalCents, 0);
-      return ordersRepo.createWithOutbox({ userId, email, lines, totalCents });
+      return ordersRepo.createWithOutbox({ userId, lines, totalCents });
     },
 
     list: (userId: string) => ordersRepo.listByUser(userId),

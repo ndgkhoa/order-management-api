@@ -9,8 +9,7 @@ import {
   type FakeProviderConfig,
 } from '@infra/providers/fake-payment-provider.js';
 import { sagaMetrics } from '@infra/telemetry/saga-metrics.js';
-
-const WEBHOOK_DEDUP_TTL_SECONDS = 60 * 60 * 24; // 24h Redis fast-path (durable backstop in DB)
+import { webhookDedupKey, WEBHOOK_DEDUP_TTL_SECONDS } from '@/constants/index.js';
 
 interface ControllerDeps {
   service: PaymentsService;
@@ -43,7 +42,7 @@ export function makePaymentsController(deps: ControllerDeps) {
         throw httpErrors.unauthorized('stale webhook timestamp');
       }
 
-      const key = `processed:webhook:${body.providerEventId}`;
+      const key = webhookDedupKey(body.providerEventId);
       if (await redis.exists(key)) return reply.code(200).send({ status: 'duplicate' });
 
       const result = await service.settle({

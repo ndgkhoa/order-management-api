@@ -4,10 +4,13 @@ import { makeOrdersRepository } from '@modules/orders/orders-repository.js';
 import { makeProductsRepository } from '@modules/products/products-repository.js';
 import { makeOrdersService } from '@modules/orders/orders-service.js';
 import { makeOrdersController } from '@modules/orders/orders-controller.js';
-import { CreateOrderBody, OrderPublic, OrderDetail } from '@modules/orders/orders-schema.js';
+import {
+  CreateOrderBody,
+  OrderPublic,
+  OrderDetail,
+  IdParams,
+} from '@modules/orders/orders-schema.js';
 import { errorResponses } from '@infra/http/error-responses.js';
-
-const IdParams = Type.Object({ id: Type.String({ format: 'uuid' }) });
 
 /** /orders routes — all authenticated. POST creates order + items + outbox atomically. */
 export const ordersRoutes: FastifyPluginAsyncTypebox = (app) => {

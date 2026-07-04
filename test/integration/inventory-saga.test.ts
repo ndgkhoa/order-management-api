@@ -95,7 +95,6 @@ describe('inventory reservation saga (real Postgres)', () => {
     const payload: OrderCreatedPayload = {
       orderId,
       userId,
-      email: 'x@t.dev',
       items: [item(a.id, 2), item(b.id, 3)],
       totalCents: 500,
     };
@@ -137,7 +136,6 @@ describe('inventory reservation saga (real Postgres)', () => {
     const payload: OrderCreatedPayload = {
       orderId,
       userId,
-      email: 'x@t.dev',
       items: [item(a.id, 2), item(b.id, 3)],
       totalCents: 500,
     };
@@ -175,7 +173,6 @@ describe('inventory reservation saga (real Postgres)', () => {
     const payload: OrderCreatedPayload = {
       orderId,
       userId,
-      email: 'x@t.dev',
       items: [item(a.id, 2)],
       totalCents: 200,
     };

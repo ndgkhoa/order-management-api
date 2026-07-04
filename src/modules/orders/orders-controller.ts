@@ -9,7 +9,7 @@ import {
 } from '@modules/orders/orders-schema.js';
 
 /**
- * HTTP glue for /orders. userId/email come from the verified JWT, never the body.
+ * HTTP glue for /orders. userId comes from the verified JWT, never the body.
  * `req.body`/`req.params` are cast — the route schema already validated them at runtime
  * (the TypeBox provider can't infer types into handlers defined in a separate file).
  */
@@ -17,7 +17,7 @@ export function makeOrdersController(service: OrdersService) {
   return {
     create: async (req: FastifyRequest, reply: FastifyReply) => {
       const dto = req.body as CreateOrderBody;
-      const { order, items } = await service.create(req.user.sub, req.user.email, dto);
+      const { order, items } = await service.create(req.user.sub, dto);
       return reply.code(201).send(toOrderDetail(order, items));
     },
 

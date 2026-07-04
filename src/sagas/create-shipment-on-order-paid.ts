@@ -4,6 +4,7 @@ import type { DB } from '@infra/db/client.js';
 import { shipments, outboxMessages } from '@infra/db/schema.js';
 import type { HandlerResult } from '@infra/mq/consumer.js';
 import { parseEnvelope, claimOnce } from '@infra/mq/idempotent-consumer.js';
+import { SHIPPING_CONSUMER } from '@/constants/index.js';
 import {
   SHIPMENT_CREATED_EVENT,
   type OrderPaidPayload,
@@ -12,8 +13,6 @@ import {
 import { makeOrdersRepository } from '@modules/orders/orders-repository.js';
 import { OrderStatuses } from '@/types/order-status.js';
 import { ShipmentStatuses } from '@/types/shipment-status.js';
-
-const CONSUMER_NAME = 'shipping';
 
 interface HandlerDeps {
   db: DB;
@@ -40,7 +39,7 @@ export async function createShipmentOnOrderPaid(
     const ordersRepo = makeOrdersRepository(db);
     let shipmentId: string | undefined;
     await db.transaction(async (tx) => {
-      if (!(await claimOnce(tx, CONSUMER_NAME, eventId))) return; // duplicate delivery
+      if (!(await claimOnce(tx, SHIPPING_CONSUMER, eventId))) return; // duplicate delivery
 
       // Win the order first: this CAS acquires the order row lock, so a concurrent cancel is
       // serialized behind us and will find status='fulfilling' → rejected. Only if we win do we

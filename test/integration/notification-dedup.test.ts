@@ -4,7 +4,7 @@ import type { ConsumeMessage } from 'amqplib';
 import type { FastifyBaseLogger } from 'fastify';
 import { db } from '@infra/db/client.js';
 import { users, orders } from '@infra/db/schema.js';
-import { makeNotificationDispatcher } from '@modules/notifications/dispatch-notifications.js';
+import { makeNotificationDispatcher } from '@modules/notifications/notifications-dispatch.js';
 import type { NotificationProvider } from '@infra/providers/notification-provider.js';
 import { resetDb } from '@test/helpers/reset-db.js';
 
@@ -60,7 +60,7 @@ describe('notification handler dedup', () => {
 
     const envelope = {
       eventId: crypto.randomUUID(),
-      eventType: 'order.created',
+      eventType: 'shipment.ready_for_pickup', // not in the notification routing table
       correlationId: orderId,
       occurredAt: new Date().toISOString(),
       payload: { orderId },

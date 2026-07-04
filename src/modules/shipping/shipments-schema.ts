@@ -25,3 +25,6 @@ export function toShipmentPublic(s: InferSelectModel<typeof shipments>): Shipmen
     updatedAt: s.updatedAt.toISOString(),
   };
 }
+
+/** Route param: a single UUID `id` (`/resource/:id`). */
+export const IdParams = Type.Object({ id: Type.String({ format: 'uuid' }) });

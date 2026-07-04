@@ -5,17 +5,16 @@ import type { DB } from '@infra/db/client.js';
 import { orderItems, outboxMessages } from '@infra/db/schema.js';
 import type { HandlerResult } from '@infra/mq/consumer.js';
 import { parseEnvelope, claimOnce } from '@infra/mq/idempotent-consumer.js';
+import { PAYMENT_COMPLETE_CONSUMER } from '@/constants/index.js';
 import {
   ORDER_PAID_EVENT,
   type PaymentSettledPayload,
   type OrderPaidPayload,
 } from '@infra/mq/outbox-event-types.js';
-import { commitReservation } from '@modules/inventory/adjust-stock.js';
+import { makeInventoryRepository } from '@modules/inventory/inventory-repository.js';
 import { makeOrdersRepository } from '@modules/orders/orders-repository.js';
 import { OrderStatuses } from '@/types/order-status.js';
 import { sagaMetrics } from '@infra/telemetry/saga-metrics.js';
-
-const CONSUMER_NAME = 'payment-complete';
 
 interface HandlerDeps {
   db: DB;
@@ -40,8 +39,9 @@ export async function completeOnPaymentSucceeded(
 
   try {
     const ordersRepo = makeOrdersRepository(db);
+    const inventoryRepo = makeInventoryRepository();
     await db.transaction(async (tx) => {
-      if (!(await claimOnce(tx, CONSUMER_NAME, eventId))) return; // duplicate delivery
+      if (!(await claimOnce(tx, PAYMENT_COMPLETE_CONSUMER, eventId))) return; // duplicate delivery
 
       const paid = await ordersRepo.transition(
         tx,
@@ -62,7 +62,7 @@ export async function completeOnPaymentSucceeded(
         .from(orderItems)
         .where(eq(orderItems.orderId, orderId));
       for (const it of items) {
-        const ok = await commitReservation(tx, it.productId, it.quantity);
+        const ok = await inventoryRepo.commit(tx, it.productId, it.quantity);
         if (!ok) {
           sagaMetrics.anomalies.inc({ type: 'commit_guard_failed' });
           log.warn({ orderId, productId: it.productId }, 'commit guard failed');

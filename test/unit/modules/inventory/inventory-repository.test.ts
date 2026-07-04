@@ -2,8 +2,10 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { eq } from 'drizzle-orm';
 import { db } from '@infra/db/client.js';
 import { products } from '@infra/db/schema.js';
-import { reserveStock } from '@modules/inventory/adjust-stock.js';
+import { makeInventoryRepository } from '@modules/inventory/inventory-repository.js';
 import { resetDb } from '@test/helpers/reset-db.js';
+
+const inventoryRepo = makeInventoryRepository();
 
 async function seedProduct(available: number) {
   const [row] = await db
@@ -18,12 +20,12 @@ async function seedProduct(available: number) {
   return row!;
 }
 
-describe('reserveStock (real Postgres)', () => {
+describe('inventoryRepo.reserve (real Postgres)', () => {
   beforeEach(resetDb);
 
   it('moves available → reserved when stock suffices', async () => {
     const p = await seedProduct(10);
-    const ok = await db.transaction((tx) => reserveStock(tx, p.id, 4));
+    const ok = await db.transaction((tx) => inventoryRepo.reserve(tx, p.id, 4));
     expect(ok).toBe(true);
     const [after] = await db.select().from(products).where(eq(products.id, p.id));
     expect(after!.stockAvailable).toBe(6);
@@ -32,7 +34,7 @@ describe('reserveStock (real Postgres)', () => {
 
   it('returns false and mutates nothing when stock is insufficient', async () => {
     const p = await seedProduct(3);
-    const ok = await db.transaction((tx) => reserveStock(tx, p.id, 5));
+    const ok = await db.transaction((tx) => inventoryRepo.reserve(tx, p.id, 5));
     expect(ok).toBe(false);
     const [after] = await db.select().from(products).where(eq(products.id, p.id));
     expect(after!.stockAvailable).toBe(3);
@@ -41,7 +43,7 @@ describe('reserveStock (real Postgres)', () => {
 
   it('allows reserving exactly the available amount (boundary)', async () => {
     const p = await seedProduct(5);
-    const ok = await db.transaction((tx) => reserveStock(tx, p.id, 5));
+    const ok = await db.transaction((tx) => inventoryRepo.reserve(tx, p.id, 5));
     expect(ok).toBe(true);
     const [after] = await db.select().from(products).where(eq(products.id, p.id));
     expect(after!.stockAvailable).toBe(0);

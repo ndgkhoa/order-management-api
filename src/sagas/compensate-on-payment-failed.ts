@@ -5,18 +5,17 @@ import type { DB } from '@infra/db/client.js';
 import { orderItems, outboxMessages } from '@infra/db/schema.js';
 import type { HandlerResult } from '@infra/mq/consumer.js';
 import { parseEnvelope, claimOnce } from '@infra/mq/idempotent-consumer.js';
+import { PAYMENT_COMPENSATE_CONSUMER } from '@/constants/index.js';
 import {
   ORDER_CANCELLED_EVENT,
   type PaymentSettledPayload,
   type OrderCancelledPayload,
 } from '@infra/mq/outbox-event-types.js';
-import { releaseReservation } from '@modules/inventory/adjust-stock.js';
+import { makeInventoryRepository } from '@modules/inventory/inventory-repository.js';
 import { makeOrdersRepository } from '@modules/orders/orders-repository.js';
 import { OrderStatuses } from '@/types/order-status.js';
+import { OrderReasons } from '@/types/order-reasons.js';
 import { sagaMetrics } from '@infra/telemetry/saga-metrics.js';
-
-const CONSUMER_NAME = 'payment-compensate';
-const PAYMENT_FAILED_REASON = 'payment_failed';
 
 interface HandlerDeps {
   db: DB;
@@ -41,16 +40,17 @@ export async function compensateOnPaymentFailed(
 
   try {
     const ordersRepo = makeOrdersRepository(db);
+    const inventoryRepo = makeInventoryRepository();
     let cancelled = false;
     await db.transaction(async (tx) => {
-      if (!(await claimOnce(tx, CONSUMER_NAME, eventId))) return; // duplicate delivery
+      if (!(await claimOnce(tx, PAYMENT_COMPENSATE_CONSUMER, eventId))) return; // duplicate delivery
 
       const didCancel = await ordersRepo.transition(
         tx,
         orderId,
         OrderStatuses.Pending,
         OrderStatuses.Cancelled,
-        { reason: PAYMENT_FAILED_REASON, cancelReason: PAYMENT_FAILED_REASON },
+        { reason: OrderReasons.PaymentFailed, cancelReason: OrderReasons.PaymentFailed },
       );
       if (!didCancel) {
         log.warn({ orderId }, 'order not pending at payment failure; skipping release');
@@ -63,14 +63,14 @@ export async function compensateOnPaymentFailed(
         .from(orderItems)
         .where(eq(orderItems.orderId, orderId));
       for (const it of items) {
-        const ok = await releaseReservation(tx, it.productId, it.quantity);
+        const ok = await inventoryRepo.release(tx, it.productId, it.quantity);
         if (!ok) {
           sagaMetrics.anomalies.inc({ type: 'release_guard_failed' });
           log.warn({ orderId, productId: it.productId }, 'release guard failed');
         }
       }
 
-      const payload: OrderCancelledPayload = { orderId, reason: PAYMENT_FAILED_REASON };
+      const payload: OrderCancelledPayload = { orderId, reason: OrderReasons.PaymentFailed };
       await tx.insert(outboxMessages).values({
         aggregateType: 'order',
         aggregateId: orderId,
