@@ -16,3 +16,13 @@ export const WebhookAck = Type.Object({ status: Type.String() });
 export const PaymentIdParams = Type.Object({ id: Type.String({ format: 'uuid' }) });
 
 export const MockAck = Type.Object({ status: Type.String(), paymentId: Type.String() });
+
+// Internal DTOs — used by the repository and service; not part of the HTTP schema
+export type SettleOutcome = 'SUCCEEDED' | 'FAILED';
+export type SettleResult = 'applied' | 'duplicate' | 'noop';
+
+export type SettleInput = {
+  paymentId: string;
+  providerEventId: string;
+  outcome: SettleOutcome;
+};

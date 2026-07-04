@@ -15,7 +15,7 @@ import {
 } from '@infra/db/schema.js';
 import { SHIPMENT_CREATED_EVENT, SHIPMENT_DELIVERED_EVENT } from '@infra/mq/outbox-event-types.js';
 import { createShipmentOnOrderPaid } from '@/sagas/create-shipment-on-order-paid.js';
-import { advanceShipment } from '@modules/shipping/advance-shipment.js';
+import { makeShipmentsRepository } from '@modules/shipping/shipments-repository.js';
 import { resetDb } from '@test/helpers/reset-db.js';
 
 const log = pino({ level: 'silent' }) as unknown as FastifyBaseLogger;
@@ -89,11 +89,12 @@ describe('shipping flow (order.paid → delivered)', () => {
     expect(created).toHaveLength(1);
 
     // advance through the three steps
-    expect(await advanceShipment(db, shipmentId!, log)).toBe('ready_for_pickup');
-    expect(await advanceShipment(db, shipmentId!, log)).toBe('in_transit');
-    expect(await advanceShipment(db, shipmentId!, log)).toBe('delivered');
+    const shipmentsRepo = makeShipmentsRepository(db);
+    expect(await shipmentsRepo.advance(shipmentId!, log)).toBe('ready_for_pickup');
+    expect(await shipmentsRepo.advance(shipmentId!, log)).toBe('in_transit');
+    expect(await shipmentsRepo.advance(shipmentId!, log)).toBe('delivered');
     // past the end → no-op
-    expect(await advanceShipment(db, shipmentId!, log)).toBeNull();
+    expect(await shipmentsRepo.advance(shipmentId!, log)).toBeNull();
 
     [ship] = await db.select().from(shipments).where(eq(shipments.orderId, orderId));
     expect(ship!.status).toBe('delivered');

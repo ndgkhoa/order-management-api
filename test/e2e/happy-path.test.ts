@@ -10,8 +10,8 @@ import { reserveOnOrderCreated } from '@/sagas/reserve-on-order-created.js';
 import { createPaymentOnReserved } from '@/sagas/create-payment-on-reserved.js';
 import { completeOnPaymentSucceeded } from '@/sagas/complete-on-payment-succeeded.js';
 import { createShipmentOnOrderPaid } from '@/sagas/create-shipment-on-order-paid.js';
-import { advanceShipment } from '@modules/shipping/advance-shipment.js';
-import { signWebhook } from '@modules/payments/webhook-signature.js';
+import { makeShipmentsRepository } from '@modules/shipping/shipments-repository.js';
+import { signWebhook } from '@infra/http/webhook-signature.js';
 import { buildTestApp, registerAndLogin } from '@test/helpers/build-test-app.js';
 import { resetDb } from '@test/helpers/reset-db.js';
 import { counterValue } from '@test/helpers/metric-value.js';
@@ -107,9 +107,10 @@ describe('e2e — full happy path (place → reserve → pay → ship → delive
       db,
       log,
     });
-    await advanceShipment(db, shipmentId!, log);
-    await advanceShipment(db, shipmentId!, log);
-    expect(await advanceShipment(db, shipmentId!, log)).toBe('delivered');
+    const shipmentsRepo = makeShipmentsRepository(db);
+    await shipmentsRepo.advance(shipmentId!, log);
+    await shipmentsRepo.advance(shipmentId!, log);
+    expect(await shipmentsRepo.advance(shipmentId!, log)).toBe('delivered');
 
     // final states
     const [order] = await db.select().from(orders).where(eq(orders.id, orderId));

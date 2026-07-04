@@ -1,7 +1,8 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest, FastifyBaseLogger } from 'fastify';
 import type { Redis } from 'ioredis';
-import { verifyWebhook, isFreshTimestamp } from '@modules/payments/webhook-signature.js';
-import type { PaymentsService, SettleOutcome } from '@modules/payments/payments-service.js';
+import { verifyWebhook, isFreshTimestamp } from '@infra/http/webhook-signature.js';
+import type { PaymentsService } from '@modules/payments/payments-service.js';
+import type { SettleOutcome } from '@modules/payments/payments-schema.js';
 import type { WebhookBody } from '@modules/payments/payments-schema.js';
 import {
   deliverPaymentResult,

@@ -1,6 +1,6 @@
 import type { ConsumeMessage } from 'amqplib';
 import type { AppInstance } from '@/app.js';
-import { signWebhook } from '@modules/payments/webhook-signature.js';
+import { signWebhook } from '@infra/http/webhook-signature.js';
 
 const WEBHOOK_SECRET = process.env.WEBHOOK_HMAC_SECRET!;
 

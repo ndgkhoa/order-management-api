@@ -10,7 +10,7 @@ import {
   type InventoryReservedPayload,
   type PaymentCreatedPayload,
 } from '@infra/mq/outbox-event-types.js';
-import { insertPendingPayment } from '@modules/payments/payments-repository.js';
+import { makePaymentsRepository } from '@modules/payments/payments-repository.js';
 
 const CONSUMER_NAME = 'payment-create';
 
@@ -35,6 +35,7 @@ export async function createPaymentOnReserved(
   const { orderId } = envelope.payload;
   const correlationId = envelope.correlationId || orderId;
 
+  const paymentsRepo = makePaymentsRepository(db);
   try {
     await db.transaction(async (tx) => {
       if (!(await claimOnce(tx, CONSUMER_NAME, eventId))) return; // duplicate delivery
@@ -48,7 +49,7 @@ export async function createPaymentOnReserved(
         return;
       }
 
-      const payment = await insertPendingPayment(tx, orderId, order.totalCents);
+      const payment = await paymentsRepo.insertPendingPayment(tx, orderId, order.totalCents);
       if (!payment) {
         log.warn({ orderId }, 'payment already exists; skipping create emit');
         return;

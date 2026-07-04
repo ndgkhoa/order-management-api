@@ -7,7 +7,7 @@ import { db } from '@infra/db/client.js';
 import { orders, orderItems, products, users, payments, outboxMessages } from '@infra/db/schema.js';
 import { PAYMENT_SUCCEEDED_EVENT } from '@infra/mq/outbox-event-types.js';
 import { createPaymentOnReserved } from '@/sagas/create-payment-on-reserved.js';
-import { signWebhook } from '@modules/payments/webhook-signature.js';
+import { signWebhook } from '@infra/http/webhook-signature.js';
 import { buildTestApp } from '@test/helpers/build-test-app.js';
 import { resetDb } from '@test/helpers/reset-db.js';
 import { envelopeMsg } from '@test/helpers/envelope.js';

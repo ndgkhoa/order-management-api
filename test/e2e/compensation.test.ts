@@ -9,7 +9,7 @@ import { orders, products, payments, outboxMessages } from '@infra/db/schema.js'
 import { reserveOnOrderCreated } from '@/sagas/reserve-on-order-created.js';
 import { createPaymentOnReserved } from '@/sagas/create-payment-on-reserved.js';
 import { compensateOnPaymentFailed } from '@/sagas/compensate-on-payment-failed.js';
-import { signWebhook } from '@modules/payments/webhook-signature.js';
+import { signWebhook } from '@infra/http/webhook-signature.js';
 import { buildTestApp, registerAndLogin } from '@test/helpers/build-test-app.js';
 import { resetDb } from '@test/helpers/reset-db.js';
 import { counterValue } from '@test/helpers/metric-value.js';

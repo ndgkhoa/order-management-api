@@ -3,7 +3,7 @@ import type { FastifyBaseLogger } from 'fastify';
 import type { DB } from '@infra/db/client.js';
 import type { HandlerResult } from '@infra/mq/consumer.js';
 import { createShipmentOnOrderPaid } from '@/sagas/create-shipment-on-order-paid.js';
-import { advanceShipment } from '@modules/shipping/advance-shipment.js';
+import { makeShipmentsRepository } from '@modules/shipping/shipments-repository.js';
 import { ShipmentStatuses } from '@/types/shipment-status.js';
 
 export interface ShippingConfig {
@@ -28,9 +28,10 @@ function scheduleAdvances(
   config: ShippingConfig,
   log: FastifyBaseLogger,
 ): void {
+  const shipmentsRepo = makeShipmentsRepository(db);
   const tick = (): void => {
     setTimeout(() => {
-      void advanceShipment(db, shipmentId, log).then((next) => {
+      void shipmentsRepo.advance(shipmentId, log).then((next) => {
         if (next && next !== ShipmentStatuses.Delivered) tick();
       });
     }, config.stepMs);

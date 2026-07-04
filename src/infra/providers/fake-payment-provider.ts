@@ -5,8 +5,8 @@ import type { DB } from '@infra/db/client.js';
 import type { PaymentCreatedPayload } from '@infra/mq/outbox-event-types.js';
 import type { HandlerResult } from '@infra/mq/consumer.js';
 import { parseEnvelope, claimOnce } from '@infra/mq/idempotent-consumer.js';
-import { signWebhook } from '@modules/payments/webhook-signature.js';
-import type { SettleOutcome } from '@modules/payments/payments-service.js';
+import { signWebhook } from '@infra/http/webhook-signature.js';
+import type { SettleOutcome } from '@modules/payments/payments-schema.js';
 
 /** Distinct dedup dimension so the mock provider processes each payment.created once. */
 const CONSUMER_NAME = 'mock-provider';

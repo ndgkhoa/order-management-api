@@ -1,6 +1,7 @@
 import type { FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';
 import type { FastifyRequest } from 'fastify';
 import { Permissions } from '@/types/permission.js';
+import { makePaymentsRepository } from '@modules/payments/payments-repository.js';
 import { makePaymentsService } from '@modules/payments/payments-service.js';
 import { makePaymentsController } from '@modules/payments/payments-controller.js';
 import {
@@ -32,7 +33,8 @@ export const paymentsRoutes: FastifyPluginAsyncTypebox = (app) => {
     }
   });
 
-  const service = makePaymentsService({ db: app.db });
+  const paymentsRepo = makePaymentsRepository(app.db);
+  const service = makePaymentsService({ paymentsRepo });
   const controller = makePaymentsController({
     service,
     redis: app.redis,
