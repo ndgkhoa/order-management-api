@@ -24,7 +24,8 @@ The API responds immediately (it does NOT block waiting for the email to be sent
 | Framework     | **Fastify**                                          | v5                 | plugin encapsulation, schema-based validation                  |
 | ORM           | **Drizzle ORM** + drizzle-kit                        | drizzle-kit 0.31.x | node-postgres (`pg`) driver                                    |
 | Database      | **PostgreSQL**                                       | 17                 |                                                                |
-| Message Queue | **RabbitMQ** + `amqplib`                             | RabbitMQ 4.x       | producer/consumer, DLQ                                         |
+| Message Queue | **RabbitMQ** + `amqplib`                             | RabbitMQ 4.x       | producer/consumer, DLQ, choreography saga                      |
+| Cache / KV    | **Redis** + `ioredis`                                | Redis 8            | idempotency keys, webhook dedup, catalog cache, rate-limit     |
 | Validation    | **TypeBox** + `@fastify/type-provider-typebox`       | —                  | write JSON Schema + TS type once; **AJV** validates underneath |
 | Auth          | `@fastify/jwt` + **argon2**                          | —                  | stateless JWT, argon2 password hashing                         |
 | Email         | **Nodemailer** + **Mailpit** (dev)                   | —                  | Mailpit = fake SMTP server + UI                                |
@@ -33,7 +34,7 @@ The API responds immediately (it does NOT block waiting for the email to be sent
 
 ### Security plugins
 
-`@fastify/cors` · `@fastify/helmet` · `@fastify/rate-limit` (in-memory) · `@fastify/sensible`
+`@fastify/cors` · `@fastify/helmet` · `@fastify/rate-limit` (**Redis-backed**, shared across instances) · `@fastify/sensible` · `Idempotency-Key` plugin (Redis)
 
 ### Monitoring / Observability
 
@@ -52,9 +53,9 @@ The API responds immediately (it does NOT block waiting for the email to be sent
 
 ### Excluded (YAGNI)
 
-- ❌ Redis — RabbitMQ handles async; rate-limit is in-memory; JWT is stateless. Add later if scaling beyond one instance (distributed rate-limit / refresh-token denylist / idempotency keys).
 - ❌ Zod — using TypeBox (AJV-native).
 - ❌ BullMQ — would duplicate RabbitMQ.
+- ❌ Real payment gateway / SMS — a mock HMAC-webhook provider and an SMS **stub** demonstrate the integration shape without a paid dependency.
 
 ## Design Patterns Applied (⭐ = implemented in code)
 
@@ -70,16 +71,22 @@ The API responds immediately (it does NOT block waiting for the email to be sent
 ```
 src/
 ├── modules/
-│   ├── auth/      (register, login, jwt)
-│   ├── users/     (route → controller → service → repository)
-│   └── orders/    (+ outbox publish)
+│   ├── auth/          (register, login, jwt)
+│   ├── users/         (route → controller → service → repository)
+│   ├── products/      (admin CRUD + Redis-cached public catalog)
+│   ├── orders/        (create + outbox, cancel/refund, status history)
+│   ├── payments/      (HMAC webhook, saga consumers, mock provider)
+│   ├── shipping/      (fake carrier worker, shipment machine)
+│   └── notifications/ (event → template → channel providers)
 ├── infra/
 │   ├── db/        (drizzle client, schema, migrations)
-│   ├── mq/        (rabbitmq connection, publisher, consumer)
+│   ├── mq/        (rabbitmq connection, publisher, relay, consumer, topology)
 │   ├── mail/      (nodemailer adapter)
-│   └── telemetry/ (otel, metrics, sentry)
-├── plugins/       (jwt, cors, helmet, rate-limit, sensible, swagger, env)
-├── workers/       (email consumer process)
+│   ├── notify/    (channel-agnostic notification providers)
+│   ├── redis/     (ioredis client)
+│   └── telemetry/ (otel, metrics, saga-metrics, sentry)
+├── plugins/       (env, security, jwt, redis, idempotency, swagger, ...)
+├── workers/       (background worker: saga consumers + relay + reaper)
 ├── config/        (env schema)
 ├── app.ts         (build Fastify instance)
 └── server.ts      (listen + graceful shutdown)

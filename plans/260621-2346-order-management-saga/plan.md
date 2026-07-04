@@ -1,7 +1,7 @@
 ---
 title: 'Order Management API — Event-Driven Saga (Catalog, Inventory, Payment, Shipping)'
 description: 'Evolve the Fastify+Drizzle+RabbitMQ outbox skeleton into an e-commerce order backend showcasing event-driven choreography saga, idempotency (API/webhook/consumer), inventory reservation + compensation, and HMAC webhook integration.'
-status: pending
+status: completed
 priority: P2
 effort: ~50h (9 phases)
 branch: develop
@@ -43,7 +43,7 @@ POST /orders ─TX→ order(pending)+items+outbox(OrderCreated) → 201 pending
 | 6     | [Payment Saga & Webhook](./phase-06-payment-saga-webhook.md)           | ✅ Completed |
 | 7     | [Lifecycle & Shipping](./phase-07-lifecycle-shipping.md)               | ✅ Completed |
 | 8     | [Notifications](./phase-08-notifications.md)                           | ✅ Completed |
-| 9     | [Docs Diagrams & Tests](./phase-09-docs-diagrams-tests.md)             | Pending      |
+| 9     | [Docs Diagrams & Tests](./phase-09-docs-diagrams-tests.md)             | ✅ Completed |
 
 ## Build order & dependencies
 
