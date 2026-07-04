@@ -23,7 +23,7 @@ const CONSUMER_NAME = 'email';
  * A duplicate delivery inserts nothing → skip. If the email fails the tx rolls back
  * (no processed row) → message is retried.
  */
-export async function handleOrderCreated(
+export async function sendEmailOnOrderCreated(
   msg: ConsumeMessage,
   { db, mailAdapter, log }: HandlerDeps,
 ): Promise<HandlerResult> {

@@ -5,7 +5,7 @@ import {
   SHIPMENT_IN_TRANSIT_EVENT,
   SHIPMENT_DELIVERED_EVENT,
 } from '@infra/mq/outbox-event-types.js';
-import type { NotificationMessage } from '@infra/notify/notification-provider.js';
+import type { NotificationMessage } from '@infra/channels/notification-provider.js';
 
 /** The subset of saga-event payload fields the templates read (all carry `orderId`). */
 export interface NotifyPayload {

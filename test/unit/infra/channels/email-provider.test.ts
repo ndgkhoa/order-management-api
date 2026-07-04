@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { makeEmailProvider } from '@infra/notify/email-provider.js';
+import { makeEmailProvider } from '@infra/channels/email-provider.js';
 
 describe('email provider', () => {
   it('sends via the mailer with from/to/subject/text', async () => {

@@ -1,5 +1,5 @@
 import type { Mailer } from '@infra/mail/mailer.js';
-import type { NotificationProvider } from '@infra/notify/notification-provider.js';
+import type { NotificationProvider } from '@infra/channels/notification-provider.js';
 
 /**
  * Email channel — wraps the existing Nodemailer transport (no mailer logic duplicated). Takes

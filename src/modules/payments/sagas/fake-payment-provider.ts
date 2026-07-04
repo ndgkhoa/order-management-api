@@ -11,7 +11,7 @@ import type { SettleOutcome } from '@modules/payments/payments-service.js';
 /** Distinct dedup dimension so the mock provider processes each payment.created once. */
 const CONSUMER_NAME = 'mock-provider';
 
-export interface MockProviderConfig {
+export interface FakeProviderConfig {
   webhookUrl: string;
   secret: string;
   delayMs: number;
@@ -23,7 +23,7 @@ export interface MockProviderConfig {
  * Shared by the auto-timer (default SUCCEEDED) and the admin force-endpoints.
  */
 export async function deliverPaymentResult(
-  config: Pick<MockProviderConfig, 'webhookUrl' | 'secret'>,
+  config: Pick<FakeProviderConfig, 'webhookUrl' | 'secret'>,
   paymentId: string,
   outcome: SettleOutcome,
   log: FastifyBaseLogger,
@@ -51,7 +51,7 @@ export async function deliverPaymentResult(
 
 interface HandlerDeps {
   db: DB;
-  config: MockProviderConfig;
+  config: FakeProviderConfig;
   log: FastifyBaseLogger;
 }
 
@@ -60,7 +60,7 @@ interface HandlerDeps {
  * is in-process (lost on restart — acceptable for a mock; a real provider would use a durable
  * delayed message). Admin force-endpoints can drive an explicit outcome out of band.
  */
-export async function mockProviderOnPaymentCreated(
+export async function fakeProviderOnPaymentCreated(
   msg: ConsumeMessage,
   { db, config, log }: HandlerDeps,
 ): Promise<HandlerResult> {

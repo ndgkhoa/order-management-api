@@ -4,8 +4,8 @@ import type { ConsumeMessage } from 'amqplib';
 import type { FastifyBaseLogger } from 'fastify';
 import { db } from '@infra/db/client.js';
 import { users, orders } from '@infra/db/schema.js';
-import { makeNotificationHandler } from '@modules/notifications/sagas/notification-handler.js';
-import type { NotificationProvider } from '@infra/notify/notification-provider.js';
+import { makeNotificationDispatcher } from '@modules/notifications/sagas/dispatch-notifications.js';
+import type { NotificationProvider } from '@infra/channels/notification-provider.js';
 import { resetDb } from '@test/helpers/reset-db.js';
 
 const log = pino({ level: 'silent' }) as unknown as FastifyBaseLogger;
@@ -39,7 +39,7 @@ describe('notification handler dedup', () => {
     const { orderId, email } = await seedUserOrder();
     const send = vi.fn<NotificationProvider['send']>().mockResolvedValue(undefined);
     const emailProvider: NotificationProvider = { channel: 'email', send };
-    const handler = makeNotificationHandler({ db, providers: { email: emailProvider }, log });
+    const handler = makeNotificationDispatcher({ db, providers: { email: emailProvider }, log });
 
     const eventId = crypto.randomUUID();
     expect(await handler(orderPaidMsg(eventId, orderId))).toBe('ack');
@@ -52,7 +52,7 @@ describe('notification handler dedup', () => {
   it('acks and does not send for an unrouted event', async () => {
     const { orderId } = await seedUserOrder();
     const send = vi.fn<NotificationProvider['send']>().mockResolvedValue(undefined);
-    const handler = makeNotificationHandler({
+    const handler = makeNotificationDispatcher({
       db,
       providers: { email: { channel: 'email', send } },
       log,

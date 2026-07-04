@@ -1,5 +1,5 @@
 import type { FastifyBaseLogger } from 'fastify';
-import type { NotificationProvider } from '@infra/notify/notification-provider.js';
+import type { NotificationProvider } from '@infra/channels/notification-provider.js';
 
 /**
  * SMS channel — intentionally a STUB (YAGNI): the multi-channel abstraction is the point, not a

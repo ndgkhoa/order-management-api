@@ -4,7 +4,7 @@ import type { FastifyBaseLogger } from 'fastify';
 import type { DB } from '@infra/db/client.js';
 import { orders, users } from '@infra/db/schema.js';
 import type { HandlerResult } from '@infra/mq/consumer.js';
-import type { NotificationProvider } from '@infra/notify/notification-provider.js';
+import type { NotificationProvider } from '@infra/channels/notification-provider.js';
 import { parseEnvelope, claimOnce } from '@infra/mq/idempotent-consumer.js';
 import {
   routeNotification,
@@ -27,7 +27,7 @@ interface HandlerDeps {
  * redelivery sends nothing. A send failure rolls the tx back (no processed row) → retry.
  * Unrouted events (e.g. order.created) are acked without side effect.
  */
-export function makeNotificationHandler({ db, providers, log }: HandlerDeps) {
+export function makeNotificationDispatcher({ db, providers, log }: HandlerDeps) {
   return async (msg: ConsumeMessage): Promise<HandlerResult> => {
     const envelope = parseEnvelope<NotifyPayload>(msg, log);
     if (!envelope) return 'ack';

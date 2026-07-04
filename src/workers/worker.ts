@@ -19,20 +19,20 @@ import { createRabbitPublisher } from '@infra/mq/publisher.js';
 import { createOutboxRelay } from '@infra/mq/outbox-relay.js';
 import { createMailer } from '@infra/mail/mailer.js';
 import { makeMailAdapter } from '@infra/mail/mail-adapter.js';
-import { handleOrderCreated } from '@modules/orders/sagas/order-created-handler.js';
+import { sendEmailOnOrderCreated } from '@modules/orders/sagas/send-email-on-order-created.js';
 import { reserveOnOrderCreated } from '@modules/inventory/sagas/reserve-on-order-created.js';
 import { createOrderReaper } from '@modules/orders/order-reaper.js';
 import { createPaymentOnReserved } from '@modules/payments/sagas/create-payment-on-reserved.js';
 import { completeOnPaymentSucceeded } from '@modules/payments/sagas/complete-on-payment-succeeded.js';
 import { compensateOnPaymentFailed } from '@modules/payments/sagas/compensate-on-payment-failed.js';
 import {
-  mockProviderOnPaymentCreated,
-  type MockProviderConfig,
-} from '@modules/payments/sagas/mock-payment-provider.js';
+  fakeProviderOnPaymentCreated,
+  type FakeProviderConfig,
+} from '@modules/payments/sagas/fake-payment-provider.js';
 import { makeShippingConsumer } from '@modules/shipping/sagas/fake-shipping-worker.js';
-import { makeNotificationHandler } from '@modules/notifications/sagas/notification-handler.js';
-import { makeEmailProvider } from '@infra/notify/email-provider.js';
-import { makeSmsProvider } from '@infra/notify/sms-provider.js';
+import { makeNotificationDispatcher } from '@modules/notifications/sagas/dispatch-notifications.js';
+import { makeEmailProvider } from '@infra/channels/email-provider.js';
+import { makeSmsProvider } from '@infra/channels/sms-provider.js';
 
 function buildLogger() {
   const options = { level: process.env.LOG_LEVEL ?? 'info' };
@@ -64,7 +64,7 @@ async function main(): Promise<void> {
   await startConsumer(
     emailChannel,
     ORDER_EMAIL_QUEUE,
-    (msg) => handleOrderCreated(msg, { db, mailAdapter, log }),
+    (msg) => sendEmailOnOrderCreated(msg, { db, mailAdapter, log }),
     { log },
   );
   await startConsumer(
@@ -75,7 +75,7 @@ async function main(): Promise<void> {
   );
 
   // Payment saga consumers, each on its own channel.
-  const mockConfig: MockProviderConfig = {
+  const mockConfig: FakeProviderConfig = {
     webhookUrl: process.env.PAYMENT_WEBHOOK_URL ?? 'http://localhost:3000/webhooks/payment',
     secret: process.env.WEBHOOK_HMAC_SECRET ?? '',
     delayMs: num(process.env.MOCK_PAYMENT_DELAY_MS, 2000),
@@ -93,7 +93,7 @@ async function main(): Promise<void> {
   await startConsumer(
     mockProviderChannel,
     MOCK_PROVIDER_QUEUE,
-    (msg) => mockProviderOnPaymentCreated(msg, { db, config: mockConfig, log }),
+    (msg) => fakeProviderOnPaymentCreated(msg, { db, config: mockConfig, log }),
     { log },
   );
   await startConsumer(
@@ -119,7 +119,7 @@ async function main(): Promise<void> {
 
   // Notifications: one consumer fans user-facing events out to channel providers.
   const notificationChannel = await conn.createChannel();
-  const notificationHandler = makeNotificationHandler({
+  const notificationHandler = makeNotificationDispatcher({
     db,
     providers: { email: makeEmailProvider(mailer, mailFrom), sms: makeSmsProvider(log) },
     log,

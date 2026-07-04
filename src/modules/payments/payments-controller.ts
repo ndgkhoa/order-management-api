@@ -5,8 +5,8 @@ import type { PaymentsService, SettleOutcome } from '@modules/payments/payments-
 import type { WebhookBody } from '@modules/payments/payments-schema.js';
 import {
   deliverPaymentResult,
-  type MockProviderConfig,
-} from '@modules/payments/sagas/mock-payment-provider.js';
+  type FakeProviderConfig,
+} from '@modules/payments/sagas/fake-payment-provider.js';
 import { sagaMetrics } from '@infra/telemetry/saga-metrics.js';
 
 const WEBHOOK_DEDUP_TTL_SECONDS = 60 * 60 * 24; // 24h Redis fast-path (durable backstop in DB)
@@ -16,7 +16,7 @@ interface ControllerDeps {
   redis: Redis;
   secret: string;
   skewMs: number;
-  mockConfig: Pick<MockProviderConfig, 'webhookUrl' | 'secret'>;
+  mockConfig: Pick<FakeProviderConfig, 'webhookUrl' | 'secret'>;
   httpErrors: FastifyInstance['httpErrors'];
   log: FastifyBaseLogger;
 }
