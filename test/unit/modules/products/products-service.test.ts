@@ -2,7 +2,6 @@ import { describe, it, expect } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { makeProductsService } from '@modules/products/products-service.js';
 import type { ProductsRepository } from '@modules/products/products-repository.js';
-import type { ProductsCache } from '@modules/products/products-cache.js';
 
 // httpErrors stub: each helper throws an Error carrying the HTTP status (matches sensible).
 const httpErrors = {
@@ -10,16 +9,11 @@ const httpErrors = {
   notFound: (m?: string) => Object.assign(new Error(m ?? 'not found'), { statusCode: 404 }),
 } as unknown as FastifyInstance['httpErrors'];
 
-const noopCache = {
-  invalidate: () => Promise.resolve(),
-} as unknown as ProductsCache;
-
 // Loose stub type: repo methods return drizzle query builders, not plain Promises, so
 // the awaited fakes can't match the real signatures — cast through unknown.
 function makeService(repo: Partial<Record<keyof ProductsRepository, unknown>>) {
   return makeProductsService({
     productsRepo: repo as unknown as ProductsRepository,
-    cache: noopCache,
     httpErrors,
   });
 }
@@ -59,7 +53,6 @@ describe('products service', () => {
   it('getPublic of a missing/inactive product throws 404 (cache miss → repo)', async () => {
     const service = makeProductsService({
       productsRepo: { findActiveById: () => Promise.resolve(undefined) } as never,
-      cache: { getItem: () => Promise.resolve(null), setItem: () => Promise.resolve() } as never,
       httpErrors,
     });
     await expect(service.getPublic('missing')).rejects.toMatchObject({ statusCode: 404 });

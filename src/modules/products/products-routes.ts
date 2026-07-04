@@ -3,7 +3,6 @@ import type { FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';
 import type { FastifyRequest } from 'fastify';
 import { Permissions } from '@/types/permission.js';
 import { makeProductsRepository } from '@modules/products/products-repository.js';
-import { makeProductsCache } from '@modules/products/products-cache.js';
 import { makeProductsService } from '@modules/products/products-service.js';
 import { makeProductsController } from '@modules/products/products-controller.js';
 import {
@@ -23,9 +22,8 @@ const IdParams = Type.Object({ id: Type.String({ format: 'uuid' }) });
  * never 401 a read.
  */
 export const productsRoutes: FastifyPluginAsyncTypebox = (app) => {
-  const productsRepo = makeProductsRepository(app.db);
-  const cache = makeProductsCache(app.redis);
-  const service = makeProductsService({ productsRepo, cache, httpErrors: app.httpErrors });
+  const productsRepo = makeProductsRepository(app.db, app.redis);
+  const service = makeProductsService({ productsRepo, httpErrors: app.httpErrors });
   const controller = makeProductsController(service);
 
   // Reads: verify the token if present, but never reject when it's missing/invalid.

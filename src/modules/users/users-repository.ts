@@ -5,9 +5,13 @@ import { users } from '@infra/db/schema.js';
 /** Data access for users — Drizzle queries only, no business logic (Repository pattern). */
 export function makeUsersRepository(db: DB) {
   return {
-    findByEmail: (email: string) => db.query.users.findFirst({ where: eq(users.email, email) }),
+    async findByEmail(email: string) {
+      return db.query.users.findFirst({ where: eq(users.email, email) });
+    },
 
-    findById: (id: string) => db.query.users.findFirst({ where: eq(users.id, id) }),
+    async findById(id: string) {
+      return db.query.users.findFirst({ where: eq(users.id, id) });
+    },
 
     async create(input: { email: string; passwordHash: string }) {
       const rows = await db.insert(users).values(input).returning();

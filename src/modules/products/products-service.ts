@@ -1,41 +1,36 @@
 import type { FastifyInstance } from 'fastify';
 import type { ProductsRepository } from '@modules/products/products-repository.js';
-import type { ProductsCache } from '@modules/products/products-cache.js';
 import type { CreateProductBody, UpdateProductBody } from '@modules/products/products-schema.js';
 
 interface ProductsServiceDeps {
   productsRepo: ProductsRepository;
-  cache: ProductsCache;
   httpErrors: FastifyInstance['httpErrors'];
 }
 
 /**
- * Product business logic. Public reads go through the Redis cache (active-only); admin
- * reads bypass the cache. Every mutation invalidates the cache before returning.
+ * Product business logic. Public reads delegate to the repository's read-through cache
+ * (active-only). Admin reads bypass the cache. Every mutation triggers cache invalidation
+ * inside the repository before returning. No DB or Redis wiring here.
  */
-export function makeProductsService({ productsRepo, cache, httpErrors }: ProductsServiceDeps) {
+export function makeProductsService({ productsRepo, httpErrors }: ProductsServiceDeps) {
   return {
     // --- admin mutations ---
     async create(dto: CreateProductBody) {
       if (await productsRepo.findBySku(dto.sku)) {
         throw httpErrors.conflict('sku already exists');
       }
-      const product = await productsRepo.create(dto);
-      await cache.invalidate();
-      return product;
+      return productsRepo.create(dto);
     },
 
     async update(id: string, patch: UpdateProductBody) {
       const updated = await productsRepo.update(id, patch);
       if (!updated) throw httpErrors.notFound('product not found');
-      await cache.invalidate(id);
       return updated;
     },
 
     async remove(id: string) {
       const removed = await productsRepo.softDelete(id);
       if (!removed) throw httpErrors.notFound('product not found');
-      await cache.invalidate(id);
     },
 
     // --- admin reads (bypass cache; see inactive) ---
@@ -47,21 +42,12 @@ export function makeProductsService({ productsRepo, cache, httpErrors }: Product
       return product;
     },
 
-    // --- public reads (cache read-through; active only) ---
-    async listPublic() {
-      const cached = await cache.getList();
-      if (cached) return cached;
-      const rows = await productsRepo.listActive();
-      await cache.setList(rows);
-      return rows;
-    },
+    // --- public reads (cache read-through via repository; active only) ---
+    listPublic: () => productsRepo.listActive(),
 
     async getPublic(id: string) {
-      const cached = await cache.getItem(id);
-      if (cached) return cached;
       const product = await productsRepo.findActiveById(id);
       if (!product) throw httpErrors.notFound('product not found');
-      await cache.setItem(product);
       return product;
     },
   };

@@ -12,7 +12,7 @@ const IdParams = Type.Object({ id: Type.String({ format: 'uuid' }) });
 /** /orders routes — all authenticated. POST creates order + items + outbox atomically. */
 export const ordersRoutes: FastifyPluginAsyncTypebox = (app) => {
   const ordersRepo = makeOrdersRepository(app.db);
-  const productsRepo = makeProductsRepository(app.db);
+  const productsRepo = makeProductsRepository(app.db, app.redis);
   const service = makeOrdersService({ ordersRepo, productsRepo, httpErrors: app.httpErrors });
   const controller = makeOrdersController(service);
 
