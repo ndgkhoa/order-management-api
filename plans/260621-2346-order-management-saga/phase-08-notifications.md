@@ -1,7 +1,7 @@
 ---
 phase: 8
 title: 'Notifications'
-status: pending
+status: completed
 priority: P2
 effort: '4h'
 dependencies: [6]
@@ -48,10 +48,24 @@ Generalize the email worker into a channel-agnostic notification system: a `Noti
 
 ## Success Criteria
 
-- [ ] `NotificationProvider` interface; `EmailProvider` sends real emails (Mailpit), `SmsProvider` stubbed TODO.
-- [ ] Saga events route to correct templated notifications.
-- [ ] Redelivery → single send (idempotent).
-- [ ] typecheck + lint + tests green.
+- [x] `NotificationProvider` interface; `EmailProvider` sends real emails (Mailpit), `SmsProvider` stubbed TODO.
+- [x] Saga events route to correct templated notifications.
+- [x] Redelivery → single send (idempotent).
+- [x] typecheck + lint + tests green (113/113, 9 new).
+
+## Implementation Notes (delta from spec)
+
+- Templates live in a single `notification-templates.ts` routing registry (eventType →
+  {channels, render}) rather than a `templates/` directory of one-liner files (KISS).
+- Existing `order.created` email (`order-created-handler`) kept as-is — coexists, not refactored.
+- Notification payloads carry `orderId` (not email), so the handler looks up the recipient via
+  `orders ⋈ users`. Distinct dedup dimension (`consumer='notify'`) — no collision with `email`.
+- `shipment.delivered` → email + sms to exercise the multi-channel abstraction; the rest email.
+- One `notifications` queue with 5 bindings (order.paid/cancelled/refunded, shipment
+  in_transit/delivered) + DLQ.
+- Known coupling (documented in the handler): dedup is per-event not per-channel, so a throwing
+  channel would re-send earlier ones on retry — safe today (SMS is a no-throw stub); revisit
+  when a real, throwing channel is added.
 
 ## Risk Assessment
 
