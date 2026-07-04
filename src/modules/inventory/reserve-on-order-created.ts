@@ -14,6 +14,7 @@ import {
 } from '@infra/mq/outbox-event-types.js';
 import { reserveStock } from '@modules/inventory/adjust-stock.js';
 import { recordOrderTransition } from '@modules/orders/order-status-history.js';
+import { sagaMetrics } from '@infra/telemetry/saga-metrics.js';
 
 interface HandlerDeps {
   db: DB;
@@ -127,8 +128,11 @@ export async function reserveOnOrderCreated(
     });
 
     if (duplicate) log.info({ eventId }, 'duplicate delivery, skipped');
-    else
+    else {
+      if (reserved) sagaMetrics.inventoryReserved.inc();
+      else sagaMetrics.ordersCancelled.inc();
       log.info({ orderId, reserved }, reserved ? 'inventory reserved' : 'order cancelled (stock)');
+    }
     return 'ack';
   } catch (err) {
     log.error({ err, eventId, orderId }, 'reserve handler failed');

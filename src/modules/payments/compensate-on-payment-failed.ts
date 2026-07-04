@@ -12,6 +12,7 @@ import {
 } from '@infra/mq/outbox-event-types.js';
 import { releaseReservation } from '@modules/inventory/adjust-stock.js';
 import { recordOrderTransition } from '@modules/orders/order-status-history.js';
+import { sagaMetrics } from '@infra/telemetry/saga-metrics.js';
 
 const CONSUMER_NAME = 'payment-compensate';
 const PAYMENT_FAILED_REASON = 'payment_failed';
@@ -44,6 +45,7 @@ export async function compensateOnPaymentFailed(
   const correlationId = envelope.correlationId || orderId;
 
   try {
+    let cancelled = false;
     await db.transaction(async (tx) => {
       const inserted = await tx
         .insert(processedMessages)
@@ -61,6 +63,7 @@ export async function compensateOnPaymentFailed(
         log.warn({ orderId }, 'order not pending at payment failure; skipping release');
         return;
       }
+      cancelled = true;
       await recordOrderTransition(tx, {
         orderId,
         from: 'pending',
@@ -86,6 +89,7 @@ export async function compensateOnPaymentFailed(
         payload,
       });
     });
+    if (cancelled) sagaMetrics.ordersCancelled.inc();
     return 'ack';
   } catch (err) {
     log.error({ err, eventId, orderId }, 'payment-compensate handler failed');

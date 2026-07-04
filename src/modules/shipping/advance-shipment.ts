@@ -10,6 +10,7 @@ import {
 } from '@infra/mq/outbox-event-types.js';
 import { recordOrderTransition } from '@modules/orders/order-status-history.js';
 import { nextShipmentStatus, type ShipmentStatus } from '@modules/shipping/shipment-status.js';
+import { sagaMetrics } from '@infra/telemetry/saga-metrics.js';
 
 const EVENT_BY_STATUS: Record<Exclude<ShipmentStatus, 'pending'>, string> = {
   ready_for_pickup: SHIPMENT_READY_EVENT,
@@ -29,7 +30,7 @@ export async function advanceShipment(
   shipmentId: string,
   log: FastifyBaseLogger,
 ): Promise<ShipmentStatus | null> {
-  return db.transaction(async (tx) => {
+  const result = await db.transaction(async (tx) => {
     const [ship] = await tx.select().from(shipments).where(eq(shipments.id, shipmentId));
     if (!ship) return null;
     const from = ship.status as ShipmentStatus;
@@ -72,4 +73,6 @@ export async function advanceShipment(
     }
     return to;
   });
+  if (result === 'delivered') sagaMetrics.shipmentsDelivered.inc();
+  return result;
 }

@@ -10,6 +10,7 @@ import {
 } from '@infra/mq/outbox-event-types.js';
 import { releaseReservation, restockAvailable } from '@modules/inventory/adjust-stock.js';
 import { recordOrderTransition } from '@modules/orders/order-status-history.js';
+import { sagaMetrics } from '@infra/telemetry/saga-metrics.js';
 
 const CUSTOMER_REASON = 'customer_cancelled';
 
@@ -98,6 +99,8 @@ export async function cancelOrder(
     // already fulfilling/delivered/cancelled
     throw httpErrors.conflict('order can no longer be cancelled');
   });
+  // Reached only when the transaction committed a cancellation (the 409 path throws above).
+  sagaMetrics.ordersCancelled.inc();
 
   const order = await db.query.orders.findFirst({ where: eq(orders.id, orderId) });
   const items = await db.query.orderItems.findMany({ where: eq(orderItems.orderId, orderId) });
