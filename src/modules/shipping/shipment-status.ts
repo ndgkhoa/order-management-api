@@ -2,17 +2,9 @@
  * Canonical shipment status machine — the single source of truth for legal transitions.
  * Linear and forward-only: pending → ready_for_pickup → in_transit → delivered (terminal).
  * The fake worker and the admin manual endpoint both advance strictly one step via CAS.
+ * Status values and types live in `@/types/shipment-status.ts`; import them from there.
  */
-export const SHIPMENT_STATUSES = [
-  'pending',
-  'ready_for_pickup',
-  'in_transit',
-  'delivered',
-] as const;
-export type ShipmentStatus = (typeof SHIPMENT_STATUSES)[number];
-
-/** A status reachable by advancing (never the initial `pending`). */
-export type AdvancedShipmentStatus = Exclude<ShipmentStatus, 'pending'>;
+import { type ShipmentStatus, type AdvancedShipmentStatus } from '@/types/shipment-status.js';
 
 const NEXT: Record<ShipmentStatus, AdvancedShipmentStatus | null> = {
   pending: 'ready_for_pickup',

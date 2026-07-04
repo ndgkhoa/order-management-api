@@ -1,8 +1,7 @@
-import { and, eq } from 'drizzle-orm';
 import type { ConsumeMessage } from 'amqplib';
 import type { FastifyBaseLogger } from 'fastify';
 import type { DB } from '@infra/db/client.js';
-import { orders, outboxMessages, processedMessages } from '@infra/db/schema.js';
+import { outboxMessages, processedMessages } from '@infra/db/schema.js';
 import type { HandlerResult } from '@infra/mq/consumer.js';
 import type { EventEnvelope } from '@infra/mq/event-envelope.js';
 import {
@@ -13,7 +12,8 @@ import {
   type OrderCancelledPayload,
 } from '@infra/mq/outbox-event-types.js';
 import { reserveStock } from '@modules/inventory/adjust-stock.js';
-import { recordOrderTransition } from '@modules/orders/order-status-history.js';
+import { transitionOrder } from '@modules/orders/transition-order.js';
+import { OrderStatuses } from '@/types/order-status.js';
 import { sagaMetrics } from '@infra/telemetry/saga-metrics.js';
 
 interface HandlerDeps {
@@ -101,18 +101,14 @@ export async function reserveOnOrderCreated(
         // Compare-and-set: only cancel an order still pending. Emit order.cancelled ONLY if
         // this update actually transitioned a row — so a redelivery or an already-terminal
         // order (future pay/cancel race) never produces a spurious cancellation event.
-        const cancelledRows = await tx
-          .update(orders)
-          .set({ status: 'cancelled', cancelReason: OUT_OF_STOCK, updatedAt: new Date() })
-          .where(and(eq(orders.id, orderId), eq(orders.status, 'pending')))
-          .returning({ id: orders.id });
-        if (cancelledRows.length > 0) {
-          await recordOrderTransition(tx, {
-            orderId,
-            from: 'pending',
-            to: 'cancelled',
-            reason: OUT_OF_STOCK,
-          });
+        const cancelled = await transitionOrder(
+          tx,
+          orderId,
+          OrderStatuses.Pending,
+          OrderStatuses.Cancelled,
+          { reason: OUT_OF_STOCK, cancelReason: OUT_OF_STOCK },
+        );
+        if (cancelled) {
           const payload: OrderCancelledPayload = { orderId, reason: OUT_OF_STOCK };
           await tx.insert(outboxMessages).values({
             aggregateType: 'order',

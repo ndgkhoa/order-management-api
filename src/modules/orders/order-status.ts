@@ -3,9 +3,9 @@
  * Terminal states (`cancelled`, `delivered`) accept no further transitions; in particular
  * `cancelled → paid` is rejected so a late PaymentSucceeded can never revive a cancelled order.
  * Phases add their own steps but MUST route every order status change through `assertTransition`.
+ * Status values and types live in `@/types/order-status.ts`; import them from there.
  */
-export const ORDER_STATUSES = ['pending', 'paid', 'fulfilling', 'delivered', 'cancelled'] as const;
-export type OrderStatus = (typeof ORDER_STATUSES)[number];
+import { type OrderStatus } from '@/types/order-status.js';
 
 const TRANSITIONS: Record<OrderStatus, readonly OrderStatus[]> = {
   pending: ['paid', 'cancelled'], // PaymentSucceeded | out_of_stock / pre-pay cancel

@@ -1,8 +1,8 @@
-import { and, eq } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import type { ConsumeMessage } from 'amqplib';
 import type { FastifyBaseLogger } from 'fastify';
 import type { DB } from '@infra/db/client.js';
-import { orders, orderItems, outboxMessages, processedMessages } from '@infra/db/schema.js';
+import { orderItems, outboxMessages, processedMessages } from '@infra/db/schema.js';
 import type { HandlerResult } from '@infra/mq/consumer.js';
 import type { EventEnvelope } from '@infra/mq/event-envelope.js';
 import {
@@ -11,7 +11,8 @@ import {
   type OrderPaidPayload,
 } from '@infra/mq/outbox-event-types.js';
 import { commitReservation } from '@modules/inventory/adjust-stock.js';
-import { recordOrderTransition } from '@modules/orders/order-status-history.js';
+import { transitionOrder } from '@modules/orders/transition-order.js';
+import { OrderStatuses } from '@/types/order-status.js';
 
 const CONSUMER_NAME = 'payment-complete';
 
@@ -51,21 +52,13 @@ export async function completeOnPaymentSucceeded(
         .returning();
       if (inserted.length === 0) return; // duplicate delivery
 
-      const paidRows = await tx
-        .update(orders)
-        .set({ status: 'paid', updatedAt: new Date() })
-        .where(and(eq(orders.id, orderId), eq(orders.status, 'pending')))
-        .returning({ id: orders.id });
-      if (paidRows.length === 0) {
+      const paid = await transitionOrder(tx, orderId, OrderStatuses.Pending, OrderStatuses.Paid, {
+        reason: 'payment_succeeded',
+      });
+      if (!paid) {
         log.warn({ orderId }, 'order not pending at payment success; skipping commit');
         return;
       }
-      await recordOrderTransition(tx, {
-        orderId,
-        from: 'pending',
-        to: 'paid',
-        reason: 'payment_succeeded',
-      });
 
       const items = await tx
         .select({ productId: orderItems.productId, quantity: orderItems.quantity })

@@ -6,6 +6,7 @@ import {
   type PaymentSettledPayload,
 } from '@infra/mq/outbox-event-types.js';
 import { applyPaymentOutcome } from '@modules/payments/payments-repository.js';
+import { PaymentStatuses } from '@/types/payment-status.js';
 
 /** Durable dedup dimension for inbound webhook events (keyed by provider event id). */
 const WEBHOOK_CONSUMER = 'webhook';
@@ -40,7 +41,7 @@ export function makePaymentsService({ db }: { db: DB }) {
         .returning();
       if (inserted.length === 0) return 'duplicate';
 
-      const to = outcome === 'SUCCEEDED' ? 'paid' : 'failed';
+      const to = outcome === 'SUCCEEDED' ? PaymentStatuses.Paid : PaymentStatuses.Failed;
       const row = await applyPaymentOutcome(tx, paymentId, to, providerEventId);
       if (!row) return 'noop';
 

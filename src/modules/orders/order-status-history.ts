@@ -1,5 +1,6 @@
 import { orderStatusHistory } from '@infra/db/schema.js';
 import type { Tx } from '@modules/inventory/adjust-stock.js';
+import type { OrderStatus } from '@/types/order-status.js';
 
 /**
  * Appends one order status-transition audit row. MUST be called inside the same transaction
@@ -8,7 +9,7 @@ import type { Tx } from '@modules/inventory/adjust-stock.js';
  */
 export async function recordOrderTransition(
   tx: Tx,
-  input: { orderId: string; from: string | null; to: string; reason?: string },
+  input: { orderId: string; from: OrderStatus | null; to: OrderStatus; reason?: string },
 ): Promise<void> {
   await tx.insert(orderStatusHistory).values({
     orderId: input.orderId,

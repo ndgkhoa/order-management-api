@@ -4,6 +4,7 @@ import type { DB } from '@infra/db/client.js';
 import type { HandlerResult } from '@infra/mq/consumer.js';
 import { createShipmentOnOrderPaid } from '@modules/shipping/create-shipment-on-order-paid.js';
 import { advanceShipment } from '@modules/shipping/advance-shipment.js';
+import { ShipmentStatuses } from '@/types/shipment-status.js';
 
 export interface ShippingConfig {
   stepMs: number;
@@ -30,7 +31,7 @@ function scheduleAdvances(
   const tick = (): void => {
     setTimeout(() => {
       void advanceShipment(db, shipmentId, log).then((next) => {
-        if (next && next !== 'delivered') tick();
+        if (next && next !== ShipmentStatuses.Delivered) tick();
       });
     }, config.stepMs);
   };

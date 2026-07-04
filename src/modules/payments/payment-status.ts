@@ -3,9 +3,9 @@
  * `failed` and `refunded` are terminal; in particular `failed → paid` is rejected so a late
  * SUCCEEDED webhook (distinct provider event id → past the dedup) can never revive a payment
  * the provider already failed. Callers apply transitions with a compare-and-set UPDATE.
+ * Status values and types live in `@/types/payment-status.ts`; import them from there.
  */
-export const PAYMENT_STATUSES = ['pending', 'paid', 'failed', 'refunded'] as const;
-export type PaymentStatus = (typeof PAYMENT_STATUSES)[number];
+import { type PaymentStatus } from '@/types/payment-status.js';
 
 const TRANSITIONS: Record<PaymentStatus, readonly PaymentStatus[]> = {
   pending: ['paid', 'failed'],

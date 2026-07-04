@@ -1,6 +1,7 @@
 import { and, eq } from 'drizzle-orm';
 import { payments } from '@infra/db/schema.js';
 import type { Tx } from '@modules/inventory/adjust-stock.js';
+import { PaymentStatuses } from '@/types/payment-status.js';
 
 /**
  * Insert the single pending payment for an order. `onConflictDoNothing` on the unique
@@ -33,7 +34,7 @@ export async function applyPaymentOutcome(
   const [row] = await tx
     .update(payments)
     .set({ status: to, providerEventId, updatedAt: new Date() })
-    .where(and(eq(payments.id, paymentId), eq(payments.status, 'pending')))
+    .where(and(eq(payments.id, paymentId), eq(payments.status, PaymentStatuses.Pending)))
     .returning({ orderId: payments.orderId });
   return row;
 }

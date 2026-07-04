@@ -2,6 +2,7 @@ import { and, eq, lt } from 'drizzle-orm';
 import type { FastifyBaseLogger } from 'fastify';
 import type { DB } from '@infra/db/client.js';
 import { orders } from '@infra/db/schema.js';
+import { OrderStatuses } from '@/types/order-status.js';
 
 interface OrderReaperDeps {
   db: DB;
@@ -28,7 +29,7 @@ export function createOrderReaper({ db, log, intervalMs, thresholdMs }: OrderRea
       const stuck = await db
         .select({ id: orders.id, createdAt: orders.createdAt })
         .from(orders)
-        .where(and(eq(orders.status, 'pending'), lt(orders.createdAt, cutoff)));
+        .where(and(eq(orders.status, OrderStatuses.Pending), lt(orders.createdAt, cutoff)));
       if (stuck.length > 0) {
         log.warn(
           { count: stuck.length, orderIds: stuck.map((o) => o.id), thresholdMs },

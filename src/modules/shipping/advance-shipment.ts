@@ -1,15 +1,17 @@
 import { and, eq } from 'drizzle-orm';
 import type { FastifyBaseLogger } from 'fastify';
 import type { DB } from '@infra/db/client.js';
-import { shipments, orders, outboxMessages } from '@infra/db/schema.js';
+import { shipments, outboxMessages } from '@infra/db/schema.js';
 import {
   SHIPMENT_READY_EVENT,
   SHIPMENT_IN_TRANSIT_EVENT,
   SHIPMENT_DELIVERED_EVENT,
   type ShipmentEventPayload,
 } from '@infra/mq/outbox-event-types.js';
-import { recordOrderTransition } from '@modules/orders/order-status-history.js';
-import { nextShipmentStatus, type ShipmentStatus } from '@modules/shipping/shipment-status.js';
+import { transitionOrder } from '@modules/orders/transition-order.js';
+import { OrderStatuses } from '@/types/order-status.js';
+import { ShipmentStatuses, type ShipmentStatus } from '@/types/shipment-status.js';
+import { nextShipmentStatus } from '@modules/shipping/shipment-status.js';
 import { sagaMetrics } from '@infra/telemetry/saga-metrics.js';
 
 const EVENT_BY_STATUS: Record<Exclude<ShipmentStatus, 'pending'>, string> = {
@@ -54,25 +56,20 @@ export async function advanceShipment(
       payload,
     });
 
-    if (to === 'delivered') {
-      const orderRows = await tx
-        .update(orders)
-        .set({ status: 'delivered', updatedAt: new Date() })
-        .where(and(eq(orders.id, orderId), eq(orders.status, 'fulfilling')))
-        .returning({ id: orders.id });
-      if (orderRows.length > 0) {
-        await recordOrderTransition(tx, {
-          orderId,
-          from: 'fulfilling',
-          to: 'delivered',
-          reason: 'shipment_delivered',
-        });
-      } else {
+    if (to === ShipmentStatuses.Delivered) {
+      const delivered = await transitionOrder(
+        tx,
+        orderId,
+        OrderStatuses.Fulfilling,
+        OrderStatuses.Delivered,
+        { reason: 'shipment_delivered' },
+      );
+      if (!delivered) {
         log.warn({ orderId }, 'order not fulfilling at delivery; skipping order transition');
       }
     }
     return to;
   });
-  if (result === 'delivered') sagaMetrics.shipmentsDelivered.inc();
+  if (result === ShipmentStatuses.Delivered) sagaMetrics.shipmentsDelivered.inc();
   return result;
 }

@@ -4,6 +4,7 @@ import type { AppInstance } from '@/app.js';
 import { db } from '@infra/db/client.js';
 import { users, orders, orderItems, products, payments, outboxMessages } from '@infra/db/schema.js';
 import { ORDER_REFUNDED_EVENT, ORDER_CANCELLED_EVENT } from '@infra/mq/outbox-event-types.js';
+import type { OrderStatus } from '@/types/order-status.js';
 import { buildTestApp, registerAndLogin } from '@test/helpers/build-test-app.js';
 import { resetDb } from '@test/helpers/reset-db.js';
 
@@ -26,7 +27,7 @@ async function seedProduct(available: number, reserved: number): Promise<string>
   return p!.id;
 }
 
-async function seedOrder(userId: string, productId: string, status: string): Promise<string> {
+async function seedOrder(userId: string, productId: string, status: OrderStatus): Promise<string> {
   const [order] = await db.insert(orders).values({ userId, totalCents: 200, status }).returning();
   await db.insert(orderItems).values({
     orderId: order!.id,

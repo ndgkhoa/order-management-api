@@ -1,8 +1,8 @@
-import { and, eq } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import type { ConsumeMessage } from 'amqplib';
 import type { FastifyBaseLogger } from 'fastify';
 import type { DB } from '@infra/db/client.js';
-import { orders, orderItems, outboxMessages, processedMessages } from '@infra/db/schema.js';
+import { orderItems, outboxMessages, processedMessages } from '@infra/db/schema.js';
 import type { HandlerResult } from '@infra/mq/consumer.js';
 import type { EventEnvelope } from '@infra/mq/event-envelope.js';
 import {
@@ -11,7 +11,8 @@ import {
   type OrderCancelledPayload,
 } from '@infra/mq/outbox-event-types.js';
 import { releaseReservation } from '@modules/inventory/adjust-stock.js';
-import { recordOrderTransition } from '@modules/orders/order-status-history.js';
+import { transitionOrder } from '@modules/orders/transition-order.js';
+import { OrderStatuses } from '@/types/order-status.js';
 import { sagaMetrics } from '@infra/telemetry/saga-metrics.js';
 
 const CONSUMER_NAME = 'payment-compensate';
@@ -54,22 +55,18 @@ export async function compensateOnPaymentFailed(
         .returning();
       if (inserted.length === 0) return; // duplicate delivery
 
-      const cancelledRows = await tx
-        .update(orders)
-        .set({ status: 'cancelled', cancelReason: PAYMENT_FAILED_REASON, updatedAt: new Date() })
-        .where(and(eq(orders.id, orderId), eq(orders.status, 'pending')))
-        .returning({ id: orders.id });
-      if (cancelledRows.length === 0) {
+      const didCancel = await transitionOrder(
+        tx,
+        orderId,
+        OrderStatuses.Pending,
+        OrderStatuses.Cancelled,
+        { reason: PAYMENT_FAILED_REASON, cancelReason: PAYMENT_FAILED_REASON },
+      );
+      if (!didCancel) {
         log.warn({ orderId }, 'order not pending at payment failure; skipping release');
         return;
       }
       cancelled = true;
-      await recordOrderTransition(tx, {
-        orderId,
-        from: 'pending',
-        to: 'cancelled',
-        reason: PAYMENT_FAILED_REASON,
-      });
 
       const items = await tx
         .select({ productId: orderItems.productId, quantity: orderItems.quantity })

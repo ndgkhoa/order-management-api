@@ -1,8 +1,7 @@
-import { and, eq } from 'drizzle-orm';
 import type { ConsumeMessage } from 'amqplib';
 import type { FastifyBaseLogger } from 'fastify';
 import type { DB } from '@infra/db/client.js';
-import { shipments, orders, outboxMessages, processedMessages } from '@infra/db/schema.js';
+import { shipments, outboxMessages, processedMessages } from '@infra/db/schema.js';
 import type { HandlerResult } from '@infra/mq/consumer.js';
 import type { EventEnvelope } from '@infra/mq/event-envelope.js';
 import {
@@ -10,7 +9,9 @@ import {
   type OrderPaidPayload,
   type ShipmentEventPayload,
 } from '@infra/mq/outbox-event-types.js';
-import { recordOrderTransition } from '@modules/orders/order-status-history.js';
+import { transitionOrder } from '@modules/orders/transition-order.js';
+import { OrderStatuses } from '@/types/order-status.js';
+import { ShipmentStatuses } from '@/types/shipment-status.js';
 
 const CONSUMER_NAME = 'shipping';
 
@@ -54,21 +55,17 @@ export async function createShipmentOnOrderPaid(
       // Win the order first: this CAS acquires the order row lock, so a concurrent cancel is
       // serialized behind us and will find status='fulfilling' → rejected. Only if we win do we
       // create the shipment — never leave an orphaned/advancing shipment for a cancelled order.
-      const moved = await tx
-        .update(orders)
-        .set({ status: 'fulfilling', updatedAt: new Date() })
-        .where(and(eq(orders.id, orderId), eq(orders.status, 'paid')))
-        .returning({ id: orders.id });
-      if (moved.length === 0) {
+      const moved = await transitionOrder(
+        tx,
+        orderId,
+        OrderStatuses.Paid,
+        OrderStatuses.Fulfilling,
+        { reason: 'shipment_created' },
+      );
+      if (!moved) {
         log.warn({ orderId }, 'order not paid at shipment creation (cancelled/advanced); skipping');
         return;
       }
-      await recordOrderTransition(tx, {
-        orderId,
-        from: 'paid',
-        to: 'fulfilling',
-        reason: 'shipment_created',
-      });
 
       const [ship] = await tx
         .insert(shipments)
@@ -81,7 +78,11 @@ export async function createShipmentOnOrderPaid(
       }
       shipmentId = ship.id;
 
-      const payload: ShipmentEventPayload = { orderId, shipmentId: ship.id, status: 'pending' };
+      const payload: ShipmentEventPayload = {
+        orderId,
+        shipmentId: ship.id,
+        status: ShipmentStatuses.Pending,
+      };
       await tx.insert(outboxMessages).values({
         aggregateType: 'order',
         aggregateId: orderId,

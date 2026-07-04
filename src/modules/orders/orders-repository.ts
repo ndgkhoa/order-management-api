@@ -5,6 +5,7 @@ import { orders, orderItems, outboxMessages } from '@infra/db/schema.js';
 import { ORDER_CREATED_EVENT, type OrderCreatedPayload } from '@infra/mq/outbox-event-types.js';
 import type { OrderLine } from '@modules/orders/order-total.js';
 import { recordOrderTransition } from '@modules/orders/order-status-history.js';
+import { OrderStatuses } from '@/types/order-status.js';
 import { sagaMetrics } from '@infra/telemetry/saga-metrics.js';
 
 interface CreateOrderInput {
@@ -66,7 +67,7 @@ export function makeOrdersRepository(db: DB) {
         await recordOrderTransition(tx, {
           orderId: order.id,
           from: null,
-          to: 'pending',
+          to: OrderStatuses.Pending,
           reason: 'created',
         });
 
