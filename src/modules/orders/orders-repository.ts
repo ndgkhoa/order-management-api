@@ -5,6 +5,7 @@ import { orders, orderItems, outboxMessages } from '@infra/db/schema.js';
 import { ORDER_CREATED_EVENT, type OrderCreatedPayload } from '@infra/mq/outbox-event-types.js';
 import type { OrderLine } from '@modules/orders/order-total.js';
 import { recordOrderTransition } from '@modules/orders/order-status-history.js';
+import { sagaMetrics } from '@infra/telemetry/saga-metrics.js';
 
 interface CreateOrderInput {
   userId: string;
@@ -22,7 +23,7 @@ export function makeOrdersRepository(db: DB) {
      * orphaned. NO stock reservation and NO payment here; those are async saga steps.
      */
     async createWithOutbox(input: CreateOrderInput) {
-      return db.transaction(async (tx) => {
+      const result = await db.transaction(async (tx) => {
         const orderRows = await tx
           .insert(orders)
           .values({ userId: input.userId, totalCents: input.totalCents })
@@ -71,6 +72,8 @@ export function makeOrdersRepository(db: DB) {
 
         return { order, items: itemRows };
       });
+      sagaMetrics.ordersCreated.inc();
+      return result;
     },
 
     listByUser: (userId: string) =>

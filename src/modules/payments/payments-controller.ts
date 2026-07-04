@@ -7,6 +7,7 @@ import {
   deliverPaymentResult,
   type MockProviderConfig,
 } from '@modules/payments/mock-payment-provider.js';
+import { sagaMetrics } from '@infra/telemetry/saga-metrics.js';
 
 const WEBHOOK_DEDUP_TTL_SECONDS = 60 * 60 * 24; // 24h Redis fast-path (durable backstop in DB)
 
@@ -49,6 +50,10 @@ export function makePaymentsController(deps: ControllerDeps) {
         providerEventId: body.providerEventId,
         outcome: body.outcome,
       });
+      if (result === 'applied') {
+        if (body.outcome === 'SUCCEEDED') sagaMetrics.paymentsSucceeded.inc();
+        else sagaMetrics.paymentsFailed.inc();
+      }
       await redis.set(key, '1', 'EX', WEBHOOK_DEDUP_TTL_SECONDS);
       return reply.code(200).send({ status: result });
     },
