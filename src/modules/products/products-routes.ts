@@ -1,7 +1,7 @@
 import { Type } from '@sinclair/typebox';
 import type { FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';
 import type { FastifyRequest } from 'fastify';
-import { UserRoles } from '@/types/user-role.js';
+import { Permissions } from '@/types/permission.js';
 import { makeProductsRepository } from '@modules/products/products-repository.js';
 import { makeProductsCache } from '@modules/products/products-cache.js';
 import { makeProductsService } from '@modules/products/products-service.js';
@@ -16,18 +16,17 @@ import { errorResponses } from '@infra/http/error-responses.js';
 const IdParams = Type.Object({ id: Type.String({ format: 'uuid' }) });
 
 /**
- * /products routes. Mutations require an admin JWT (authenticate + requireRole(Admin)).
- * Reads are public but optionally authenticated: a valid token populates `request.user`
- * so an admin sees all products (controller branches on role); without a token the
- * cached active-only catalog is served. Bad/absent tokens never 401 a read.
+ * /products routes. Each mutation requires its own `product:{create|update|delete}` permission
+ * (authenticate + requirePermission). Reads are public but optionally authenticated: a valid token
+ * populates `request.user` so a caller with `product:read` sees all products (controller branches
+ * on permission); without a token the cached active-only catalog is served. Bad/absent tokens
+ * never 401 a read.
  */
 export const productsRoutes: FastifyPluginAsyncTypebox = (app) => {
   const productsRepo = makeProductsRepository(app.db);
   const cache = makeProductsCache(app.redis);
   const service = makeProductsService({ productsRepo, cache, httpErrors: app.httpErrors });
   const controller = makeProductsController(service);
-
-  const adminOnly = [app.authenticate, app.requireRole(UserRoles.Admin)];
 
   // Reads: verify the token if present, but never reject when it's missing/invalid.
   const optionalAuth = async (request: FastifyRequest) => {
@@ -41,7 +40,7 @@ export const productsRoutes: FastifyPluginAsyncTypebox = (app) => {
   app.post(
     '/',
     {
-      preHandler: adminOnly,
+      preHandler: [app.authenticate, app.requirePermission(Permissions.Product.Create)],
       schema: {
         tags: ['products'],
         body: CreateProductBody,
@@ -54,7 +53,7 @@ export const productsRoutes: FastifyPluginAsyncTypebox = (app) => {
   app.patch(
     '/:id',
     {
-      preHandler: adminOnly,
+      preHandler: [app.authenticate, app.requirePermission(Permissions.Product.Update)],
       schema: {
         tags: ['products'],
         params: IdParams,
@@ -68,7 +67,7 @@ export const productsRoutes: FastifyPluginAsyncTypebox = (app) => {
   app.delete(
     '/:id',
     {
-      preHandler: adminOnly,
+      preHandler: [app.authenticate, app.requirePermission(Permissions.Product.Delete)],
       schema: { tags: ['products'], params: IdParams, response: errorResponses(401, 403, 404) },
     },
     controller.remove,

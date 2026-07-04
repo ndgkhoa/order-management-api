@@ -1,5 +1,6 @@
 import type { FastifyReply, FastifyRequest } from 'fastify';
-import { UserRoles } from '@/types/user-role.js';
+import { Permissions } from '@/types/permission.js';
+import { hasPermission } from '@/types/role-permissions.js';
 import type { OrdersService } from '@modules/orders/orders-service.js';
 import {
   type CreateOrderBody,
@@ -21,11 +22,10 @@ export function makeOrdersController(service: OrdersService) {
     },
 
     list: async (req: FastifyRequest) => {
-      // Admins see every order; customers see only their own.
-      const list =
-        req.user.role === UserRoles.Admin
-          ? await service.listAll()
-          : await service.list(req.user.sub);
+      // Callers with order:read:all see every order; everyone else sees only their own.
+      const list = hasPermission(req.user.roles, Permissions.Order.ReadAll)
+        ? await service.listAll()
+        : await service.list(req.user.sub);
       return list.map(toOrderPublic);
     },
 

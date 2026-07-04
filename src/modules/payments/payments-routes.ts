@@ -1,6 +1,6 @@
 import type { FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';
 import type { FastifyRequest } from 'fastify';
-import { UserRoles } from '@/types/user-role.js';
+import { Permissions } from '@/types/permission.js';
 import { makePaymentsService } from '@modules/payments/payments-service.js';
 import { makePaymentsController } from '@modules/payments/payments-controller.js';
 import {
@@ -59,7 +59,9 @@ export const paymentsRoutes: FastifyPluginAsyncTypebox = (app) => {
   );
 
   // Dev/test only: force a payment outcome (drives the real saga). Admin-guarded.
-  const mockGuards = { preHandler: [app.authenticate, app.requireRole(UserRoles.Admin)] };
+  const mockGuards = {
+    preHandler: [app.authenticate, app.requirePermission(Permissions.Payment.Force)],
+  };
   app.post(
     '/mock-payments/:id/succeed',
     {

@@ -9,22 +9,24 @@ import {
   index,
   primaryKey,
   check,
-  pgEnum,
   uniqueIndex,
 } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
-import { USER_ROLES, UserRoles } from '@/types/user-role.js';
-
-/** DB enum bound to the role values defined in `@/types/user-role` (single source of truth). */
-export const userRole = pgEnum('user_role', USER_ROLES);
+import { UserRoles } from '@/types/user-role.js';
+import { OrderStatuses } from '@/types/order-status.js';
+import { PaymentStatuses } from '@/types/payment-status.js';
+import { ShipmentStatuses } from '@/types/shipment-status.js';
+import { DEFAULT_CURRENCY } from '@/types/currency.js';
 
 /** Application users. Only the argon2 hash is stored — never the plaintext password.
- *  `role` drives RBAC (`requireRole`); JWTs carry it so guards read it from the token. */
+ *  `roles` is a text array (values are the single source of truth in `@/types/user-role`,
+ *  enforced in the app layer — no pg enum). A user can hold several roles; the JWT carries them
+ *  and RBAC resolves roles → permissions (`@/types/role-permissions`) at guard time. */
 export const users = pgTable('users', {
   id: uuid('id').primaryKey().defaultRandom(),
   email: text('email').notNull().unique(),
   passwordHash: text('password_hash').notNull(),
-  role: userRole('role').notNull().default(UserRoles.Customer),
+  roles: text('roles').array().notNull().default([UserRoles.Customer]),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -68,9 +70,9 @@ export const orders = pgTable(
     userId: uuid('user_id')
       .notNull()
       .references(() => users.id),
-    status: text('status').notNull().default('pending'),
+    status: text('status').notNull().default(OrderStatuses.Pending),
     totalCents: integer('total_cents').notNull(),
-    currency: text('currency').notNull().default('USD'),
+    currency: text('currency').notNull().default(DEFAULT_CURRENCY),
     cancelReason: text('cancel_reason'), // set when a saga step cancels (e.g. out_of_stock)
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
@@ -121,8 +123,8 @@ export const payments = pgTable(
       .notNull()
       .references(() => orders.id),
     amountCents: integer('amount_cents').notNull(),
-    currency: text('currency').notNull().default('USD'),
-    status: text('status').notNull().default('pending'), // pending|paid|failed|refunded
+    currency: text('currency').notNull().default(DEFAULT_CURRENCY),
+    status: text('status').notNull().default(PaymentStatuses.Pending),
     providerEventId: uuid('provider_event_id'), // last applied webhook event id (audit)
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
@@ -142,7 +144,7 @@ export const shipments = pgTable(
     orderId: uuid('order_id')
       .notNull()
       .references(() => orders.id),
-    status: text('status').notNull().default('pending'),
+    status: text('status').notNull().default(ShipmentStatuses.Pending),
     carrier: text('carrier').notNull().default('MockPost'),
     trackingNo: text('tracking_no'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),

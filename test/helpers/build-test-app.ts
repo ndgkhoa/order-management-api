@@ -47,7 +47,10 @@ export async function registerAdminAndLogin(
   password = DEFAULT_PASSWORD,
 ): Promise<{ token: string; email: string }> {
   await app.inject({ method: 'POST', url: '/auth/register', payload: { email, password } });
-  await db.update(users).set({ role: UserRoles.Admin }).where(eq(users.email, email));
+  await db
+    .update(users)
+    .set({ roles: [UserRoles.Admin] })
+    .where(eq(users.email, email));
   const res = await app.inject({
     method: 'POST',
     url: '/auth/login',

@@ -1,5 +1,6 @@
 import type { FastifyReply, FastifyRequest } from 'fastify';
-import { UserRoles } from '@/types/user-role.js';
+import { Permissions } from '@/types/permission.js';
+import { hasPermission } from '@/types/role-permissions.js';
 import type { ProductsService } from '@modules/products/products-service.js';
 import {
   type CreateProductBody,
@@ -8,12 +9,14 @@ import {
 } from '@modules/products/products-schema.js';
 
 /**
- * HTTP glue for /products. Mutations are admin-guarded at the route. Reads branch on role:
- * an admin (optional JWT present) sees all products fresh from the DB; everyone else gets
- * the cached active-only catalog. `req.body` is cast — the route schema already validated it.
+ * HTTP glue for /products. Mutations are permission-guarded at the route. Reads branch on
+ * permission: a caller with `product:read` (optional JWT present) sees all products fresh from
+ * the DB; everyone else gets the cached active-only catalog. `req.body` is cast — the route schema
+ * already validated it.
  */
 export function makeProductsController(service: ProductsService) {
-  const isAdmin = (req: FastifyRequest) => req.user?.role === UserRoles.Admin;
+  const canReadAll = (req: FastifyRequest) =>
+    hasPermission(req.user?.roles, Permissions.Product.Read);
 
   return {
     create: async (req: FastifyRequest, reply: FastifyReply) => {
@@ -34,13 +37,13 @@ export function makeProductsController(service: ProductsService) {
     },
 
     list: async (req: FastifyRequest) => {
-      const rows = isAdmin(req) ? await service.listAll() : await service.listPublic();
+      const rows = canReadAll(req) ? await service.listAll() : await service.listPublic();
       return rows.map(toProductPublic);
     },
 
     get: async (req: FastifyRequest) => {
       const { id } = req.params as { id: string };
-      const product = isAdmin(req) ? await service.getAny(id) : await service.getPublic(id);
+      const product = canReadAll(req) ? await service.getAny(id) : await service.getPublic(id);
       return toProductPublic(product);
     },
   };

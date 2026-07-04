@@ -15,8 +15,8 @@ export async function seedAdmin(): Promise<void> {
   const passwordHash = await argon2.hash(ADMIN_PASSWORD);
   const [row] = await db
     .insert(users)
-    .values({ email: ADMIN_EMAIL, passwordHash, role: UserRoles.Admin })
-    .onConflictDoUpdate({ target: users.email, set: { role: UserRoles.Admin, passwordHash } })
+    .values({ email: ADMIN_EMAIL, passwordHash, roles: [UserRoles.Admin] })
+    .onConflictDoUpdate({ target: users.email, set: { roles: [UserRoles.Admin], passwordHash } })
     .returning();
-  console.log(`  ✓ admin: ${row!.email} (role=${row!.role})`);
+  console.log(`  ✓ admin: ${row!.email} (roles=${row!.roles.join(',')})`);
 }

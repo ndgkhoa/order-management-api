@@ -55,7 +55,7 @@ export async function buildApp() {
   await app.register(redisPlugin); // -> app.redis (before security: rate-limit store)
   await app.register(securityPlugin); // Redis-backed rate limit (needs app.redis)
   await app.register(jwtPlugin); // -> app.authenticate
-  await app.register(rbacPlugin); // -> app.requireRole (needs app.httpErrors from sensible)
+  await app.register(rbacPlugin); // -> app.requirePermission (needs app.httpErrors from sensible)
   await app.register(swaggerPlugin); // /docs
   await app.register(dbPlugin); // -> app.db
   await app.register(errorHandlerPlugin); // RFC 7807

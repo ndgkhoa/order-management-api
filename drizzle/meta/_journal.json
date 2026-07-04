@@ -71,6 +71,13 @@
       "when": 1783086037711,
       "tag": "0009_remarkable_peter_quill",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1783134213494,
+      "tag": "0010_multi_role_permissions",
+      "breakpoints": true
     }
   ]
 }

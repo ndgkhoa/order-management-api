@@ -9,7 +9,9 @@ import {
   type OrderRefundedPayload,
 } from '@infra/mq/outbox-event-types.js';
 import { releaseReservation, restockAvailable } from '@modules/inventory/adjust-stock.js';
-import { recordOrderTransition } from '@modules/orders/order-status-history.js';
+import { transitionOrder } from '@modules/orders/transition-order.js';
+import { OrderStatuses } from '@/types/order-status.js';
+import { PaymentStatuses } from '@/types/payment-status.js';
 import { sagaMetrics } from '@infra/telemetry/saga-metrics.js';
 
 const CUSTOMER_REASON = 'customer_cancelled';
@@ -17,13 +19,15 @@ const CUSTOMER_REASON = 'customer_cancelled';
 interface CancelInput {
   orderId: string;
   requesterId: string;
-  isAdmin: boolean;
+  /** True when the caller holds `order:cancel:any` — lets them cancel an order they do not own. */
+  canCancelAny: boolean;
 }
 
 /**
- * Cancel an order — customer (owner) or admin. IDOR guard: a non-admin can only cancel their
- * OWN order (else 404, indistinguishable from not-found). CAS-first on the current status (no
- * read-then-write) so it races safely against the shipping worker:
+ * Cancel an order — the owner, or a caller with `order:cancel:any`. IDOR guard: without that
+ * permission a caller can only cancel their OWN order (else 404, indistinguishable from
+ * not-found). CAS-first on the current status (no read-then-write) so it races safely against
+ * the shipping worker:
  *  - `paid`    → refund (payment paid→refunded) + restock (available+=q) + `order.refunded`
  *  - `pending` → release the reservation (available+=q, reserved-=q) + `order.cancelled`
  *  - otherwise (fulfilling/delivered/cancelled) → 409, the order can no longer be cancelled.
@@ -31,10 +35,10 @@ interface CancelInput {
 export async function cancelOrder(
   db: DB,
   httpErrors: FastifyInstance['httpErrors'],
-  { orderId, requesterId, isAdmin }: CancelInput,
+  { orderId, requesterId, canCancelAny }: CancelInput,
 ) {
   const owned = await db.query.orders.findFirst({
-    where: isAdmin
+    where: canCancelAny
       ? eq(orders.id, orderId)
       : and(eq(orders.id, orderId), eq(orders.userId, requesterId)),
   });
@@ -47,18 +51,22 @@ export async function cancelOrder(
       .where(eq(orderItems.orderId, orderId));
 
     // paid → refund + restock
-    const refundRows = await tx
-      .update(orders)
-      .set({ status: 'cancelled', cancelReason: CUSTOMER_REASON, updatedAt: new Date() })
-      .where(and(eq(orders.id, orderId), eq(orders.status, 'paid')))
-      .returning({ id: orders.id });
-    if (refundRows.length > 0) {
-      await recordOrderTransition(tx, { orderId, from: 'paid', to: 'cancelled', reason: 'refund' });
+    const didRefund = await transitionOrder(
+      tx,
+      orderId,
+      OrderStatuses.Paid,
+      OrderStatuses.Cancelled,
+      {
+        reason: 'refund',
+        cancelReason: CUSTOMER_REASON,
+      },
+    );
+    if (didRefund) {
       for (const it of items) await restockAvailable(tx, it.productId, it.quantity);
       const [refunded] = await tx
         .update(payments)
-        .set({ status: 'refunded', updatedAt: new Date() })
-        .where(and(eq(payments.orderId, orderId), eq(payments.status, 'paid')))
+        .set({ status: PaymentStatuses.Refunded, updatedAt: new Date() })
+        .where(and(eq(payments.orderId, orderId), eq(payments.status, PaymentStatuses.Paid)))
         .returning({ id: payments.id });
       const payload: OrderRefundedPayload = { orderId, paymentId: refunded?.id ?? '' };
       await tx.insert(outboxMessages).values({
@@ -72,18 +80,17 @@ export async function cancelOrder(
     }
 
     // pending → release the reservation
-    const releaseRows = await tx
-      .update(orders)
-      .set({ status: 'cancelled', cancelReason: CUSTOMER_REASON, updatedAt: new Date() })
-      .where(and(eq(orders.id, orderId), eq(orders.status, 'pending')))
-      .returning({ id: orders.id });
-    if (releaseRows.length > 0) {
-      await recordOrderTransition(tx, {
-        orderId,
-        from: 'pending',
-        to: 'cancelled',
+    const released = await transitionOrder(
+      tx,
+      orderId,
+      OrderStatuses.Pending,
+      OrderStatuses.Cancelled,
+      {
         reason: CUSTOMER_REASON,
-      });
+        cancelReason: CUSTOMER_REASON,
+      },
+    );
+    if (released) {
       for (const it of items) await releaseReservation(tx, it.productId, it.quantity);
       const payload: OrderCancelledPayload = { orderId, reason: CUSTOMER_REASON };
       await tx.insert(outboxMessages).values({

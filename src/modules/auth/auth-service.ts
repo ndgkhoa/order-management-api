@@ -5,7 +5,7 @@ import type { UsersRepository } from '@modules/users/users-repository.js';
 
 interface AuthServiceDeps {
   usersRepo: UsersRepository;
-  signToken: (payload: { sub: string; email: string; role: UserRole }) => string;
+  signToken: (payload: { sub: string; email: string; roles: UserRole[] }) => string;
   httpErrors: FastifyInstance['httpErrors'];
 }
 
@@ -29,7 +29,10 @@ export function makeAuthService({ usersRepo, signToken, httpErrors }: AuthServic
       if (!user || !(await argon2.verify(user.passwordHash, password))) {
         throw httpErrors.unauthorized('invalid email or password');
       }
-      return signToken({ sub: user.id, email: user.email, role: user.role });
+      // `roles` is a plain text[] column; its values are constrained to `UserRole` on the write
+      // path (registration defaults to [customer]; promotion sets UserRole values), so the stored
+      // strings are always valid roles here.
+      return signToken({ sub: user.id, email: user.email, roles: user.roles as UserRole[] });
     },
   };
 }

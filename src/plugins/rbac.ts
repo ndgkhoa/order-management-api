@@ -1,34 +1,35 @@
 import fp from 'fastify-plugin';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
-import type { UserRole } from '@/types/user-role.js';
+import type { Permission } from '@/types/permission.js';
+import { hasPermission } from '@/types/role-permissions.js';
 
-/** A role-guard preHandler. Async + plain (no `this`) so it is directly callable in unit tests. */
-export type RoleGuard = (request: FastifyRequest) => Promise<void>;
+/** A permission-guard preHandler. Async + plain (no `this`) so it is directly callable in unit tests. */
+export type PermissionGuard = (request: FastifyRequest) => Promise<void>;
 
 /**
- * Factory for a role-guard preHandler. Kept separate from the plugin so it is unit
- * testable without a running Fastify app (DI of httpErrors mirrors the service layer).
- * Reads the role from the VERIFIED JWT claim (`request.user.role`) — so `authenticate`
- * must run before this guard on the route. Async-throw style matches the `authenticate`
- * decorator. Fails closed: a missing user (no/invalid token) → 403.
+ * Factory for a permission-guard preHandler. Kept separate from the plugin so it is unit
+ * testable without a running Fastify app (DI of httpErrors mirrors the service layer). Reads the
+ * roles from the VERIFIED JWT claim (`request.user.roles`) and resolves them to permissions — so
+ * `authenticate` must run before this guard on the route. Fails closed: a missing user (no/invalid
+ * token) has no roles → no permissions → 403.
  */
-export function makeRequireRole(httpErrors: FastifyInstance['httpErrors']) {
-  return (role: UserRole): RoleGuard => {
+export function makeRequirePermission(httpErrors: FastifyInstance['httpErrors']) {
+  return (permission: Permission): PermissionGuard => {
     // Returns a rejected promise (not a sync throw) so Fastify routes it to the error
     // handler and unit tests can assert on `.rejects`. No `await` needed → not `async`.
     return (request) =>
-      request.user?.role === role
+      hasPermission(request.user?.roles, permission)
         ? Promise.resolve()
-        : Promise.reject(httpErrors.forbidden('insufficient role'));
+        : Promise.reject(httpErrors.forbidden('insufficient permission'));
   };
 }
 
 /**
- * Registers `fastify.requireRole(role)` → a preHandler that 403s unless the
- * authenticated user carries the required role. Use after `authenticate`:
- *   { preHandler: [app.authenticate, app.requireRole(UserRoles.Admin)] }
+ * Registers `fastify.requirePermission(permission)` → a preHandler that 403s unless the
+ * authenticated user's roles grant the permission. Use after `authenticate`:
+ *   { preHandler: [app.authenticate, app.requirePermission(Permissions.Product.Create)] }
  */
 export const rbacPlugin = fp((app) => {
-  app.decorate('requireRole', makeRequireRole(app.httpErrors));
+  app.decorate('requirePermission', makeRequirePermission(app.httpErrors));
   return Promise.resolve();
 });

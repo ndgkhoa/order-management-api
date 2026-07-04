@@ -1,6 +1,7 @@
 import { Type } from '@sinclair/typebox';
 import type { FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';
-import { UserRoles } from '@/types/user-role.js';
+import { Permissions } from '@/types/permission.js';
+import { hasPermission } from '@/types/role-permissions.js';
 import { makeOrdersRepository } from '@modules/orders/orders-repository.js';
 import { makeProductsRepository } from '@modules/products/products-repository.js';
 import { makeOrdersService } from '@modules/orders/orders-service.js';
@@ -80,7 +81,7 @@ export const ordersRoutes: FastifyPluginAsyncTypebox = (app) => {
       const { order, items } = await cancelOrder(app.db, app.httpErrors, {
         orderId: id,
         requesterId: req.user.sub,
-        isAdmin: req.user.role === UserRoles.Admin,
+        canCancelAny: hasPermission(req.user.roles, Permissions.Order.CancelAny),
       });
       return reply.code(200).send(toOrderDetail(order, items));
     },

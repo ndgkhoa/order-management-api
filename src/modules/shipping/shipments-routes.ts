@@ -1,6 +1,6 @@
 import { Type } from '@sinclair/typebox';
 import type { FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';
-import { UserRoles } from '@/types/user-role.js';
+import { Permissions } from '@/types/permission.js';
 import { makeShipmentsController } from '@modules/shipping/shipments-controller.js';
 import { ShipmentPublic } from '@modules/shipping/shipments-schema.js';
 import { errorResponses } from '@infra/http/error-responses.js';
@@ -18,7 +18,7 @@ export const shipmentsRoutes: FastifyPluginAsyncTypebox = (app) => {
   app.patch(
     '/:id/status',
     {
-      preHandler: [app.authenticate, app.requireRole(UserRoles.Admin)],
+      preHandler: [app.authenticate, app.requirePermission(Permissions.Shipment.Update)],
       schema: {
         tags: ['shipments'],
         params: IdParams,
