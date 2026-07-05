@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
-import type { ShipmentsRepository } from '@modules/shipping/shipments-repository.js';
-import { toShipmentPublic } from '@modules/shipping/shipments-schema.js';
+import type { ShipmentsRepository } from '@modules/shipping/shipments-repository';
+import { toShipmentPublic } from '@modules/shipping/shipments-schema';
 
 interface ShipmentsServiceDeps {
   shipmentsRepo: ShipmentsRepository;

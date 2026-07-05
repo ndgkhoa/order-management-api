@@ -1,6 +1,6 @@
 import type { FastifyRequest } from 'fastify';
-import { toUserPublic } from '@modules/users/users-schema.js';
-import type { UsersService } from '@modules/users/users-service.js';
+import { toUserPublic } from '@modules/users/users-schema';
+import type { UsersService } from '@modules/users/users-service';
 
 export function makeUsersController(service: UsersService) {
   return {

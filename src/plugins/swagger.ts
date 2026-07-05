@@ -1,27 +1,16 @@
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
 import fp from 'fastify-plugin';
 import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
-
-function packageVersion(): string {
-  try {
-    const pkg = JSON.parse(readFileSync(join(process.cwd(), 'package.json'), 'utf8')) as {
-      version?: string;
-    };
-    return pkg.version ?? '0.0.0';
-  } catch {
-    return '0.0.0';
-  }
-}
+import { packageInfo } from '@config/package-info';
 
 export const swaggerPlugin = fp(async (app) => {
+  const pkg = packageInfo();
   await app.register(swagger, {
     openapi: {
       info: {
-        title: 'order-management-api',
+        title: pkg.name,
         description: 'E-commerce order backend',
-        version: packageVersion(),
+        version: pkg.version,
       },
       components: {
         securitySchemes: {

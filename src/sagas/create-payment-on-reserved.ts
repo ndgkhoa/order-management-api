@@ -1,17 +1,17 @@
 import { eq } from 'drizzle-orm';
 import type { ConsumeMessage } from 'amqplib';
 import type { FastifyBaseLogger } from 'fastify';
-import type { DB } from '@infra/db/client.js';
-import { orders, outboxMessages } from '@infra/db/schema.js';
-import type { HandlerResult } from '@infra/mq/consumer.js';
-import { parseEnvelope, claimOnce } from '@infra/mq/idempotent-consumer.js';
-import { PAYMENT_CREATE_CONSUMER } from '@/constants/index.js';
+import type { DB } from '@infra/db/client';
+import { orders, outboxMessages } from '@infra/db/schema';
+import type { HandlerResult } from '@infra/mq/consumer';
+import { parseEnvelope, claimOnce } from '@infra/mq/idempotent-consumer';
+import { PAYMENT_CREATE_CONSUMER } from '@/constants/index';
 import {
   PAYMENT_CREATED_EVENT,
   type InventoryReservedPayload,
   type PaymentCreatedPayload,
-} from '@infra/mq/outbox-event-types.js';
-import { makePaymentsRepository } from '@modules/payments/payments-repository.js';
+} from '@infra/mq/outbox-event-types';
+import { makePaymentsRepository } from '@modules/payments/payments-repository';
 
 interface HandlerDeps {
   db: DB;

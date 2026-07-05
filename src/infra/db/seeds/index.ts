@@ -1,6 +1,6 @@
 import '@config/env-loader.js';
-import { closePool } from '@infra/db/pool.js';
-import { seedAdmin } from '@infra/db/seeds/seed-admin.js';
+import { closePool } from '@infra/db/pool';
+import { seedAdmin } from '@infra/db/seeds/seed-admin';
 
 const seeders: Array<() => Promise<void>> = [seedAdmin];
 

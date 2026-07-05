@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { makeEmailProvider } from '@modules/notifications/channels/email.js';
+import { makeEmailProvider } from '@modules/notifications/channels/email';
 
 describe('emailProvider', () => {
   it('sends via the mailer with from/to/subject/text', async () => {

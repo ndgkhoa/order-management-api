@@ -1,12 +1,8 @@
 import type { FastifyReply, FastifyRequest } from 'fastify';
-import { Permissions } from '@/types/permission.js';
-import { hasPermission } from '@plugins/rbac.js';
-import type { OrdersService } from '@modules/orders/orders-service.js';
-import {
-  type CreateOrderBody,
-  toOrderPublic,
-  toOrderDetail,
-} from '@modules/orders/orders-schema.js';
+import { Permissions } from '@/types/permission';
+import { hasPermission } from '@plugins/rbac';
+import type { OrdersService } from '@modules/orders/orders-service';
+import { type CreateOrderBody, toOrderPublic, toOrderDetail } from '@modules/orders/orders-schema';
 
 export function makeOrdersController(service: OrdersService) {
   return {

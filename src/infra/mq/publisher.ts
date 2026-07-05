@@ -1,7 +1,7 @@
 import type { FastifyBaseLogger } from 'fastify';
-import { getConnection } from '@infra/mq/connection.js';
-import { assertTopology } from '@infra/mq/topology.js';
-import type { OutboxPublisher } from '@infra/mq/outbox-publisher.js';
+import { getConnection } from '@infra/mq/connection';
+import { assertTopology } from '@infra/mq/topology';
+import type { OutboxPublisher } from '@infra/mq/outbox-publisher';
 
 export interface RabbitPublisher extends OutboxPublisher {
   close(): Promise<void>;

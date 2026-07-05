@@ -1,6 +1,6 @@
 import fp from 'fastify-plugin';
-import { db } from '@infra/db/client.js';
-import { closePool } from '@infra/db/pool.js';
+import { db } from '@infra/db/client';
+import { closePool } from '@infra/db/pool';
 
 export const dbPlugin = fp((app) => {
   app.decorate('db', db);

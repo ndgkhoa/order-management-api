@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import argon2 from 'argon2';
-import { makeAuthService } from '@modules/auth/auth-service.js';
-import type { UsersRepository } from '@modules/users/users-repository.js';
-import { httpErrorsStub } from '@test/helpers/http-errors.js';
+import { makeAuthService } from '@modules/auth/auth-service';
+import type { UsersRepository } from '@modules/users/users-repository';
+import { httpErrorsStub } from '@test/helpers/http-errors';
 
 type UserRow = { id: string; email: string; passwordHash: string; createdAt: Date };
 

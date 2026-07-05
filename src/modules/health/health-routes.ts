@@ -1,10 +1,23 @@
 import type { FastifyInstance } from 'fastify';
 import { Type } from '@sinclair/typebox';
 import { sql } from 'drizzle-orm';
-import { isMqHealthy } from '@infra/mq/connection.js';
+import { isMqHealthy } from '@infra/mq/connection';
+import { packageInfo } from '@config/package-info';
 
 export function healthRoutes(app: FastifyInstance): void {
   const publicProbe = { tags: ['health'], security: [] };
+  const pkg = packageInfo();
+
+  app.get(
+    '/',
+    {
+      schema: {
+        ...publicProbe,
+        response: { 200: Type.Object({ name: Type.String(), version: Type.String() }) },
+      },
+    },
+    () => ({ name: pkg.name, version: pkg.version }),
+  );
 
   app.get(
     '/health',

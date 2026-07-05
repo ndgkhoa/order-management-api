@@ -1,5 +1,5 @@
 import type { FastifyInstance } from 'fastify';
-import type { UsersRepository } from '@modules/users/users-repository.js';
+import type { UsersRepository } from '@modules/users/users-repository';
 
 interface UsersServiceDeps {
   usersRepo: UsersRepository;

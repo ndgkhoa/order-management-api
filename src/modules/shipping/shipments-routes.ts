@@ -1,10 +1,10 @@
 import type { FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';
-import { Permissions } from '@/types/permission.js';
-import { makeShipmentsRepository } from '@modules/shipping/shipments-repository.js';
-import { makeShipmentsService } from '@modules/shipping/shipments-service.js';
-import { makeShipmentsController } from '@modules/shipping/shipments-controller.js';
-import { ShipmentPublic, IdParams } from '@modules/shipping/shipments-schema.js';
-import { errorResponses } from '@infra/http/error-responses.js';
+import { Permissions } from '@/types/permission';
+import { makeShipmentsRepository } from '@modules/shipping/shipments-repository';
+import { makeShipmentsService } from '@modules/shipping/shipments-service';
+import { makeShipmentsController } from '@modules/shipping/shipments-controller';
+import { ShipmentPublic, IdParams } from '@modules/shipping/shipments-schema';
+import { errorResponses } from '@infra/http/error-responses';
 
 export const shipmentsRoutes: FastifyPluginAsyncTypebox = (app) => {
   const shipmentsRepo = makeShipmentsRepository(app.db);

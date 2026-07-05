@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { eq } from 'drizzle-orm';
-import { db } from '@infra/db/client.js';
-import { products } from '@infra/db/schema.js';
-import { makeInventoryRepository } from '@modules/inventory/inventory-repository.js';
-import { resetDb } from '@test/helpers/reset-db.js';
+import { db } from '@infra/db/client';
+import { products } from '@infra/db/schema';
+import { makeInventoryRepository } from '@modules/inventory/inventory-repository';
+import { resetDb } from '@test/helpers/reset-db';
 
 const inventoryRepo = makeInventoryRepository();
 

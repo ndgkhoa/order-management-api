@@ -1,16 +1,11 @@
 import { Type } from '@sinclair/typebox';
 import type { FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';
-import { makeOrdersRepository } from '@modules/orders/orders-repository.js';
-import { makeProductsRepository } from '@modules/products/products-repository.js';
-import { makeOrdersService } from '@modules/orders/orders-service.js';
-import { makeOrdersController } from '@modules/orders/orders-controller.js';
-import {
-  CreateOrderBody,
-  OrderPublic,
-  OrderDetail,
-  IdParams,
-} from '@modules/orders/orders-schema.js';
-import { errorResponses } from '@infra/http/error-responses.js';
+import { makeOrdersRepository } from '@modules/orders/orders-repository';
+import { makeProductsRepository } from '@modules/products/products-repository';
+import { makeOrdersService } from '@modules/orders/orders-service';
+import { makeOrdersController } from '@modules/orders/orders-controller';
+import { CreateOrderBody, OrderPublic, OrderDetail, IdParams } from '@modules/orders/orders-schema';
+import { errorResponses } from '@infra/http/error-responses';
 
 export const ordersRoutes: FastifyPluginAsyncTypebox = (app) => {
   const ordersRepo = makeOrdersRepository(app.db);

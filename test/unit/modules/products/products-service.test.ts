@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { makeProductsService } from '@modules/products/products-service.js';
-import type { ProductsRepository } from '@modules/products/products-repository.js';
-import { httpErrorsStub } from '@test/helpers/http-errors.js';
+import { makeProductsService } from '@modules/products/products-service';
+import type { ProductsRepository } from '@modules/products/products-repository';
+import { httpErrorsStub } from '@test/helpers/http-errors';
 
 function makeSUT(repo: Partial<Record<keyof ProductsRepository, unknown>>) {
   return makeProductsService({

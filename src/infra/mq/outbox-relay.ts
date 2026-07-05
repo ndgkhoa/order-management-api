@@ -1,11 +1,11 @@
 import { eq, isNull } from 'drizzle-orm';
 import { context, propagation, ROOT_CONTEXT } from '@opentelemetry/api';
 import type { FastifyBaseLogger } from 'fastify';
-import type { DB } from '@infra/db/client.js';
-import { outboxMessages } from '@infra/db/schema.js';
-import { ORDER_EVENTS_EXCHANGE } from '@infra/mq/outbox-event-types.js';
-import { buildEventEnvelope } from '@infra/mq/event-envelope.js';
-import type { OutboxPublisher } from '@infra/mq/outbox-publisher.js';
+import type { DB } from '@infra/db/client';
+import { outboxMessages } from '@infra/db/schema';
+import { ORDER_EVENTS_EXCHANGE } from '@infra/mq/outbox-event-types';
+import { buildEventEnvelope } from '@infra/mq/event-envelope';
+import type { OutboxPublisher } from '@infra/mq/outbox-publisher';
 
 interface OutboxRelayDeps {
   db: DB;

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { makePaymentsService } from '@modules/payments/payments-service.js';
-import type { PaymentsRepository } from '@modules/payments/payments-repository.js';
-import type { SettleInput, SettleResult } from '@modules/payments/payments-schema.js';
+import { makePaymentsService } from '@modules/payments/payments-service';
+import type { PaymentsRepository } from '@modules/payments/payments-repository';
+import type { SettleInput, SettleResult } from '@modules/payments/payments-schema';
 
 function makeStubRepo(result: SettleResult) {
   const calls: SettleInput[] = [];

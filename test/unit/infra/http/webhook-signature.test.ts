@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { signWebhook, verifyWebhook, isFreshTimestamp } from '@infra/http/webhook-signature.js';
+import { signWebhook, verifyWebhook, isFreshTimestamp } from '@infra/http/webhook-signature';
 
 const SECRET = 'test-webhook-hmac-secret-at-least-32-chars';
 

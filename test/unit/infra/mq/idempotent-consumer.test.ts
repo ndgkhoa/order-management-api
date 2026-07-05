@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { db } from '@infra/db/client.js';
-import { processedMessages } from '@infra/db/schema.js';
-import { resetDb } from '@test/helpers/reset-db.js';
+import { db } from '@infra/db/client';
+import { processedMessages } from '@infra/db/schema';
+import { resetDb } from '@test/helpers/reset-db';
 
 describe('processedMessages dedup (real Postgres)', () => {
   beforeEach(resetDb);

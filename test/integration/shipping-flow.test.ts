@@ -3,7 +3,7 @@ import { pino } from 'pino';
 import { and, eq } from 'drizzle-orm';
 import type { ConsumeMessage } from 'amqplib';
 import type { FastifyBaseLogger } from 'fastify';
-import { db } from '@infra/db/client.js';
+import { db } from '@infra/db/client';
 import {
   users,
   orders,
@@ -12,11 +12,11 @@ import {
   shipments,
   outboxMessages,
   orderStatusHistory,
-} from '@infra/db/schema.js';
-import { SHIPMENT_CREATED_EVENT, SHIPMENT_DELIVERED_EVENT } from '@infra/mq/outbox-event-types.js';
-import { createShipmentOnOrderPaid } from '@/sagas/create-shipment-on-order-paid.js';
-import { makeShipmentsRepository } from '@modules/shipping/shipments-repository.js';
-import { resetDb } from '@test/helpers/reset-db.js';
+} from '@infra/db/schema';
+import { SHIPMENT_CREATED_EVENT, SHIPMENT_DELIVERED_EVENT } from '@infra/mq/outbox-event-types';
+import { createShipmentOnOrderPaid } from '@/sagas/create-shipment-on-order-paid';
+import { makeShipmentsRepository } from '@modules/shipping/shipments-repository';
+import { resetDb } from '@test/helpers/reset-db';
 
 const log = pino({ level: 'silent' }) as unknown as FastifyBaseLogger;
 

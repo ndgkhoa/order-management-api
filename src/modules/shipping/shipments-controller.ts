@@ -1,5 +1,5 @@
 import type { FastifyReply, FastifyRequest } from 'fastify';
-import type { ShipmentsService } from '@modules/shipping/shipments-service.js';
+import type { ShipmentsService } from '@modules/shipping/shipments-service';
 
 export function makeShipmentsController(service: ShipmentsService) {
   return {

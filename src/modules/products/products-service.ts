@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
-import type { ProductsRepository } from '@modules/products/products-repository.js';
-import type { CreateProductBody, UpdateProductBody } from '@modules/products/products-schema.js';
+import type { ProductsRepository } from '@modules/products/products-repository';
+import type { CreateProductBody, UpdateProductBody } from '@modules/products/products-schema';
 
 interface ProductsServiceDeps {
   productsRepo: ProductsRepository;

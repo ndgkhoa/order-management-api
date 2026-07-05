@@ -1,13 +1,13 @@
 import { and, desc, eq } from 'drizzle-orm';
 import type { Redis } from 'ioredis';
-import type { DB } from '@infra/db/client.js';
-import { products } from '@infra/db/schema.js';
+import type { DB } from '@infra/db/client';
+import { products } from '@infra/db/schema';
 import type {
   CreateProductBody,
   UpdateProductBody,
   ProductRow,
-} from '@modules/products/products-schema.js';
-import { CATALOG_LIST_KEY, catalogItemKey, CATALOG_TTL_SECONDS } from '@/constants/index.js';
+} from '@modules/products/products-schema';
+import { CATALOG_LIST_KEY, catalogItemKey, CATALOG_TTL_SECONDS } from '@/constants/index';
 
 export function makeProductsRepository(db: DB, redis: Redis) {
   return {

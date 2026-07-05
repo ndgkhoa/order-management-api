@@ -1,6 +1,6 @@
 import { Type, type Static } from '@sinclair/typebox';
 import type { InferSelectModel } from 'drizzle-orm';
-import type { products } from '@infra/db/schema.js';
+import type { products } from '@infra/db/schema';
 
 export type ProductRow = InferSelectModel<typeof products>;
 

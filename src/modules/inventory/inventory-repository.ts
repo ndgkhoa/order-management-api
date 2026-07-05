@@ -1,6 +1,6 @@
 import { and, eq, gte, sql } from 'drizzle-orm';
-import type { Tx } from '@infra/db/client.js';
-import { products } from '@infra/db/schema.js';
+import type { Tx } from '@infra/db/client';
+import { products } from '@infra/db/schema';
 
 export function makeInventoryRepository() {
   return {

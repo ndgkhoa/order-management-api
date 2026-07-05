@@ -2,8 +2,8 @@ import { writeFileSync, rmSync, mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { PostgreSqlContainer } from '@testcontainers/postgresql';
 import { GenericContainer, Wait } from 'testcontainers';
-import { runMigrations } from '@infra/db/migrate.js';
-import { ENV_FILE, type TestContainerEnv } from '@test/helpers/container-env.js';
+import { runMigrations } from '@infra/db/migrate';
+import { ENV_FILE, type TestContainerEnv } from '@test/helpers/container-env';
 
 export default async function setup(): Promise<() => Promise<void>> {
   const pg = await new PostgreSqlContainer('postgres:18.4').start();

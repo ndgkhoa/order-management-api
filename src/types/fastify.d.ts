@@ -1,9 +1,9 @@
 import type { FastifyReply } from 'fastify';
 import type { Redis } from 'ioredis';
-import type { AppConfig } from '@config/env-schema.js';
-import type { DB } from '@infra/db/client.js';
-import type { UserRole } from '@/types/user-role.js';
-import type { Permission } from '@/types/permission.js';
+import type { AppConfig } from '@config/env-schema';
+import type { DB } from '@infra/db/client';
+import type { UserRole } from '@/types/user-role';
+import type { Permission } from '@/types/permission';
 
 declare module 'fastify' {
   interface FastifyInstance {

@@ -1,9 +1,9 @@
 import type { FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';
-import { makeUsersRepository } from '@modules/users/users-repository.js';
-import { makeUsersService } from '@modules/users/users-service.js';
-import { makeUsersController } from '@modules/users/users-controller.js';
-import { UserPublic } from '@modules/users/users-schema.js';
-import { errorResponses } from '@infra/http/error-responses.js';
+import { makeUsersRepository } from '@modules/users/users-repository';
+import { makeUsersService } from '@modules/users/users-service';
+import { makeUsersController } from '@modules/users/users-controller';
+import { UserPublic } from '@modules/users/users-schema';
+import { errorResponses } from '@infra/http/error-responses';
 
 export const usersRoutes: FastifyPluginAsyncTypebox = (app) => {
   const usersRepo = makeUsersRepository(app.db);

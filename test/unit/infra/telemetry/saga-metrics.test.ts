@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { sagaMetrics } from '@infra/telemetry/saga-metrics.js';
-import { counterValue } from '@test/helpers/metric-value.js';
+import { sagaMetrics } from '@infra/telemetry/saga-metrics';
+import { counterValue } from '@test/helpers/metric-value';
 
 describe('sagaMetrics', () => {
   it('exposes and increments a counter per saga milestone', async () => {

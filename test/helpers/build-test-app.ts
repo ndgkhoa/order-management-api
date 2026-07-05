@@ -1,8 +1,8 @@
 import { eq } from 'drizzle-orm';
-import { buildApp, type AppInstance } from '@/app.js';
-import { db } from '@infra/db/client.js';
-import { users } from '@infra/db/schema.js';
-import { UserRoles } from '@/types/user-role.js';
+import { buildApp, type AppInstance } from '@/app';
+import { db } from '@infra/db/client';
+import { users } from '@infra/db/schema';
+import { UserRoles } from '@/types/user-role';
 
 let cached: Promise<AppInstance> | undefined;
 

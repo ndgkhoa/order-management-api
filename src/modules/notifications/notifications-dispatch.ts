@@ -1,16 +1,16 @@
 import { eq } from 'drizzle-orm';
 import type { ConsumeMessage } from 'amqplib';
 import type { FastifyBaseLogger } from 'fastify';
-import type { DB } from '@infra/db/client.js';
-import { orders, users } from '@infra/db/schema.js';
-import type { HandlerResult } from '@infra/mq/consumer.js';
-import type { NotificationProvider } from '@modules/notifications/notification-interface.js';
-import { parseEnvelope, claimOnce } from '@infra/mq/idempotent-consumer.js';
-import { NOTIFY_CONSUMER } from '@/constants/index.js';
+import type { DB } from '@infra/db/client';
+import { orders, users } from '@infra/db/schema';
+import type { HandlerResult } from '@infra/mq/consumer';
+import type { NotificationProvider } from '@modules/notifications/notification-interface';
+import { parseEnvelope, claimOnce } from '@infra/mq/idempotent-consumer';
+import { NOTIFY_CONSUMER } from '@/constants/index';
 import {
   makeNotificationsService,
   type NotifyPayload,
-} from '@modules/notifications/notifications-service.js';
+} from '@modules/notifications/notifications-service';
 
 interface HandlerDeps {
   db: DB;

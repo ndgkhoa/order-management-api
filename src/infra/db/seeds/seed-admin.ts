@@ -1,7 +1,7 @@
 import argon2 from 'argon2';
-import { db } from '@infra/db/client.js';
-import { users } from '@infra/db/schema.js';
-import { UserRoles } from '@/types/user-role.js';
+import { db } from '@infra/db/client';
+import { users } from '@infra/db/schema';
+import { UserRoles } from '@/types/user-role';
 
 const ADMIN_EMAIL = 'admin@orders.test';
 const ADMIN_PASSWORD = 'admin1234';

@@ -1,8 +1,8 @@
 import fp from 'fastify-plugin';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
-import type { UserRole } from '@/types/user-role.js';
-import type { Permission } from '@/types/permission.js';
-import { ROLE_PERMISSIONS } from '@/types/role-permissions.js';
+import type { UserRole } from '@/types/user-role';
+import type { Permission } from '@/types/permission';
+import { ROLE_PERMISSIONS } from '@/types/role-permissions';
 
 export type PermissionGuard = (request: FastifyRequest) => Promise<void>;
 

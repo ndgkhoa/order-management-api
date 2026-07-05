@@ -1,12 +1,12 @@
 import type { FastifyReply, FastifyRequest } from 'fastify';
-import { Permissions } from '@/types/permission.js';
-import { hasPermission } from '@plugins/rbac.js';
-import type { ProductsService } from '@modules/products/products-service.js';
+import { Permissions } from '@/types/permission';
+import { hasPermission } from '@plugins/rbac';
+import type { ProductsService } from '@modules/products/products-service';
 import {
   type CreateProductBody,
   type UpdateProductBody,
   toProductPublic,
-} from '@modules/products/products-schema.js';
+} from '@modules/products/products-schema';
 
 export function makeProductsController(service: ProductsService) {
   return {

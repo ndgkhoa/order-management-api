@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { deriveIdempotencyKey } from '@plugins/idempotency.js';
+import { deriveIdempotencyKey } from '@plugins/idempotency';
 
 describe('deriveIdempotencyKey', () => {
   it('scopes the key by user, route, and header value', () => {

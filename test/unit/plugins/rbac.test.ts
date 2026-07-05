@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import type { FastifyRequest } from 'fastify';
-import { UserRoles } from '@/types/user-role.js';
-import { Permissions } from '@/types/permission.js';
-import { makeRequirePermission } from '@plugins/rbac.js';
-import { httpErrorsStub } from '@test/helpers/http-errors.js';
+import { UserRoles } from '@/types/user-role';
+import { Permissions } from '@/types/permission';
+import { makeRequirePermission } from '@plugins/rbac';
+import { httpErrorsStub } from '@test/helpers/http-errors';
 
 const requirePermission = makeRequirePermission(httpErrorsStub);
 const productCreateGuard = requirePermission(Permissions.Product.Create);

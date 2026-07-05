@@ -1,15 +1,15 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest, FastifyBaseLogger } from 'fastify';
 import type { Redis } from 'ioredis';
-import { verifyWebhook, isFreshTimestamp } from '@infra/http/webhook-signature.js';
-import type { PaymentsService } from '@modules/payments/payments-service.js';
-import type { SettleOutcome } from '@modules/payments/payments-schema.js';
-import type { WebhookBody } from '@modules/payments/payments-schema.js';
+import { verifyWebhook, isFreshTimestamp } from '@infra/http/webhook-signature';
+import type { PaymentsService } from '@modules/payments/payments-service';
+import type { SettleOutcome } from '@modules/payments/payments-schema';
+import type { WebhookBody } from '@modules/payments/payments-schema';
 import {
   deliverPaymentResult,
   type FakeProviderConfig,
-} from '@modules/payments/fake-payment-provider.js';
-import { sagaMetrics } from '@infra/telemetry/saga-metrics.js';
-import { webhookDedupKey, WEBHOOK_DEDUP_TTL_SECONDS } from '@/constants/index.js';
+} from '@modules/payments/fake-payment-provider';
+import { sagaMetrics } from '@infra/telemetry/saga-metrics';
+import { webhookDedupKey, WEBHOOK_DEDUP_TTL_SECONDS } from '@/constants/index';
 
 interface PaymentsControllerDeps {
   service: PaymentsService;

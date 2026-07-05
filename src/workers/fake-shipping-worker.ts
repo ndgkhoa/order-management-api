@@ -1,10 +1,10 @@
 import type { ConsumeMessage } from 'amqplib';
 import type { FastifyBaseLogger } from 'fastify';
-import type { DB } from '@infra/db/client.js';
-import type { HandlerResult } from '@infra/mq/consumer.js';
-import { createShipmentOnOrderPaid } from '@/sagas/create-shipment-on-order-paid.js';
-import { makeShipmentsRepository } from '@modules/shipping/shipments-repository.js';
-import { ShipmentStatuses } from '@/types/shipment-status.js';
+import type { DB } from '@infra/db/client';
+import type { HandlerResult } from '@infra/mq/consumer';
+import { createShipmentOnOrderPaid } from '@/sagas/create-shipment-on-order-paid';
+import { makeShipmentsRepository } from '@modules/shipping/shipments-repository';
+import { ShipmentStatuses } from '@/types/shipment-status';
 
 export interface ShippingConfig {
   stepMs: number;

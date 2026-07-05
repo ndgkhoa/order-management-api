@@ -1,7 +1,7 @@
 import type { FastifyReply, FastifyRequest } from 'fastify';
-import { toUserPublic } from '@modules/users/users-schema.js';
-import type { AuthService } from '@modules/auth/auth-service.js';
-import type { LoginBody, RegisterBody } from '@modules/auth/auth-schema.js';
+import { toUserPublic } from '@modules/users/users-schema';
+import type { AuthService } from '@modules/auth/auth-service';
+import type { LoginBody, RegisterBody } from '@modules/auth/auth-schema';
 
 export function makeAuthController(service: AuthService) {
   return {

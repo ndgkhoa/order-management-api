@@ -1,16 +1,16 @@
 import type { FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';
 import type { FastifyRequest } from 'fastify';
-import { Permissions } from '@/types/permission.js';
-import { makePaymentsRepository } from '@modules/payments/payments-repository.js';
-import { makePaymentsService } from '@modules/payments/payments-service.js';
-import { makePaymentsController } from '@modules/payments/payments-controller.js';
+import { Permissions } from '@/types/permission';
+import { makePaymentsRepository } from '@modules/payments/payments-repository';
+import { makePaymentsService } from '@modules/payments/payments-service';
+import { makePaymentsController } from '@modules/payments/payments-controller';
 import {
   WebhookBody,
   WebhookAck,
   PaymentIdParams,
   MockAck,
-} from '@modules/payments/payments-schema.js';
-import { errorResponses } from '@infra/http/error-responses.js';
+} from '@modules/payments/payments-schema';
+import { errorResponses } from '@infra/http/error-responses';
 
 export const paymentsRoutes: FastifyPluginAsyncTypebox = (app) => {
   app.addContentTypeParser('application/json', { parseAs: 'string' }, (req, bodyStr, done) => {

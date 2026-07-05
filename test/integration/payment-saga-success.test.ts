@@ -2,19 +2,19 @@ import { describe, it, expect, beforeAll, beforeEach } from 'vitest';
 import { pino } from 'pino';
 import { and, eq } from 'drizzle-orm';
 import type { FastifyBaseLogger } from 'fastify';
-import type { AppInstance } from '@/app.js';
-import { db } from '@infra/db/client.js';
-import { orders, orderItems, products, users, payments, outboxMessages } from '@infra/db/schema.js';
+import type { AppInstance } from '@/app';
+import { db } from '@infra/db/client';
+import { orders, orderItems, products, users, payments, outboxMessages } from '@infra/db/schema';
 import {
   PAYMENT_CREATED_EVENT,
   PAYMENT_SUCCEEDED_EVENT,
   ORDER_PAID_EVENT,
-} from '@infra/mq/outbox-event-types.js';
-import { createPaymentOnReserved } from '@/sagas/create-payment-on-reserved.js';
-import { completeOnPaymentSucceeded } from '@/sagas/complete-on-payment-succeeded.js';
-import { buildTestApp } from '@test/helpers/build-test-app.js';
-import { resetDb } from '@test/helpers/reset-db.js';
-import { envelopeMsg, postSignedWebhook } from '@test/helpers/envelope.js';
+} from '@infra/mq/outbox-event-types';
+import { createPaymentOnReserved } from '@/sagas/create-payment-on-reserved';
+import { completeOnPaymentSucceeded } from '@/sagas/complete-on-payment-succeeded';
+import { buildTestApp } from '@test/helpers/build-test-app';
+import { resetDb } from '@test/helpers/reset-db';
+import { envelopeMsg, postSignedWebhook } from '@test/helpers/envelope';
 
 const log = pino({ level: 'silent' }) as unknown as FastifyBaseLogger;
 

@@ -1,13 +1,13 @@
 import { randomUUID } from 'node:crypto';
 import type { ConsumeMessage } from 'amqplib';
 import type { FastifyBaseLogger } from 'fastify';
-import type { DB } from '@infra/db/client.js';
-import type { PaymentCreatedPayload } from '@infra/mq/outbox-event-types.js';
-import type { HandlerResult } from '@infra/mq/consumer.js';
-import { parseEnvelope, claimOnce } from '@infra/mq/idempotent-consumer.js';
-import { MOCK_PROVIDER_CONSUMER } from '@/constants/index.js';
-import { signWebhook } from '@infra/http/webhook-signature.js';
-import type { SettleOutcome } from '@modules/payments/payments-schema.js';
+import type { DB } from '@infra/db/client';
+import type { PaymentCreatedPayload } from '@infra/mq/outbox-event-types';
+import type { HandlerResult } from '@infra/mq/consumer';
+import { parseEnvelope, claimOnce } from '@infra/mq/idempotent-consumer';
+import { MOCK_PROVIDER_CONSUMER } from '@/constants/index';
+import { signWebhook } from '@infra/http/webhook-signature';
+import type { SettleOutcome } from '@modules/payments/payments-schema';
 
 export interface FakeProviderConfig {
   webhookUrl: string;

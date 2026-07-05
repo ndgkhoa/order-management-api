@@ -1,4 +1,4 @@
-import { readContainerEnv } from '@test/helpers/container-env.js';
+import { readContainerEnv } from '@test/helpers/container-env';
 
 const env = readContainerEnv();
 

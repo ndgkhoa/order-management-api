@@ -1,24 +1,24 @@
 import { and, eq } from 'drizzle-orm';
 import type { FastifyBaseLogger } from 'fastify';
-import type { DB } from '@infra/db/client.js';
-import { shipments, outboxMessages } from '@infra/db/schema.js';
+import type { DB } from '@infra/db/client';
+import { shipments, outboxMessages } from '@infra/db/schema';
 import {
   SHIPMENT_READY_EVENT,
   SHIPMENT_IN_TRANSIT_EVENT,
   SHIPMENT_DELIVERED_EVENT,
   type ShipmentEventPayload,
-} from '@infra/mq/outbox-event-types.js';
-import { makeOrdersRepository } from '@modules/orders/orders-repository.js';
-import { OrderStatuses } from '@/types/order-status.js';
+} from '@infra/mq/outbox-event-types';
+import { makeOrdersRepository } from '@modules/orders/orders-repository';
+import { OrderStatuses } from '@/types/order-status';
 import {
   ShipmentStatuses,
   SHIPMENT_TRANSITIONS,
   type ShipmentStatus,
   type AdvancedShipmentStatus,
-} from '@/types/shipment-status.js';
-import { nextStatus } from '@/utils/state-machine.js';
-import { OrderReasons } from '@/types/order-reasons.js';
-import { sagaMetrics } from '@infra/telemetry/saga-metrics.js';
+} from '@/types/shipment-status';
+import { nextStatus } from '@/utils/state-machine';
+import { OrderReasons } from '@/types/order-reasons';
+import { sagaMetrics } from '@infra/telemetry/saga-metrics';
 
 const EVENT_BY_STATUS: Record<Exclude<ShipmentStatus, 'pending'>, string> = {
   ready_for_pickup: SHIPMENT_READY_EVENT,

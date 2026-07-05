@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeAll, beforeEach } from 'vitest';
-import type { AppInstance } from '@/app.js';
+import type { AppInstance } from '@/app';
 import {
   buildTestApp,
   registerAndLogin,
   registerAdminAndLogin,
-} from '@test/helpers/build-test-app.js';
-import { resetDb } from '@test/helpers/reset-db.js';
+} from '@test/helpers/build-test-app';
+import { resetDb } from '@test/helpers/reset-db';
 
 const auth = (token: string) => ({ authorization: `Bearer ${token}` });
 let skuSeq = 0;

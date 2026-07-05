@@ -1,6 +1,6 @@
 import type { FastifyBaseLogger } from 'fastify';
-import type { DB } from '@infra/db/client.js';
-import { makeOrdersRepository } from '@modules/orders/orders-repository.js';
+import type { DB } from '@infra/db/client';
+import { makeOrdersRepository } from '@modules/orders/orders-repository';
 
 interface OrderReaperDeps {
   db: DB;

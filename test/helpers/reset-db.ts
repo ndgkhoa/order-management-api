@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm';
-import { db } from '@infra/db/client.js';
+import { db } from '@infra/db/client';
 
 export async function resetDb(): Promise<void> {
   await db.execute(

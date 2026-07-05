@@ -2,11 +2,11 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { pino } from 'pino';
 import type { ConsumeMessage } from 'amqplib';
 import type { FastifyBaseLogger } from 'fastify';
-import { db } from '@infra/db/client.js';
-import { users, orders } from '@infra/db/schema.js';
-import { makeNotificationDispatcher } from '@modules/notifications/notifications-dispatch.js';
-import type { NotificationProvider } from '@modules/notifications/notification-interface.js';
-import { resetDb } from '@test/helpers/reset-db.js';
+import { db } from '@infra/db/client';
+import { users, orders } from '@infra/db/schema';
+import { makeNotificationDispatcher } from '@modules/notifications/notifications-dispatch';
+import type { NotificationProvider } from '@modules/notifications/notification-interface';
+import { resetDb } from '@test/helpers/reset-db';
 
 const log = pino({ level: 'silent' }) as unknown as FastifyBaseLogger;
 

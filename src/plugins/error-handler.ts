@@ -1,7 +1,7 @@
 import fp from 'fastify-plugin';
 import type { FastifyError } from 'fastify';
-import { buildProblem, problemType, titleFor } from '@infra/http/problem-details.js';
-import { captureError } from '@infra/telemetry/sentry.js';
+import { buildProblem, problemType, titleFor } from '@infra/http/problem-details';
+import { captureError } from '@infra/telemetry/sentry';
 
 export const errorHandlerPlugin = fp((app) => {
   app.setErrorHandler((err: FastifyError, req, reply) => {

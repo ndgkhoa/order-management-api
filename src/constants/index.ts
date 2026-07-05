@@ -1,4 +1,4 @@
-export * from './keys.js';
+export * from './keys';
 
 export const CATALOG_LIST_KEY = 'catalog:list';
 export const CATALOG_TTL_SECONDS = 300;

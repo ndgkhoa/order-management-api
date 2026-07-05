@@ -1,10 +1,10 @@
 import type { FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';
-import { makeUsersRepository } from '@modules/users/users-repository.js';
-import { UserPublic } from '@modules/users/users-schema.js';
-import { makeAuthService } from '@modules/auth/auth-service.js';
-import { makeAuthController } from '@modules/auth/auth-controller.js';
-import { LoginBody, RegisterBody, TokenResponse } from '@modules/auth/auth-schema.js';
-import { errorResponses } from '@infra/http/error-responses.js';
+import { makeUsersRepository } from '@modules/users/users-repository';
+import { UserPublic } from '@modules/users/users-schema';
+import { makeAuthService } from '@modules/auth/auth-service';
+import { makeAuthController } from '@modules/auth/auth-controller';
+import { LoginBody, RegisterBody, TokenResponse } from '@modules/auth/auth-schema';
+import { errorResponses } from '@infra/http/error-responses';
 
 export const authRoutes: FastifyPluginAsyncTypebox = (app) => {
   const usersRepo = makeUsersRepository(app.db);

@@ -11,7 +11,7 @@ import {
   ORDER_REFUNDED_EVENT,
   SHIPMENT_IN_TRANSIT_EVENT,
   SHIPMENT_DELIVERED_EVENT,
-} from '@infra/mq/outbox-event-types.js';
+} from '@infra/mq/outbox-event-types';
 
 export const ORDER_INVENTORY_QUEUE = 'order.created.inventory';
 export const PAYMENT_CREATE_QUEUE = 'inventory.reserved.payment';

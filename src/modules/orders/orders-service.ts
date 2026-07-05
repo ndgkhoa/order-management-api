@@ -1,13 +1,13 @@
 import type { FastifyInstance } from 'fastify';
-import type { OrdersRepository } from '@modules/orders/orders-repository.js';
-import type { ProductsRepository } from '@modules/products/products-repository.js';
+import type { OrdersRepository } from '@modules/orders/orders-repository';
+import type { ProductsRepository } from '@modules/products/products-repository';
 import type {
   CreateOrderBody,
   CancelOrderInput,
   OrderLine,
   SnapshotProduct,
-} from '@modules/orders/orders-schema.js';
-import { sagaMetrics } from '@infra/telemetry/saga-metrics.js';
+} from '@modules/orders/orders-schema';
+import { sagaMetrics } from '@infra/telemetry/saga-metrics';
 
 interface OrdersServiceDeps {
   ordersRepo: OrdersRepository;

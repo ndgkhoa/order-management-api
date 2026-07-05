@@ -1,8 +1,8 @@
 import type { ConsumeMessage } from 'amqplib';
 import type { FastifyBaseLogger } from 'fastify';
-import { processedMessages } from '@infra/db/schema.js';
-import type { Tx } from '@infra/db/client.js';
-import type { EventEnvelope } from '@infra/mq/event-envelope.js';
+import { processedMessages } from '@infra/db/schema';
+import type { Tx } from '@infra/db/client';
+import type { EventEnvelope } from '@infra/mq/event-envelope';
 
 export function parseEnvelope<P>(
   msg: ConsumeMessage,

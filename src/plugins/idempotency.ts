@@ -5,7 +5,7 @@ import {
   PROCESSING_MARKER,
   PROCESSING_TTL_SECONDS,
   DONE_TTL_SECONDS,
-} from '@/constants/index.js';
+} from '@/constants/index';
 
 export function deriveIdempotencyKey(userId: string, routeId: string, header: string): string {
   return `idem:${userId}:${routeId}:${header}`;

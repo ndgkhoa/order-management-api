@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { makeNotificationsService } from '@modules/notifications/notifications-service.js';
+import { makeNotificationsService } from '@modules/notifications/notifications-service';
 
 const notifications = makeNotificationsService();
 import {
@@ -9,7 +9,7 @@ import {
   SHIPMENT_IN_TRANSIT_EVENT,
   SHIPMENT_DELIVERED_EVENT,
   ORDER_REFUNDED_EVENT,
-} from '@infra/mq/outbox-event-types.js';
+} from '@infra/mq/outbox-event-types';
 
 describe('notificationsService.route', () => {
   it('routes user-facing saga events to email', () => {

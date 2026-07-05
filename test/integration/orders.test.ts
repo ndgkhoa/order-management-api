@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeAll, beforeEach } from 'vitest';
 import { eq } from 'drizzle-orm';
-import type { AppInstance } from '@/app.js';
-import { db } from '@infra/db/client.js';
-import { orderItems, outboxMessages, products } from '@infra/db/schema.js';
-import { ORDER_CREATED_EVENT } from '@infra/mq/outbox-event-types.js';
-import { buildTestApp, registerAndLogin } from '@test/helpers/build-test-app.js';
-import { resetDb } from '@test/helpers/reset-db.js';
+import type { AppInstance } from '@/app';
+import { db } from '@infra/db/client';
+import { orderItems, outboxMessages, products } from '@infra/db/schema';
+import { ORDER_CREATED_EVENT } from '@infra/mq/outbox-event-types';
+import { buildTestApp, registerAndLogin } from '@test/helpers/build-test-app';
+import { resetDb } from '@test/helpers/reset-db';
 
 async function seedProduct(sku: string, priceCents: number, active = true) {
   const [row] = await db

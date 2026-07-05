@@ -1,14 +1,14 @@
 import { and, eq } from 'drizzle-orm';
-import { payments, outboxMessages, processedMessages } from '@infra/db/schema.js';
-import type { DB, Tx } from '@infra/db/client.js';
+import { payments, outboxMessages, processedMessages } from '@infra/db/schema';
+import type { DB, Tx } from '@infra/db/client';
 import {
   PAYMENT_SUCCEEDED_EVENT,
   PAYMENT_FAILED_EVENT,
   type PaymentSettledPayload,
-} from '@infra/mq/outbox-event-types.js';
-import { PaymentStatuses } from '@/types/payment-status.js';
-import type { SettleInput, SettleResult } from '@modules/payments/payments-schema.js';
-import { WEBHOOK_CONSUMER } from '@/constants/index.js';
+} from '@infra/mq/outbox-event-types';
+import { PaymentStatuses } from '@/types/payment-status';
+import type { SettleInput, SettleResult } from '@modules/payments/payments-schema';
+import { WEBHOOK_CONSUMER } from '@/constants/index';
 
 export function makePaymentsRepository(db: DB) {
   return {

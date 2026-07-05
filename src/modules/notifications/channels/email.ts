@@ -1,5 +1,5 @@
-import type { Mailer } from '@infra/mail/mailer.js';
-import type { NotificationProvider } from '@modules/notifications/notification-interface.js';
+import type { Mailer } from '@infra/mail/mailer';
+import type { NotificationProvider } from '@modules/notifications/notification-interface';
 
 export function makeEmailProvider(
   mailer: Pick<Mailer, 'sendMail'>,

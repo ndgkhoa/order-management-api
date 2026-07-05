@@ -1,9 +1,9 @@
 import type { ConsumeMessage } from 'amqplib';
 import { and, desc, eq } from 'drizzle-orm';
-import type { AppInstance } from '@/app.js';
-import { db } from '@infra/db/client.js';
-import { outboxMessages } from '@infra/db/schema.js';
-import { signWebhook } from '@infra/http/webhook-signature.js';
+import type { AppInstance } from '@/app';
+import { db } from '@infra/db/client';
+import { outboxMessages } from '@infra/db/schema';
+import { signWebhook } from '@infra/http/webhook-signature';
 
 const WEBHOOK_SECRET = process.env.WEBHOOK_HMAC_SECRET!;
 

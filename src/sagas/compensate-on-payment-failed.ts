@@ -1,21 +1,21 @@
 import { eq } from 'drizzle-orm';
 import type { ConsumeMessage } from 'amqplib';
 import type { FastifyBaseLogger } from 'fastify';
-import type { DB } from '@infra/db/client.js';
-import { orderItems, outboxMessages } from '@infra/db/schema.js';
-import type { HandlerResult } from '@infra/mq/consumer.js';
-import { parseEnvelope, claimOnce } from '@infra/mq/idempotent-consumer.js';
-import { PAYMENT_COMPENSATE_CONSUMER } from '@/constants/index.js';
+import type { DB } from '@infra/db/client';
+import { orderItems, outboxMessages } from '@infra/db/schema';
+import type { HandlerResult } from '@infra/mq/consumer';
+import { parseEnvelope, claimOnce } from '@infra/mq/idempotent-consumer';
+import { PAYMENT_COMPENSATE_CONSUMER } from '@/constants/index';
 import {
   ORDER_CANCELLED_EVENT,
   type PaymentSettledPayload,
   type OrderCancelledPayload,
-} from '@infra/mq/outbox-event-types.js';
-import { makeInventoryRepository } from '@modules/inventory/inventory-repository.js';
-import { makeOrdersRepository } from '@modules/orders/orders-repository.js';
-import { OrderStatuses } from '@/types/order-status.js';
-import { OrderReasons } from '@/types/order-reasons.js';
-import { sagaMetrics } from '@infra/telemetry/saga-metrics.js';
+} from '@infra/mq/outbox-event-types';
+import { makeInventoryRepository } from '@modules/inventory/inventory-repository';
+import { makeOrdersRepository } from '@modules/orders/orders-repository';
+import { OrderStatuses } from '@/types/order-status';
+import { OrderReasons } from '@/types/order-reasons';
+import { sagaMetrics } from '@infra/telemetry/saga-metrics';
 
 interface HandlerDeps {
   db: DB;

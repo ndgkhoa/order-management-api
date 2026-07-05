@@ -1,5 +1,5 @@
-import { type UserRole, UserRoles } from '@/types/user-role.js';
-import { type Permission, Permissions } from '@/types/permission.js';
+import { type UserRole, UserRoles } from '@/types/user-role';
+import { type Permission, Permissions } from '@/types/permission';
 
 export const ROLE_PERMISSIONS: Record<UserRole, readonly Permission[]> = {
   [UserRoles.Customer]: [],

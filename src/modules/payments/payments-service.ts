@@ -1,5 +1,5 @@
-import type { PaymentsRepository } from '@modules/payments/payments-repository.js';
-import type { SettleInput, SettleResult } from '@modules/payments/payments-schema.js';
+import type { PaymentsRepository } from '@modules/payments/payments-repository';
+import type { SettleInput, SettleResult } from '@modules/payments/payments-schema';
 
 interface PaymentsServiceDeps {
   paymentsRepo: PaymentsRepository;

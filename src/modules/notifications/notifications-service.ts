@@ -5,8 +5,8 @@ import {
   ORDER_REFUNDED_EVENT,
   SHIPMENT_IN_TRANSIT_EVENT,
   SHIPMENT_DELIVERED_EVENT,
-} from '@infra/mq/outbox-event-types.js';
-import type { NotificationMessage } from '@modules/notifications/notification-interface.js';
+} from '@infra/mq/outbox-event-types';
+import type { NotificationMessage } from '@modules/notifications/notification-interface';
 
 export interface NotifyPayload {
   orderId: string;

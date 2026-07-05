@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, beforeEach } from 'vitest';
-import type { AppInstance } from '@/app.js';
-import { buildTestApp } from '@test/helpers/build-test-app.js';
-import { resetDb } from '@test/helpers/reset-db.js';
+import type { AppInstance } from '@/app';
+import { buildTestApp } from '@test/helpers/build-test-app';
+import { resetDb } from '@test/helpers/reset-db';
 
 describe('auth API', () => {
   let app: AppInstance;

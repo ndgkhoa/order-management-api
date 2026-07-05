@@ -1,5 +1,5 @@
 import type { FastifyBaseLogger } from 'fastify';
-import type { NotificationProvider } from '@modules/notifications/notification-interface.js';
+import type { NotificationProvider } from '@modules/notifications/notification-interface';
 
 export function makeSmsProvider(log: FastifyBaseLogger): NotificationProvider {
   return {

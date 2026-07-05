@@ -1,9 +1,9 @@
 import '@config/env-loader.js';
-import { buildApp } from '@/app.js';
-import { db } from '@infra/db/client.js';
-import { makeOutboxRelay } from '@infra/mq/outbox-relay.js';
-import { makeRabbitPublisher } from '@infra/mq/publisher.js';
-import { closeMq } from '@infra/mq/connection.js';
+import { buildApp } from '@/app';
+import { db } from '@infra/db/client';
+import { makeOutboxRelay } from '@infra/mq/outbox-relay';
+import { makeRabbitPublisher } from '@infra/mq/publisher';
+import { closeMq } from '@infra/mq/connection';
 
 async function main(): Promise<void> {
   const app = await buildApp();

@@ -1,12 +1,12 @@
 import { describe, it, expect, beforeAll, beforeEach } from 'vitest';
 import { eq } from 'drizzle-orm';
-import type { AppInstance } from '@/app.js';
-import { db } from '@infra/db/client.js';
-import { users, orders, orderItems, products, payments, outboxMessages } from '@infra/db/schema.js';
-import { ORDER_REFUNDED_EVENT, ORDER_CANCELLED_EVENT } from '@infra/mq/outbox-event-types.js';
-import type { OrderStatus } from '@/types/order-status.js';
-import { buildTestApp, registerAndLogin } from '@test/helpers/build-test-app.js';
-import { resetDb } from '@test/helpers/reset-db.js';
+import type { AppInstance } from '@/app';
+import { db } from '@infra/db/client';
+import { users, orders, orderItems, products, payments, outboxMessages } from '@infra/db/schema';
+import { ORDER_REFUNDED_EVENT, ORDER_CANCELLED_EVENT } from '@infra/mq/outbox-event-types';
+import type { OrderStatus } from '@/types/order-status';
+import { buildTestApp, registerAndLogin } from '@test/helpers/build-test-app';
+import { resetDb } from '@test/helpers/reset-db';
 
 async function userIdFor(email: string): Promise<string> {
   const [u] = await db.select().from(users).where(eq(users.email, email));

@@ -1,13 +1,7 @@
 import { and, desc, eq, lt } from 'drizzle-orm';
 import { context, propagation } from '@opentelemetry/api';
-import type { DB, Tx } from '@infra/db/client.js';
-import {
-  orders,
-  orderItems,
-  orderStatusHistory,
-  outboxMessages,
-  payments,
-} from '@infra/db/schema.js';
+import type { DB, Tx } from '@infra/db/client';
+import { orders, orderItems, orderStatusHistory, outboxMessages, payments } from '@infra/db/schema';
 import {
   ORDER_CREATED_EVENT,
   ORDER_CANCELLED_EVENT,
@@ -15,14 +9,14 @@ import {
   type OrderCreatedPayload,
   type OrderCancelledPayload,
   type OrderRefundedPayload,
-} from '@infra/mq/outbox-event-types.js';
-import type { CreateOrderInput, CancelOrderInput } from '@modules/orders/orders-schema.js';
-import { makeInventoryRepository } from '@modules/inventory/inventory-repository.js';
-import { type OrderStatus, OrderStatuses, ORDER_TRANSITIONS } from '@/types/order-status.js';
-import { assertTransition } from '@/utils/state-machine.js';
-import { PaymentStatuses } from '@/types/payment-status.js';
-import { OrderReasons } from '@/types/order-reasons.js';
-import { sagaMetrics } from '@infra/telemetry/saga-metrics.js';
+} from '@infra/mq/outbox-event-types';
+import type { CreateOrderInput, CancelOrderInput } from '@modules/orders/orders-schema';
+import { makeInventoryRepository } from '@modules/inventory/inventory-repository';
+import { type OrderStatus, OrderStatuses, ORDER_TRANSITIONS } from '@/types/order-status';
+import { assertTransition } from '@/utils/state-machine';
+import { PaymentStatuses } from '@/types/payment-status';
+import { OrderReasons } from '@/types/order-reasons';
+import { sagaMetrics } from '@infra/telemetry/saga-metrics';
 
 export function makeOrdersRepository(db: DB) {
   const inventoryRepo = makeInventoryRepository();

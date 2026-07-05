@@ -1,5 +1,5 @@
 import fp from 'fastify-plugin';
-import { makeRedisClient } from '@infra/redis/client.js';
+import { makeRedisClient } from '@infra/redis/client';
 
 export const redisPlugin = fp(async (app) => {
   const redis = makeRedisClient(app.config.REDIS_URL);

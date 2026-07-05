@@ -1,16 +1,16 @@
 import { Type } from '@sinclair/typebox';
 import type { FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';
-import { Permissions } from '@/types/permission.js';
-import { makeProductsRepository } from '@modules/products/products-repository.js';
-import { makeProductsService } from '@modules/products/products-service.js';
-import { makeProductsController } from '@modules/products/products-controller.js';
+import { Permissions } from '@/types/permission';
+import { makeProductsRepository } from '@modules/products/products-repository';
+import { makeProductsService } from '@modules/products/products-service';
+import { makeProductsController } from '@modules/products/products-controller';
 import {
   CreateProductBody,
   UpdateProductBody,
   ProductPublic,
   IdParams,
-} from '@modules/products/products-schema.js';
-import { errorResponses } from '@infra/http/error-responses.js';
+} from '@modules/products/products-schema';
+import { errorResponses } from '@infra/http/error-responses';
 
 export const productsRoutes: FastifyPluginAsyncTypebox = (app) => {
   const productsRepo = makeProductsRepository(app.db, app.redis);

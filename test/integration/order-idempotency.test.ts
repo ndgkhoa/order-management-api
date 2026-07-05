@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeAll, beforeEach } from 'vitest';
-import type { AppInstance } from '@/app.js';
-import { db } from '@infra/db/client.js';
-import { orders, products } from '@infra/db/schema.js';
-import { buildTestApp, registerAndLogin } from '@test/helpers/build-test-app.js';
-import { resetDb } from '@test/helpers/reset-db.js';
+import type { AppInstance } from '@/app';
+import { db } from '@infra/db/client';
+import { orders, products } from '@infra/db/schema';
+import { buildTestApp, registerAndLogin } from '@test/helpers/build-test-app';
+import { resetDb } from '@test/helpers/reset-db';
 
 describe('order idempotency (POST /orders)', () => {
   let app: AppInstance;

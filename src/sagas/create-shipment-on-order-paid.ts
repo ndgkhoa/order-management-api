@@ -1,18 +1,18 @@
 import type { ConsumeMessage } from 'amqplib';
 import type { FastifyBaseLogger } from 'fastify';
-import type { DB } from '@infra/db/client.js';
-import { shipments, outboxMessages } from '@infra/db/schema.js';
-import type { HandlerResult } from '@infra/mq/consumer.js';
-import { parseEnvelope, claimOnce } from '@infra/mq/idempotent-consumer.js';
-import { SHIPPING_CONSUMER } from '@/constants/index.js';
+import type { DB } from '@infra/db/client';
+import { shipments, outboxMessages } from '@infra/db/schema';
+import type { HandlerResult } from '@infra/mq/consumer';
+import { parseEnvelope, claimOnce } from '@infra/mq/idempotent-consumer';
+import { SHIPPING_CONSUMER } from '@/constants/index';
 import {
   SHIPMENT_CREATED_EVENT,
   type OrderPaidPayload,
   type ShipmentEventPayload,
-} from '@infra/mq/outbox-event-types.js';
-import { makeOrdersRepository } from '@modules/orders/orders-repository.js';
-import { OrderStatuses } from '@/types/order-status.js';
-import { ShipmentStatuses } from '@/types/shipment-status.js';
+} from '@infra/mq/outbox-event-types';
+import { makeOrdersRepository } from '@modules/orders/orders-repository';
+import { OrderStatuses } from '@/types/order-status';
+import { ShipmentStatuses } from '@/types/shipment-status';
 
 interface HandlerDeps {
   db: DB;

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
-import type { AppInstance } from '@/app.js';
-import { buildTestApp } from '@test/helpers/build-test-app.js';
+import type { AppInstance } from '@/app';
+import { buildTestApp } from '@test/helpers/build-test-app';
 
 describe('rate limiting', () => {
   let app: AppInstance;

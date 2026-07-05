@@ -1,6 +1,6 @@
 import type { Channel, ConsumeMessage } from 'amqplib';
 import type { FastifyBaseLogger } from 'fastify';
-import { ORDER_EVENTS_EXCHANGE } from '@infra/mq/outbox-event-types.js';
+import { ORDER_EVENTS_EXCHANGE } from '@infra/mq/outbox-event-types';
 
 export type HandlerResult = 'ack' | 'retry';
 

@@ -1,9 +1,9 @@
 import '@config/env-loader.js';
 import { pino } from 'pino';
-import { db } from '@infra/db/client.js';
-import { closePool } from '@infra/db/pool.js';
-import { closeMq, getConnection } from '@infra/mq/connection.js';
-import { startConsumer } from '@infra/mq/consumer.js';
+import { db } from '@infra/db/client';
+import { closePool } from '@infra/db/pool';
+import { closeMq, getConnection } from '@infra/mq/connection';
+import { startConsumer } from '@infra/mq/consumer';
 import {
   ORDER_INVENTORY_QUEUE,
   PAYMENT_CREATE_QUEUE,
@@ -13,23 +13,23 @@ import {
   SHIPPING_QUEUE,
   NOTIFICATION_QUEUE,
   assertTopology,
-} from '@infra/mq/topology.js';
-import { makeRabbitPublisher } from '@infra/mq/publisher.js';
-import { makeOutboxRelay } from '@infra/mq/outbox-relay.js';
-import { makeMailer } from '@infra/mail/mailer.js';
-import { reserveOnOrderCreated } from '@/sagas/reserve-on-order-created.js';
-import { makeOrderReaper } from './order-reaper-worker.js';
-import { createPaymentOnReserved } from '@/sagas/create-payment-on-reserved.js';
-import { completeOnPaymentSucceeded } from '@/sagas/complete-on-payment-succeeded.js';
-import { compensateOnPaymentFailed } from '@/sagas/compensate-on-payment-failed.js';
+} from '@infra/mq/topology';
+import { makeRabbitPublisher } from '@infra/mq/publisher';
+import { makeOutboxRelay } from '@infra/mq/outbox-relay';
+import { makeMailer } from '@infra/mail/mailer';
+import { reserveOnOrderCreated } from '@/sagas/reserve-on-order-created';
+import { makeOrderReaper } from './order-reaper-worker';
+import { createPaymentOnReserved } from '@/sagas/create-payment-on-reserved';
+import { completeOnPaymentSucceeded } from '@/sagas/complete-on-payment-succeeded';
+import { compensateOnPaymentFailed } from '@/sagas/compensate-on-payment-failed';
 import {
   fakeProviderOnPaymentCreated,
   type FakeProviderConfig,
-} from '@modules/payments/fake-payment-provider.js';
-import { makeShippingConsumer } from './fake-shipping-worker.js';
-import { makeNotificationDispatcher } from '@modules/notifications/notifications-dispatch.js';
-import { makeEmailProvider } from '@modules/notifications/channels/email.js';
-import { makeSmsProvider } from '@modules/notifications/channels/sms.js';
+} from '@modules/payments/fake-payment-provider';
+import { makeShippingConsumer } from './fake-shipping-worker';
+import { makeNotificationDispatcher } from '@modules/notifications/notifications-dispatch';
+import { makeEmailProvider } from '@modules/notifications/channels/email';
+import { makeSmsProvider } from '@modules/notifications/channels/sms';
 
 function buildLogger() {
   const options = { level: process.env.LOG_LEVEL ?? 'info' };

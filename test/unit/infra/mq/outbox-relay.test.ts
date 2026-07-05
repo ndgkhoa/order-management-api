@@ -2,11 +2,11 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { pino } from 'pino';
 import { eq, isNull } from 'drizzle-orm';
 import type { FastifyBaseLogger } from 'fastify';
-import { db } from '@infra/db/client.js';
-import { outboxMessages } from '@infra/db/schema.js';
-import { makeOutboxRelay } from '@infra/mq/outbox-relay.js';
-import type { OutboxMessage, OutboxPublisher } from '@infra/mq/outbox-publisher.js';
-import { resetDb } from '@test/helpers/reset-db.js';
+import { db } from '@infra/db/client';
+import { outboxMessages } from '@infra/db/schema';
+import { makeOutboxRelay } from '@infra/mq/outbox-relay';
+import type { OutboxMessage, OutboxPublisher } from '@infra/mq/outbox-publisher';
+import { resetDb } from '@test/helpers/reset-db';
 
 const log = pino({ level: 'silent' }) as unknown as FastifyBaseLogger;
 

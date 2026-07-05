@@ -12,11 +12,11 @@ import {
   uniqueIndex,
 } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
-import { UserRoles } from '@/types/user-role.js';
-import { OrderStatuses } from '@/types/order-status.js';
-import { PaymentStatuses } from '@/types/payment-status.js';
-import { ShipmentStatuses } from '@/types/shipment-status.js';
-import { DEFAULT_CURRENCY } from '@/types/currency.js';
+import { UserRoles } from '@/types/user-role';
+import { OrderStatuses } from '@/types/order-status';
+import { PaymentStatuses } from '@/types/payment-status';
+import { ShipmentStatuses } from '@/types/shipment-status';
+import { DEFAULT_CURRENCY } from '@/types/currency';
 
 export const users = pgTable('users', {
   id: uuid('id').primaryKey().defaultRandom(),
