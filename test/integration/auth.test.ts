@@ -3,7 +3,7 @@ import type { AppInstance } from '@/app.js';
 import { buildTestApp } from '@test/helpers/build-test-app.js';
 import { resetDb } from '@test/helpers/reset-db.js';
 
-describe('auth API (app.inject)', () => {
+describe('auth API', () => {
   let app: AppInstance;
   beforeAll(async () => {
     app = await buildTestApp();

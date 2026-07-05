@@ -48,7 +48,7 @@ function cancel(app: AppInstance, orderId: string, token: string) {
   });
 }
 
-describe('order cancel / refund', () => {
+describe('order cancel/refund', () => {
   let app: AppInstance;
 
   beforeAll(async () => {
@@ -63,7 +63,7 @@ describe('order cancel / refund', () => {
   it('refunds and restocks a paid order cancelled pre-ship', async () => {
     const { token, email } = await registerAndLogin(app);
     const userId = await userIdFor(email);
-    const productId = await seedProduct(8, 0); // committed: available reduced, reserved 0
+    const productId = await seedProduct(8, 0);
     const orderId = await seedOrder(userId, productId, 'paid');
     await db.insert(payments).values({ orderId, amountCents: 200, status: 'paid' });
 
@@ -75,7 +75,7 @@ describe('order cancel / refund', () => {
     const [payment] = await db.select().from(payments).where(eq(payments.orderId, orderId));
     expect(payment!.status).toBe('refunded');
     const [prod] = await db.select().from(products).where(eq(products.id, productId));
-    expect(prod!.stockAvailable).toBe(10); // restocked +2
+    expect(prod!.stockAvailable).toBe(10);
     const refunded = await db
       .select()
       .from(outboxMessages)
@@ -86,7 +86,7 @@ describe('order cancel / refund', () => {
   it('releases the reservation when a pending order is cancelled', async () => {
     const { token, email } = await registerAndLogin(app);
     const userId = await userIdFor(email);
-    const productId = await seedProduct(8, 2); // reserved, not yet paid
+    const productId = await seedProduct(8, 2);
     const orderId = await seedOrder(userId, productId, 'pending');
 
     const res = await cancel(app, orderId, token);
@@ -95,7 +95,7 @@ describe('order cancel / refund', () => {
     const [order] = await db.select().from(orders).where(eq(orders.id, orderId));
     expect(order!.status).toBe('cancelled');
     const [prod] = await db.select().from(products).where(eq(products.id, productId));
-    expect([prod!.stockAvailable, prod!.stockReserved]).toEqual([10, 0]); // released
+    expect([prod!.stockAvailable, prod!.stockReserved]).toEqual([10, 0]);
     const cancelled = await db
       .select()
       .from(outboxMessages)
@@ -112,7 +112,7 @@ describe('order cancel / refund', () => {
     const res = await cancel(app, orderId, token);
     expect(res.statusCode).toBe(409);
     const [order] = await db.select().from(orders).where(eq(orders.id, orderId));
-    expect(order!.status).toBe('fulfilling'); // unchanged
+    expect(order!.status).toBe('fulfilling');
   });
 
   it('does not let another user cancel an order they do not own (404, IDOR)', async () => {
@@ -127,6 +127,6 @@ describe('order cancel / refund', () => {
     expect(res.statusCode).toBe(404);
 
     const [order] = await db.select().from(orders).where(eq(orders.id, orderId));
-    expect(order!.status).toBe('paid'); // untouched
+    expect(order!.status).toBe('paid');
   });
 });

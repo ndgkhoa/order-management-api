@@ -11,7 +11,7 @@ import {
   ORDER_REFUNDED_EVENT,
 } from '@infra/mq/outbox-event-types.js';
 
-describe('notification routing', () => {
+describe('notificationsService.route', () => {
   it('routes user-facing saga events to email', () => {
     for (const evt of [
       ORDER_PAID_EVENT,

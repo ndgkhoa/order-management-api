@@ -3,11 +3,6 @@ import { makePaymentsService } from '@modules/payments/payments-service.js';
 import type { PaymentsRepository } from '@modules/payments/payments-repository.js';
 import type { SettleInput, SettleResult } from '@modules/payments/payments-schema.js';
 
-/**
- * The service is a thin, db-free orchestration layer: it forwards `settle` to the repository and
- * returns its result unchanged. A stub repo (no Postgres) captures the call so we test only the
- * service contract — the transactional exactly-once behaviour is covered in the repository test.
- */
 function makeStubRepo(result: SettleResult) {
   const calls: SettleInput[] = [];
   const paymentsRepo = {

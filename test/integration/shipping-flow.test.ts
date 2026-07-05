@@ -35,7 +35,6 @@ function orderPaidMsg(orderId: string): ConsumeMessage {
   } as unknown as ConsumeMessage;
 }
 
-/** Seeds a PAID order (reservation already committed: reserved=0) + one line. */
 async function seedPaidOrder() {
   const [u] = await db
     .insert(users)
@@ -76,7 +75,7 @@ describe('shipping flow (order.paid → delivered)', () => {
     let [ship] = await db.select().from(shipments).where(eq(shipments.orderId, orderId));
     expect(ship!.status).toBe('pending');
     let [order] = await db.select().from(orders).where(eq(orders.id, orderId));
-    expect(order!.status).toBe('fulfilling'); // paid → fulfilling on shipment creation
+    expect(order!.status).toBe('fulfilling');
     const created = await db
       .select()
       .from(outboxMessages)
@@ -88,12 +87,10 @@ describe('shipping flow (order.paid → delivered)', () => {
       );
     expect(created).toHaveLength(1);
 
-    // advance through the three steps
     const shipmentsRepo = makeShipmentsRepository(db);
     expect(await shipmentsRepo.advance(shipmentId!, log)).toBe('ready_for_pickup');
     expect(await shipmentsRepo.advance(shipmentId!, log)).toBe('in_transit');
     expect(await shipmentsRepo.advance(shipmentId!, log)).toBe('delivered');
-    // past the end → no-op
     expect(await shipmentsRepo.advance(shipmentId!, log)).toBeNull();
 
     [ship] = await db.select().from(shipments).where(eq(shipments.orderId, orderId));
@@ -112,7 +109,6 @@ describe('shipping flow (order.paid → delivered)', () => {
       );
     expect(delivered).toHaveLength(1);
 
-    // history captured both order transitions
     const history = await db
       .select()
       .from(orderStatusHistory)

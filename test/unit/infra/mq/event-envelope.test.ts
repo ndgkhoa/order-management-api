@@ -12,7 +12,7 @@ describe('buildEventEnvelope', () => {
     });
 
     expect(env.eventId).toMatch(UUID_RE);
-    expect(env.occurredAt).toBe(new Date(env.occurredAt).toISOString()); // round-trips → valid ISO
+    expect(env.occurredAt).toBe(new Date(env.occurredAt).toISOString());
     expect(env.eventType).toBe('order.created');
     expect(env.correlationId).toBe('order-1');
     expect(env.payload).toEqual({ a: 1 });

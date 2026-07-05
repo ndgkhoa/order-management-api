@@ -2,7 +2,6 @@ import { describe, it, expect, beforeAll } from 'vitest';
 import type { AppInstance } from '@/app.js';
 import { buildTestApp } from '@test/helpers/build-test-app.js';
 
-/** Guards the OpenAPI contract: JWT security scheme, per-route security, tags, all paths. */
 describe('OpenAPI spec (/docs)', () => {
   let spec: {
     info: { version: string; description: string };
@@ -35,10 +34,8 @@ describe('OpenAPI spec (/docs)', () => {
   });
 
   it('marks public routes with security: [] and protected routes without an override', () => {
-    // public: login + product reads opt out of the global bearer requirement
     expect(spec.paths['/auth/login']!.post!.security).toEqual([]);
     expect(spec.paths['/products/']!.get!.security).toEqual([]);
-    // protected: order create inherits the global security (no per-route override)
     expect(spec.paths['/orders/']!.post!.security).toBeUndefined();
   });
 

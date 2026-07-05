@@ -18,13 +18,11 @@ import { envelopeMsg, postSignedWebhook } from '@test/helpers/envelope.js';
 
 const log = pino({ level: 'silent' }) as unknown as FastifyBaseLogger;
 
-/** Seeds a user + a reserved product + a pending order and returns the ids/quantities. */
 async function seedReservedOrder() {
   const [u] = await db
     .insert(users)
     .values({ email: `u-${crypto.randomUUID()}@t.dev`, passwordHash: 'x' })
     .returning();
-  // post-reserve state: available already decremented, 2 units held in reserved
   const [product] = await db
     .insert(products)
     .values({
@@ -47,7 +45,7 @@ async function seedReservedOrder() {
   return { orderId: order!.id, productId: product!.id };
 }
 
-describe('payment saga — happy path (reserved → paid → OrderPaid)', () => {
+describe('payment saga (reserved → paid → OrderPaid)', () => {
   let app: AppInstance;
 
   beforeAll(async () => {
@@ -62,7 +60,6 @@ describe('payment saga — happy path (reserved → paid → OrderPaid)', () => 
   it('creates a payment, settles it via a signed webhook, and commits the reservation', async () => {
     const { orderId, productId } = await seedReservedOrder();
 
-    // inventory.reserved → payment(pending) + payment.created
     const r1 = await createPaymentOnReserved(
       envelopeMsg('inventory.reserved', { orderId, items: [{ productId, quantity: 2 }] }),
       { db, log },
@@ -83,7 +80,6 @@ describe('payment saga — happy path (reserved → paid → OrderPaid)', () => 
       );
     expect(created).toHaveLength(1);
 
-    // provider → signed webhook SUCCEEDED
     const res = await postSignedWebhook(app, {
       providerEventId: crypto.randomUUID(),
       paymentId: payment!.id,
@@ -105,7 +101,6 @@ describe('payment saga — happy path (reserved → paid → OrderPaid)', () => 
       );
     expect(succeeded).toHaveLength(1);
 
-    // payment.succeeded → order paid + reservation committed + OrderPaid
     const r2 = await completeOnPaymentSucceeded(
       envelopeMsg('payment.succeeded', { orderId, paymentId: payment!.id }),
       { db, log },
@@ -115,7 +110,7 @@ describe('payment saga — happy path (reserved → paid → OrderPaid)', () => 
     const [order] = await db.select().from(orders).where(eq(orders.id, orderId));
     expect(order!.status).toBe('paid');
     const [prod] = await db.select().from(products).where(eq(products.id, productId));
-    expect([prod!.stockAvailable, prod!.stockReserved]).toEqual([8, 0]); // committed: reserved→0
+    expect([prod!.stockAvailable, prod!.stockReserved]).toEqual([8, 0]);
     const paidEvent = await db
       .select()
       .from(outboxMessages)

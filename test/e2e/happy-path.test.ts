@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeAll, beforeEach } from 'vitest';
 import { pino } from 'pino';
-import { and, desc, eq } from 'drizzle-orm';
-import type { ConsumeMessage } from 'amqplib';
+import { eq } from 'drizzle-orm';
 import type { FastifyBaseLogger } from 'fastify';
 import type { AppInstance } from '@/app.js';
 import { db } from '@infra/db/client.js';
@@ -14,34 +13,13 @@ import { makeShipmentsRepository } from '@modules/shipping/shipments-repository.
 import { signWebhook } from '@infra/http/webhook-signature.js';
 import { buildTestApp, registerAndLogin } from '@test/helpers/build-test-app.js';
 import { resetDb } from '@test/helpers/reset-db.js';
+import { outboxMsg } from '@test/helpers/envelope.js';
 import { counterValue } from '@test/helpers/metric-value.js';
 
 const log = pino({ level: 'silent' }) as unknown as FastifyBaseLogger;
 const SECRET = process.env.WEBHOOK_HMAC_SECRET!;
 
-/** Wraps the latest outbox row of an event type into the ConsumeMessage a handler expects. */
-async function outboxMsg(orderId: string, eventType: string): Promise<ConsumeMessage> {
-  const [row] = await db
-    .select()
-    .from(outboxMessages)
-    .where(and(eq(outboxMessages.aggregateId, orderId), eq(outboxMessages.eventType, eventType)))
-    .orderBy(desc(outboxMessages.createdAt))
-    .limit(1);
-  const envelope = {
-    eventId: row!.eventId,
-    eventType: row!.eventType,
-    correlationId: row!.correlationId ?? orderId,
-    occurredAt: row!.createdAt.toISOString(),
-    payload: row!.payload,
-  };
-  return {
-    content: Buffer.from(JSON.stringify(envelope)),
-    properties: { messageId: row!.eventId },
-    fields: {},
-  } as unknown as ConsumeMessage;
-}
-
-describe('e2e — full happy path (place → reserve → pay → ship → deliver)', () => {
+describe('happy path (place → reserve → pay → ship → deliver)', () => {
   let app: AppInstance;
 
   beforeAll(async () => {
@@ -67,7 +45,6 @@ describe('e2e — full happy path (place → reserve → pay → ship → delive
       .values({ sku: `SKU-${crypto.randomUUID()}`, name: 'p', priceCents: 100, stockAvailable: 10 })
       .returning();
 
-    // place
     const created = await app
       .inject({
         method: 'POST',
@@ -79,11 +56,9 @@ describe('e2e — full happy path (place → reserve → pay → ship → delive
     expect(created.status).toBe('pending');
     const orderId = created.id;
 
-    // reserve → payment(pending) + payment.created
     await reserveOnOrderCreated(await outboxMsg(orderId, 'order.created'), { db, log });
     await createPaymentOnReserved(await outboxMsg(orderId, 'inventory.reserved'), { db, log });
 
-    // pay via a signed webhook
     const [payment] = await db.select().from(payments).where(eq(payments.orderId, orderId));
     const raw = JSON.stringify({
       providerEventId: crypto.randomUUID(),
@@ -99,10 +74,8 @@ describe('e2e — full happy path (place → reserve → pay → ship → delive
     });
     expect(webhook.statusCode).toBe(200);
 
-    // complete → order paid + reservation committed + order.paid
     await completeOnPaymentSucceeded(await outboxMsg(orderId, 'payment.succeeded'), { db, log });
 
-    // ship → shipment created, then advance to delivered
     const { shipmentId } = await createShipmentOnOrderPaid(await outboxMsg(orderId, 'order.paid'), {
       db,
       log,
@@ -112,7 +85,6 @@ describe('e2e — full happy path (place → reserve → pay → ship → delive
     await shipmentsRepo.advance(shipmentId!, log);
     expect(await shipmentsRepo.advance(shipmentId!, log)).toBe('delivered');
 
-    // final states
     const [order] = await db.select().from(orders).where(eq(orders.id, orderId));
     expect(order!.status).toBe('delivered');
     const [paid] = await db.select().from(payments).where(eq(payments.orderId, orderId));
@@ -120,17 +92,15 @@ describe('e2e — full happy path (place → reserve → pay → ship → delive
     const [ship] = await db.select().from(shipments).where(eq(shipments.orderId, orderId));
     expect(ship!.status).toBe('delivered');
     const [prod] = await db.select().from(products).where(eq(products.id, product!.id));
-    expect([prod!.stockAvailable, prod!.stockReserved]).toEqual([8, 0]); // committed
+    expect([prod!.stockAvailable, prod!.stockReserved]).toEqual([8, 0]);
 
-    // correlationId == orderId across EVERY emitted event
     const events = await db
       .select()
       .from(outboxMessages)
       .where(eq(outboxMessages.aggregateId, orderId));
-    expect(events.length).toBeGreaterThanOrEqual(5); // created, reserved, payment.created, succeeded, paid, shipment.*
+    expect(events.length).toBeGreaterThanOrEqual(5);
     for (const e of events) expect(e.correlationId).toBe(orderId);
 
-    // each milestone bumped exactly its own counter
     expect(await counterValue('saga_orders_created_total')).toBe(before.created + 1);
     expect(await counterValue('saga_inventory_reserved_total')).toBe(before.reserved + 1);
     expect(await counterValue('saga_payments_succeeded_total')).toBe(before.succeeded + 1);

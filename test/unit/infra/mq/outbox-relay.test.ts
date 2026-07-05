@@ -10,7 +10,6 @@ import { resetDb } from '@test/helpers/reset-db.js';
 
 const log = pino({ level: 'silent' }) as unknown as FastifyBaseLogger;
 
-/** Records publish calls; the publisher is the only stub (external system seam). */
 function recordingPublisher(): OutboxPublisher & { calls: OutboxMessage[] } {
   const calls: OutboxMessage[] = [];
   return {
@@ -36,7 +35,7 @@ async function insertOutboxRow(eventType: string, createdAt: Date) {
   return row!;
 }
 
-describe('outbox-relay (real Postgres)', () => {
+describe('outboxRelay (real Postgres)', () => {
   beforeEach(resetDb);
 
   it('publishes unsent rows in createdAt order and stamps published_at', async () => {
@@ -47,7 +46,6 @@ describe('outbox-relay (real Postgres)', () => {
 
     await relay.tick();
 
-    // messageId is the logical eventId (what consumers dedupe on), not the row id.
     expect(publisher.calls.map((c) => c.messageId)).toEqual([first.eventId, second.eventId]);
     const remaining = await db
       .select()
@@ -82,7 +80,7 @@ describe('outbox-relay (real Postgres)', () => {
     const failing: OutboxPublisher = { publish: () => Promise.reject(new Error('broker down')) };
     const relay = makeOutboxRelay({ db, publisher: failing, log, intervalMs: 1000 });
 
-    await relay.tick(); // relay swallows the error and rolls back the tx
+    await relay.tick();
 
     const [reloaded] = await db.select().from(outboxMessages).where(eq(outboxMessages.id, row.id));
     expect(reloaded!.publishedAt).toBeNull();

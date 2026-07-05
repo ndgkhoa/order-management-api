@@ -26,7 +26,7 @@ async function createProduct(app: AppInstance, token: string, body = newProduct(
   return { res, body };
 }
 
-describe('products API (app.inject)', () => {
+describe('products API', () => {
   let app: AppInstance;
   beforeAll(async () => {
     app = await buildTestApp();
@@ -102,11 +102,9 @@ describe('products API (app.inject)', () => {
     const { res: createRes } = await createProduct(app, token);
     const id = createRes.json<{ id: string }>().id;
 
-    // prime the cache via a public read
     const first = await app.inject({ method: 'GET', url: `/products/${id}` });
     expect(first.json<{ name: string }>().name).toBe('Widget');
 
-    // admin updates the name
     const upd = await app.inject({
       method: 'PATCH',
       url: `/products/${id}`,
@@ -115,7 +113,6 @@ describe('products API (app.inject)', () => {
     });
     expect(upd.statusCode).toBe(200);
 
-    // public read must reflect the new name (cache was invalidated)
     const second = await app.inject({ method: 'GET', url: `/products/${id}` });
     expect(second.json<{ name: string }>().name).toBe('Gadget');
   });
@@ -127,7 +124,7 @@ describe('products API (app.inject)', () => {
 
     await app.inject({ method: 'DELETE', url: `/products/${id}`, headers: auth(token) });
     let pub = await app.inject({ method: 'GET', url: `/products/${id}` });
-    expect(pub.statusCode).toBe(404); // hidden after soft delete
+    expect(pub.statusCode).toBe(404);
 
     const upd = await app.inject({
       method: 'PATCH',
@@ -138,7 +135,7 @@ describe('products API (app.inject)', () => {
     expect(upd.statusCode).toBe(200);
 
     pub = await app.inject({ method: 'GET', url: `/products/${id}` });
-    expect(pub.statusCode).toBe(200); // visible again (invalidation on the inactive→active edge)
+    expect(pub.statusCode).toBe(200);
   });
 
   it('soft delete hides the product from the public catalog → 204 then 404', async () => {
@@ -156,7 +153,6 @@ describe('products API (app.inject)', () => {
     const pub = await app.inject({ method: 'GET', url: `/products/${id}` });
     expect(pub.statusCode).toBe(404);
 
-    // admin still sees it (inactive), proving it was soft-deleted not removed
     const adminGet = await app.inject({
       method: 'GET',
       url: `/products/${id}`,

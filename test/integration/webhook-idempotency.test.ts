@@ -50,7 +50,7 @@ async function seedPayment() {
   return { orderId: order!.id, paymentId: payment!.id };
 }
 
-describe('payment webhook — signature gate + idempotency', () => {
+describe('payment webhook (signature + idempotency)', () => {
   let app: AppInstance;
 
   beforeAll(async () => {
@@ -72,7 +72,6 @@ describe('payment webhook — signature gate + idempotency', () => {
     });
     const headers = { 'content-type': 'application/json', 'x-signature': signWebhook(SECRET, raw) };
 
-    // deliver the SAME signed webhook three times
     for (let i = 0; i < 3; i++) {
       const res = await app.inject({
         method: 'POST',
@@ -84,7 +83,7 @@ describe('payment webhook — signature gate + idempotency', () => {
     }
 
     const [payment] = await db.select().from(payments).where(eq(payments.id, paymentId));
-    expect(payment!.status).toBe('paid'); // applied once, still paid (not double-processed)
+    expect(payment!.status).toBe('paid');
     const emitted = await db
       .select()
       .from(outboxMessages)
@@ -94,7 +93,7 @@ describe('payment webhook — signature gate + idempotency', () => {
           eq(outboxMessages.eventType, PAYMENT_SUCCEEDED_EVENT),
         ),
       );
-    expect(emitted).toHaveLength(1); // exactly one downstream event
+    expect(emitted).toHaveLength(1);
   });
 
   it('rejects a bad signature with 401 before any side effect', async () => {
@@ -115,7 +114,7 @@ describe('payment webhook — signature gate + idempotency', () => {
     expect(res.statusCode).toBe(401);
 
     const [payment] = await db.select().from(payments).where(eq(payments.id, paymentId));
-    expect(payment!.status).toBe('pending'); // untouched
+    expect(payment!.status).toBe('pending');
   });
 
   it('rejects a stale timestamp with 401 (replay defense)', async () => {
@@ -124,7 +123,7 @@ describe('payment webhook — signature gate + idempotency', () => {
       providerEventId: crypto.randomUUID(),
       paymentId,
       outcome: 'SUCCEEDED',
-      timestamp: Date.now() - 60 * 60 * 1000, // 1h old
+      timestamp: Date.now() - 60 * 60 * 1000,
     });
 
     const res = await app.inject({

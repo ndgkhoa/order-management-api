@@ -3,7 +3,7 @@ import { signWebhook, verifyWebhook, isFreshTimestamp } from '@infra/http/webhoo
 
 const SECRET = 'test-webhook-hmac-secret-at-least-32-chars';
 
-describe('webhook signature', () => {
+describe('verifyWebhook', () => {
   const rawBody = JSON.stringify({ providerEventId: 'e1', paymentId: 'p1', outcome: 'SUCCEEDED' });
 
   it('verifies a signature produced over the exact raw bytes', () => {
@@ -13,8 +13,6 @@ describe('webhook signature', () => {
 
   it('rejects a tampered body (re-serialized bytes differ from the signed bytes)', () => {
     const sig = signWebhook(SECRET, rawBody);
-    // Same logical object, but a re-serialized/altered byte string must fail — proves the
-    // test is not signing and verifying the same mutable object.
     const reserialized = JSON.stringify({
       outcome: 'SUCCEEDED',
       paymentId: 'p1',
@@ -39,9 +37,9 @@ describe('webhook signature', () => {
   });
 });
 
-describe('webhook timestamp freshness', () => {
+describe('isFreshTimestamp', () => {
   const now = 1_000_000_000_000;
-  const skew = 300_000; // 5 min
+  const skew = 300_000;
 
   it('accepts a timestamp within the skew window', () => {
     expect(isFreshTimestamp(now - 10_000, skew, now)).toBe(true);

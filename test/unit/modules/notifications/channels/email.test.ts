@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
-import { makeEmailProvider } from '@infra/providers/email-provider.js';
+import { makeEmailProvider } from '@modules/notifications/channels/email.js';
 
-describe('email provider', () => {
+describe('emailProvider', () => {
   it('sends via the mailer with from/to/subject/text', async () => {
     const sendMail = vi.fn().mockResolvedValue(undefined);
     const provider = makeEmailProvider({ sendMail }, 'no-reply@orders.test');

@@ -7,7 +7,6 @@ import { ORDER_CREATED_EVENT } from '@infra/mq/outbox-event-types.js';
 import { buildTestApp, registerAndLogin } from '@test/helpers/build-test-app.js';
 import { resetDb } from '@test/helpers/reset-db.js';
 
-/** Inserts a product directly (admin CRUD is covered elsewhere) and returns its row. */
 async function seedProduct(sku: string, priceCents: number, active = true) {
   const [row] = await db
     .insert(products)
@@ -16,7 +15,7 @@ async function seedProduct(sku: string, priceCents: number, active = true) {
   return row!;
 }
 
-describe('orders API (app.inject)', () => {
+describe('orders API', () => {
   let app: AppInstance;
   beforeAll(async () => {
     app = await buildTestApp();
@@ -32,7 +31,6 @@ describe('orders API (app.inject)', () => {
     });
 
   it('rejects an unauthenticated request → 401', async () => {
-    // schema-valid body so validation passes and auth is what rejects (auth runs after validation)
     const res = await app.inject({
       method: 'POST',
       url: '/orders',
@@ -61,15 +59,13 @@ describe('orders API (app.inject)', () => {
       items: { sku: string; unitPriceCents: number; quantity: number; lineTotalCents: number }[];
     }>();
     expect(created.status).toBe('pending');
-    expect(created.totalCents).toBe(2750); // 2*1000 + 3*250
+    expect(created.totalCents).toBe(2750);
     expect(created.items).toHaveLength(2);
 
-    // items persisted with snapshot price
     const items = await db.select().from(orderItems).where(eq(orderItems.orderId, created.id));
     expect(items).toHaveLength(2);
     expect(items.map((i) => i.lineTotalCents).sort((x, y) => x - y)).toEqual([750, 2000]);
 
-    // exactly one OrderCreated outbox row, unpublished, no payment/stock side effects here
     const outbox = await db
       .select()
       .from(outboxMessages)
@@ -78,7 +74,6 @@ describe('orders API (app.inject)', () => {
     expect(outbox[0]!.eventType).toBe(ORDER_CREATED_EVENT);
     expect(outbox[0]!.publishedAt).toBeNull();
 
-    // price snapshot is immutable: editing the product later must not change the order line
     await db.update(products).set({ priceCents: 9999 }).where(eq(products.id, a.id));
     const [line] = await db.select().from(orderItems).where(eq(orderItems.productId, a.id));
     expect(line!.unitPriceCents).toBe(1000);

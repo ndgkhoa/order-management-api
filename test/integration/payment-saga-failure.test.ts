@@ -41,7 +41,7 @@ async function seedReservedOrder() {
   return { orderId: order!.id, productId: product!.id };
 }
 
-describe('payment saga — failure & compensation (reserved → failed → released/cancelled)', () => {
+describe('payment saga (reserved → failed → released/cancelled)', () => {
   let app: AppInstance;
 
   beforeAll(async () => {
@@ -83,7 +83,6 @@ describe('payment saga — failure & compensation (reserved → failed → relea
       );
     expect(failedEvent).toHaveLength(1);
 
-    // payment.failed → release inventory + cancel order
     const r = await compensateOnPaymentFailed(
       envelopeMsg('payment.failed', { orderId, paymentId: payment!.id }),
       { db, log },
@@ -93,7 +92,7 @@ describe('payment saga — failure & compensation (reserved → failed → relea
     const [order] = await db.select().from(orders).where(eq(orders.id, orderId));
     expect(order!.status).toBe('cancelled');
     const [prod] = await db.select().from(products).where(eq(products.id, productId));
-    expect([prod!.stockAvailable, prod!.stockReserved]).toEqual([10, 0]); // released back
+    expect([prod!.stockAvailable, prod!.stockReserved]).toEqual([10, 0]);
     const cancelled = await db
       .select()
       .from(outboxMessages)
@@ -114,7 +113,6 @@ describe('payment saga — failure & compensation (reserved → failed → relea
     );
     const [payment] = await db.select().from(payments).where(eq(payments.orderId, orderId));
 
-    // fail first
     await postSignedWebhook(app, {
       providerEventId: crypto.randomUUID(),
       paymentId: payment!.id,
@@ -122,17 +120,16 @@ describe('payment saga — failure & compensation (reserved → failed → relea
       timestamp: Date.now(),
     });
 
-    // a later SUCCEEDED webhook with a DISTINCT event id passes dedup but must NOT flip status
     const late = await postSignedWebhook(app, {
       providerEventId: crypto.randomUUID(),
       paymentId: payment!.id,
       outcome: 'SUCCEEDED',
       timestamp: Date.now(),
     });
-    expect(late.statusCode).toBe(200); // no-op, not an error
+    expect(late.statusCode).toBe(200);
 
     const [still] = await db.select().from(payments).where(eq(payments.id, payment!.id));
-    expect(still!.status).toBe('failed'); // CAS on `pending` rejected the revive
+    expect(still!.status).toBe('failed');
     const succeededEvents = await db
       .select()
       .from(outboxMessages)

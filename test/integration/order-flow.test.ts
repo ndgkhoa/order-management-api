@@ -17,7 +17,7 @@ import { makeOutboxRelay } from '@infra/mq/outbox-relay.js';
 import { startConsumer } from '@infra/mq/consumer.js';
 import { assertTopology, NOTIFICATION_QUEUE } from '@infra/mq/topology.js';
 import { makeNotificationDispatcher } from '@modules/notifications/notifications-dispatch.js';
-import { makeEmailProvider } from '@infra/providers/email-provider.js';
+import { makeEmailProvider } from '@modules/notifications/channels/email.js';
 import { makeMailer } from '@infra/mail/mailer.js';
 import { buildTestApp, registerAndLogin } from '@test/helpers/build-test-app.js';
 import { resetDb } from '@test/helpers/reset-db.js';
@@ -40,12 +40,7 @@ async function findMailpitMessageTo(email: string, timeoutMs = 15_000): Promise<
   throw new Error(`no Mailpit message delivered to ${email} within ${timeoutMs}ms`);
 }
 
-/**
- * The showcase: POST /orders → outbox row → relay publishes to RabbitMQ → worker
- * consumes idempotently → email lands in Mailpit. Everything runs against real
- * containers (no mocks), asserting the full Transactional Outbox flow end-to-end.
- */
-describe('order flow integration (pg + rabbit + mailpit)', () => {
+describe('order flow (outbox → rabbit → email)', () => {
   let app: AppInstance;
   let publisher: RabbitPublisher;
   let consumerChannel: Awaited<
@@ -54,7 +49,6 @@ describe('order flow integration (pg + rabbit + mailpit)', () => {
 
   beforeAll(async () => {
     await resetDb();
-    // clear any mail left by a previous run so the assertion is unambiguous
     await fetch(`${process.env.MAILPIT_HTTP}/api/v1/messages`, { method: 'DELETE' });
 
     app = await buildTestApp();
@@ -97,15 +91,12 @@ describe('order flow integration (pg + rabbit + mailpit)', () => {
       })
       .then((r) => r.json<{ id: string; status: string }>());
 
-    // relay publishes the outbox row to RabbitMQ
     const relay = makeOutboxRelay({ db, publisher, log, intervalMs: 1000 });
     await relay.tick();
 
-    // worker consumed → email arrived in Mailpit
     const mail = await findMailpitMessageTo(email);
     expect(mail.To[0]!.Address).toBe(email);
 
-    // outbox stamped, order intact, dedupe row written
     const [outbox] = await db
       .select()
       .from(outboxMessages)
@@ -115,7 +106,6 @@ describe('order flow integration (pg + rabbit + mailpit)', () => {
     const [order] = await db.select().from(orders).where(eq(orders.id, created.id));
     expect(order!.status).toBe('pending');
 
-    // order_items written; no payment side effect in this phase
     const items = await db.select().from(orderItems).where(eq(orderItems.orderId, created.id));
     expect(items).toHaveLength(1);
 

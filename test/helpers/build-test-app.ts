@@ -4,13 +4,8 @@ import { db } from '@infra/db/client.js';
 import { users } from '@infra/db/schema.js';
 import { UserRoles } from '@/types/user-role.js';
 
-// Memoized: the metrics plugin registers default metrics on prom-client's GLOBAL
-// registry, so building the app twice in one process throws "already registered".
-// Tests run in a single fork, so one shared app is correct (data isolation is via
-// resetDb, not separate apps).
 let cached: Promise<AppInstance> | undefined;
 
-/** Boots the real Fastify app (no listen) for app.inject() tests; shared across files. */
 export function buildTestApp(): Promise<AppInstance> {
   cached ??= buildApp().then(async (app) => {
     await app.ready();
@@ -21,7 +16,6 @@ export function buildTestApp(): Promise<AppInstance> {
 
 const DEFAULT_PASSWORD = 'password1234';
 
-/** Registers a user and returns a valid Bearer token for authenticated routes. */
 export async function registerAndLogin(
   app: AppInstance,
   email = `user-${crypto.randomUUID()}@test.dev`,
@@ -37,10 +31,6 @@ export async function registerAndLogin(
   return { token: accessToken, email };
 }
 
-/**
- * Registers a user, promotes them to admin in the DB, then logs in so the issued JWT
- * carries `role: 'admin'`. Used to exercise admin-guarded routes.
- */
 export async function registerAdminAndLogin(
   app: AppInstance,
   email = `admin-${crypto.randomUUID()}@test.dev`,

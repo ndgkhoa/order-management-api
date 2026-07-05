@@ -1,21 +1,17 @@
 import { describe, it, expect } from 'vitest';
-import type { FastifyInstance, FastifyRequest } from 'fastify';
+import type { FastifyRequest } from 'fastify';
 import { UserRoles } from '@/types/user-role.js';
 import { Permissions } from '@/types/permission.js';
 import { makeRequirePermission } from '@plugins/rbac.js';
+import { httpErrorsStub } from '@test/helpers/http-errors.js';
 
-// Minimal httpErrors stub: forbidden() returns a throwable 403 (matches @fastify/sensible shape).
-const httpErrors = {
-  forbidden: (msg?: string) => Object.assign(new Error(msg ?? 'forbidden'), { statusCode: 403 }),
-} as unknown as FastifyInstance['httpErrors'];
-
-const requirePermission = makeRequirePermission(httpErrors);
+const requirePermission = makeRequirePermission(httpErrorsStub);
 const productCreateGuard = requirePermission(Permissions.Product.Create);
 
 const reqWithRoles = (roles: string[]) =>
   ({ user: { sub: 'u', email: 'e', roles } }) as unknown as FastifyRequest;
 
-describe('requirePermission guard', () => {
+describe('requirePermission', () => {
   it('resolves when a role grants the permission', async () => {
     await expect(productCreateGuard(reqWithRoles([UserRoles.Admin]))).resolves.toBeUndefined();
   });

@@ -3,8 +3,7 @@ import { db } from '@infra/db/client.js';
 import { processedMessages } from '@infra/db/schema.js';
 import { resetDb } from '@test/helpers/reset-db.js';
 
-/** The composite (consumer_name, event_id) PK is the dedupe key the consumers rely on. */
-describe('processed_messages composite dedup (real Postgres)', () => {
+describe('processedMessages dedup (real Postgres)', () => {
   beforeEach(resetDb);
 
   it('same (consumer, eventId) twice → second insert conflicts and is skipped', async () => {
@@ -21,7 +20,7 @@ describe('processed_messages composite dedup (real Postgres)', () => {
       .returning();
 
     expect(first).toHaveLength(1);
-    expect(second).toHaveLength(0); // dedup hit
+    expect(second).toHaveLength(0);
   });
 
   it('same eventId across different consumers both succeed (fan-out safe)', async () => {
@@ -38,6 +37,6 @@ describe('processed_messages composite dedup (real Postgres)', () => {
       .returning();
 
     expect(email).toHaveLength(1);
-    expect(inventory).toHaveLength(1); // independent consumer not blocked
+    expect(inventory).toHaveLength(1);
   });
 });

@@ -1,8 +1,8 @@
 import { describe, it, expect, vi } from 'vitest';
 import type { FastifyBaseLogger } from 'fastify';
-import { makeSmsProvider } from '@infra/providers/sms-provider.js';
+import { makeSmsProvider } from '@modules/notifications/channels/sms.js';
 
-describe('sms provider (stub)', () => {
+describe('smsProvider', () => {
   it('logs a TODO and resolves without throwing', async () => {
     const info = vi.fn();
     const log = { info } as unknown as FastifyBaseLogger;

@@ -35,7 +35,6 @@ async function seedProduct(available: number) {
   return row!;
 }
 
-/** Seeds a pending order + items and returns the order id. */
 async function seedOrder(userId: string, lines: { productId: string; quantity: number }[]) {
   const [order] = await db.insert(orders).values({ userId, totalCents: 100 }).returning();
   await db.insert(orderItems).values(
@@ -81,7 +80,7 @@ const item = (productId: string, quantity: number) => ({
   quantity,
 });
 
-describe('inventory reservation saga (real Postgres)', () => {
+describe('inventory reservation saga', () => {
   beforeEach(resetDb);
 
   it('reserves stock and emits inventory.reserved on success; order stays pending', async () => {
@@ -111,7 +110,7 @@ describe('inventory reservation saga (real Postgres)', () => {
     expect([pb!.stockAvailable, pb!.stockReserved]).toEqual([2, 3]);
 
     const [order] = await db.select().from(orders).where(eq(orders.id, orderId));
-    expect(order!.status).toBe('pending'); // reserved, not yet paid
+    expect(order!.status).toBe('pending');
 
     const emitted = await db
       .select()
@@ -127,8 +126,8 @@ describe('inventory reservation saga (real Postgres)', () => {
 
   it('cancels the order (out_of_stock) and reserves nothing when any line is short', async () => {
     const userId = await seedUser();
-    const a = await seedProduct(10); // enough
-    const b = await seedProduct(1); // short (need 3)
+    const a = await seedProduct(10);
+    const b = await seedProduct(1);
     const orderId = await seedOrder(userId, [
       { productId: a.id, quantity: 2 },
       { productId: b.id, quantity: 3 },
@@ -146,7 +145,6 @@ describe('inventory reservation saga (real Postgres)', () => {
     });
     expect(result).toBe('ack');
 
-    // no partial reservation — the sufficient line was rolled back too
     const [pa] = await db.select().from(products).where(eq(products.id, a.id));
     expect([pa!.stockAvailable, pa!.stockReserved]).toEqual([10, 0]);
 
@@ -179,10 +177,10 @@ describe('inventory reservation saga (real Postgres)', () => {
     const eventId = crypto.randomUUID();
 
     await reserveOnOrderCreated(orderCreatedMsg(eventId, payload), { db, log });
-    await reserveOnOrderCreated(orderCreatedMsg(eventId, payload), { db, log }); // redelivery
+    await reserveOnOrderCreated(orderCreatedMsg(eventId, payload), { db, log });
 
     const [pa] = await db.select().from(products).where(eq(products.id, a.id));
-    expect([pa!.stockAvailable, pa!.stockReserved]).toEqual([8, 2]); // reserved once, not twice
+    expect([pa!.stockAvailable, pa!.stockReserved]).toEqual([8, 2]);
 
     const dedupe = await db
       .select()

@@ -5,13 +5,7 @@ import { orders, products } from '@infra/db/schema.js';
 import { buildTestApp, registerAndLogin } from '@test/helpers/build-test-app.js';
 import { resetDb } from '@test/helpers/reset-db.js';
 
-/**
- * The Idempotency-Key contract on POST /orders: a retried request (same key) must
- * replay the original response and create NO second order; a different key is a new
- * order; concurrent same-key requests must not double-create (one wins, the other
- * replays or is told it is still in flight).
- */
-describe('idempotency on POST /orders (redis-backed)', () => {
+describe('order idempotency (POST /orders)', () => {
   let app: AppInstance;
   let token: string;
 
@@ -58,7 +52,6 @@ describe('idempotency on POST /orders (redis-backed)', () => {
 
     expect(first.statusCode).toBe(201);
     expect(second.statusCode).toBe(201);
-    // identical replayed body (same order id)
     expect(second.json()).toEqual(first.json());
 
     const rows = await db.select().from(orders);
@@ -87,7 +80,6 @@ describe('idempotency on POST /orders (redis-backed)', () => {
       postOrder(productId, 'key-concurrent'),
     ]);
 
-    // one create + one replay (both 201) OR one create (201) + one in-flight (409)
     const codes = [r1.statusCode, r2.statusCode].sort();
     expect(codes).toContain(201);
     expect(codes.every((c) => c === 201 || c === 409)).toBe(true);
@@ -98,7 +90,7 @@ describe('idempotency on POST /orders (redis-backed)', () => {
 
   it('does not replay another user’s response for a leaked key', async () => {
     const productId = await seedProduct();
-    await postOrder(productId, 'shared-key'); // user A stores under the key
+    await postOrder(productId, 'shared-key');
 
     const { token: tokenB } = await registerAndLogin(app);
     const asUserB = await app.inject({
@@ -108,7 +100,6 @@ describe('idempotency on POST /orders (redis-backed)', () => {
       payload: { items: [{ productId, quantity: 1 }] },
     });
 
-    // user B's key is scoped to user B → it creates B's own order, not A's replay
     expect(asUserB.statusCode).toBe(201);
     const rows = await db.select().from(orders);
     expect(rows).toHaveLength(2);

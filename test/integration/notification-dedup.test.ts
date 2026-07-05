@@ -5,7 +5,7 @@ import type { FastifyBaseLogger } from 'fastify';
 import { db } from '@infra/db/client.js';
 import { users, orders } from '@infra/db/schema.js';
 import { makeNotificationDispatcher } from '@modules/notifications/notifications-dispatch.js';
-import type { NotificationProvider } from '@infra/providers/notification-provider.js';
+import type { NotificationProvider } from '@modules/notifications/notification-interface.js';
 import { resetDb } from '@test/helpers/reset-db.js';
 
 const log = pino({ level: 'silent' }) as unknown as FastifyBaseLogger;
@@ -32,7 +32,7 @@ async function seedUserOrder() {
   return { orderId: order!.id, email };
 }
 
-describe('notification handler dedup', () => {
+describe('notification dedup', () => {
   beforeEach(resetDb);
 
   it('sends once and dispatches to the recipient even when the event is redelivered', async () => {
@@ -43,10 +43,10 @@ describe('notification handler dedup', () => {
 
     const eventId = crypto.randomUUID();
     expect(await handler(orderPaidMsg(eventId, orderId))).toBe('ack');
-    expect(await handler(orderPaidMsg(eventId, orderId))).toBe('ack'); // redelivery
+    expect(await handler(orderPaidMsg(eventId, orderId))).toBe('ack');
 
-    expect(send).toHaveBeenCalledTimes(1); // deduped on eventId
-    expect(send.mock.calls[0]![0]).toBe(email); // dispatched to the order's owner
+    expect(send).toHaveBeenCalledTimes(1);
+    expect(send.mock.calls[0]![0]).toBe(email);
   });
 
   it('acks and does not send for an unrouted event', async () => {
@@ -60,7 +60,7 @@ describe('notification handler dedup', () => {
 
     const envelope = {
       eventId: crypto.randomUUID(),
-      eventType: 'shipment.ready_for_pickup', // not in the notification routing table
+      eventType: 'shipment.ready_for_pickup',
       correlationId: orderId,
       occurredAt: new Date().toISOString(),
       payload: { orderId },

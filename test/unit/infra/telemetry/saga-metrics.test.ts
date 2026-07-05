@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { sagaMetrics } from '@infra/telemetry/saga-metrics.js';
 import { counterValue } from '@test/helpers/metric-value.js';
 
-describe('saga metrics', () => {
+describe('sagaMetrics', () => {
   it('exposes and increments a counter per saga milestone', async () => {
     const cases: [() => void, string][] = [
       [() => sagaMetrics.ordersCreated.inc(), 'saga_orders_created_total'],

@@ -20,7 +20,7 @@ async function seedProduct(available: number) {
   return row!;
 }
 
-describe('inventoryRepo.reserve (real Postgres)', () => {
+describe('inventoryRepository.reserve (real Postgres)', () => {
   beforeEach(resetDb);
 
   it('moves available → reserved when stock suffices', async () => {
