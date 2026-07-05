@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.1.5](https://github.com/ndgkhoa/order-management-api/compare/v0.1.4...v0.1.5) (2026-07-05)
+
+
+### Features
+
+* permission-based multi-role RBAC ([0658134](https://github.com/ndgkhoa/order-management-api/commit/06581346a81c6e8cd4099bc3521808189f4b7f05))
+
+
+### Bug Fixes
+
+* **docker:** route the mock payment webhook to the api service ([0832888](https://github.com/ndgkhoa/order-management-api/commit/08328884e125b800feb8b107477b67517a9a5a94))
+
 ## [0.1.4](https://github.com/ndgkhoa/order-management-api/compare/v0.1.3...v0.1.4) (2026-07-04)
 
 ### Features
