@@ -2,7 +2,7 @@
 
 A choreography saga has no central coordinator, so failure handling is **compensating actions**:
 each step knows how to undo the reservation it depends on. All stock math goes through the
-guarded helpers in `adjust-stock.ts` (`WHERE stock_reserved >= q` / non-negative CHECK
+guarded helpers in `inventory-repository.ts` (`WHERE stock_reserved >= q` / non-negative CHECK
 constraints), so a compensation can never over-credit stock or double-release.
 
 ## The three failure paths

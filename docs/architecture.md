@@ -68,7 +68,7 @@ racing writer updates zero rows and no-ops — a terminal order can never be rev
   `/metrics`.
 - **Worker** (`src/workers/worker.ts`): one channel per consumer (independent prefetch), plus a
   relay and the reaper. Consumers: `inventory` (reserve), `payment-create`, `mock-provider`,
-  `payment-complete`, `payment-compensate`, `shipping`, `notifications`, `email`.
+  `payment-complete`, `payment-compensate`, `shipping`, `notifications`.
 
 ## Related docs
 

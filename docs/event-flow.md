@@ -9,7 +9,7 @@ the next event in the **same transaction** as the state change.
 ```mermaid
 flowchart TD
   A[POST /orders] -->|order.created| B[inventory: reserve stock]
-  A -.->|order.created| M0[email: order confirmation]
+  A -.->|order.created| M0[notify: order confirmation]
   B -->|inventory.reserved| C[create pending payment]
   C -->|payment.created| D[mock provider: schedule webhook]
   D -->|POST /webhooks/payment<br/>HMAC-signed| E[payment: verify + settle]
@@ -67,7 +67,7 @@ sequenceDiagram
 
 | Event                                                                | Emitted by                                                    | Consumed by                               |
 | -------------------------------------------------------------------- | ------------------------------------------------------------- | ----------------------------------------- |
-| `order.created`                                                      | POST /orders (API)                                            | inventory, email                          |
+| `order.created`                                                      | POST /orders (API)                                            | inventory, notifications                  |
 | `inventory.reserved`                                                 | inventory consumer                                            | payment-create                            |
 | `payment.created`                                                    | payment-create                                                | mock provider                             |
 | `payment.succeeded` / `payment.failed`                               | payment webhook (API)                                         | payment-complete / payment-compensate     |

@@ -44,15 +44,16 @@ succeeds.
 Secrets come from the platform's secret store — **never** committed
 (full list + defaults in [`.env.example`](../.env.example)):
 
-| Var                           | Notes                                          |
-| ----------------------------- | ---------------------------------------------- |
-| `DATABASE_URL`                | Postgres connection string (managed or in-net) |
-| `RABBITMQ_URL`                | amqp(s) broker URL                             |
-| `JWT_SECRET`                  | **32+ chars**, unique per environment          |
-| `SMTP_HOST` / `SMTP_PORT`     | real SMTP (SES/Mailgun/…) — not Mailpit        |
-| `MAIL_FROM`                   | sender address                                 |
-| `OTEL_EXPORTER_OTLP_ENDPOINT` | OTLP/HTTP collector (optional)                 |
-| `SENTRY_DSN`                  | error tracking (optional)                      |
+| Var                           | Notes                                                                        |
+| ----------------------------- | ---------------------------------------------------------------------------- |
+| `DATABASE_URL`                | Postgres connection string (managed or in-net)                               |
+| `RABBITMQ_URL`                | amqp(s) broker URL                                                           |
+| `JWT_SECRET`                  | **32+ chars**, unique per environment                                        |
+| `SMTP_HOST` / `SMTP_PORT`     | real SMTP (SES/Mailgun/…) — not Mailpit                                      |
+| `MAIL_FROM`                   | sender address                                                               |
+| `PAYMENT_WEBHOOK_URL`         | public URL the payment provider posts to (`https://<host>/webhooks/payment`) |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | OTLP/HTTP collector (optional)                                               |
+| `SENTRY_DSN`                  | error tracking (optional)                                                    |
 
 `NODE_ENV=production` is baked into the image.
 
@@ -70,7 +71,8 @@ fly secrets set \
   RABBITMQ_URL='amqps://...cloudamqp.com/vhost' \
   JWT_SECRET='<32+ char secret>' \
   SMTP_HOST='email-smtp.region.amazonaws.com' SMTP_PORT='587' \
-  MAIL_FROM='orders@yourdomain.com'
+  MAIL_FROM='orders@yourdomain.com' \
+  PAYMENT_WEBHOOK_URL='https://yourdomain.com/webhooks/payment'
 
 fly deploy --image ghcr.io/ndgkhoa/order-management-api:X.Y.Z   # or build from the Dockerfile
 ```
