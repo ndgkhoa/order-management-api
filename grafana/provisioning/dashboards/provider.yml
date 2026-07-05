@@ -1,6 +1,5 @@
 apiVersion: 1
 
-# Auto-load every dashboard JSON in this folder on boot (dashboards-as-code).
 providers:
   - name: default
     orgId: 1

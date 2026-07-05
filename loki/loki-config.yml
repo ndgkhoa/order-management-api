@@ -1,7 +1,3 @@
-# Loki single-binary config for a single VM (filesystem storage, no object store).
-# Mirrors the Prometheus/Jaeger "one container, local disk" footprint of this stack —
-# not a clustered deployment. Swap `common.storage` for s3/gcs to scale out later.
-
 auth_enabled: false
 
 server:
@@ -32,7 +28,7 @@ schema_config:
         period: 24h
 
 limits_config:
-  retention_period: 168h # 7 days; older chunks are pruned by the compactor below
+  retention_period: 168h
   reject_old_samples: false
   volume_enabled: true
 

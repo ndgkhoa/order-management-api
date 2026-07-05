@@ -1,7 +1,3 @@
-# Release automation. release-please reads conventional commits on develop and maintains a
-# "release PR" that bumps the version + CHANGELOG. Merging that PR creates the GitHub Release + tag.
-# When a release is cut, we build the VERSIONED image (:X.Y.Z + :latest) here — a tag created by
-# GITHUB_TOKEN does NOT retrigger ci.yml, so the build must run in this same workflow run.
 name: Release
 
 on:
@@ -13,14 +9,14 @@ permissions:
 
 concurrency:
   group: release-${{ github.ref }}
-  cancel-in-progress: false # never cancel a release mid-flight
+  cancel-in-progress: false
 
 jobs:
   release-please:
     runs-on: ubuntu-latest
     permissions:
-      contents: write # create releases/tags
-      pull-requests: write # open/maintain the release PR
+      contents: write
+      pull-requests: write
     outputs:
       release_created: ${{ steps.release.outputs.release_created }}
       tag_name: ${{ steps.release.outputs.tag_name }}
@@ -28,8 +24,6 @@ jobs:
       - uses: googleapis/release-please-action@v5
         id: release
         with:
-          # Config + manifest live in the repo root (release-please-config.json,
-          # .release-please-manifest.json) — manifest mode, release-type: node.
           token: ${{ secrets.GITHUB_TOKEN }}
 
   image:
@@ -42,7 +36,6 @@ jobs:
       contents: read
       packages: write
     steps:
-      # Check out the exact release tag so the image content matches the version.
       - uses: actions/checkout@v7
         with:
           ref: ${{ needs.release-please.outputs.tag_name }}
@@ -60,8 +53,6 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # tag v1.2.3 → :1.2.3, :1.2 and :latest, plus immutable :sha-<short>.
-      # One build, pushed to BOTH registries (GHCR + Docker Hub) with identical tags.
       - name: Docker metadata
         id: meta
         uses: docker/metadata-action@v6
@@ -87,10 +78,8 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      # Each build pushes an untagged provenance/orphan manifest — prune them so the package
-      # stays clean. NEVER touches tagged versions (releases, :latest, :sha-…).
       - name: Prune untagged image versions
-        continue-on-error: true # cleanup must never fail the release
+        continue-on-error: true
         uses: actions/delete-package-versions@v5
         with:
           package-name: order-management-api

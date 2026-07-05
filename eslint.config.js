@@ -1,5 +1,3 @@
-// ESLint 9 flat config. Type-aware linting scoped to TS source; JS config files
-// get basic linting only (no type-checking project service).
 import js from '@eslint/js';
 import tseslint from 'typescript-eslint';
 import prettier from 'eslint-config-prettier';
@@ -12,7 +10,6 @@ export default tseslint.config(
     extends: [...tseslint.configs.recommendedTypeChecked],
     languageOptions: {
       parserOptions: {
-        // tsconfig.json is the broad config (src + test), so one project covers everything.
         project: ['./tsconfig.json'],
         tsconfigRootDir: import.meta.dirname,
       },
@@ -23,8 +20,6 @@ export default tseslint.config(
     },
   },
   {
-    // Tests cast injected/AMQP payloads and use loose JSON shapes — the unsafe-* family
-    // is noise here, not a real risk.
     files: ['test/**/*.ts'],
     rules: {
       '@typescript-eslint/no-unsafe-assignment': 'off',

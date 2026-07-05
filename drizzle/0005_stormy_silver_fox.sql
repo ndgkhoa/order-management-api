@@ -1,6 +1,3 @@
--- Breaking reshape of orders into a multi-line aggregate. Legacy single-product order
--- rows are incompatible with the new NOT NULL total_cents column; per plan, dev/legacy
--- orders are dropped (a production cutover would backfill total_cents instead).
 DELETE FROM "orders";--> statement-breakpoint
 CREATE TABLE "order_items" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
