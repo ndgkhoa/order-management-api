@@ -9,12 +9,6 @@ interface OrderReaperDeps {
   thresholdMs: number;
 }
 
-/**
- * Stuck-order reaper: periodically flags orders left `pending` longer than `thresholdMs`
- * (e.g. a saga step whose event was lost). Observability-first — it logs the stuck orders
- * for alerting / manual recovery; it does NOT auto-cancel (that risks cancelling a
- * legitimately slow order). Runs in the worker process alongside the relay.
- */
 export function makeOrderReaper({ db, log, intervalMs, thresholdMs }: OrderReaperDeps) {
   let timer: NodeJS.Timeout | null = null;
   let running = false;
@@ -42,7 +36,7 @@ export function makeOrderReaper({ db, log, intervalMs, thresholdMs }: OrderReape
   }
 
   return {
-    sweep, // exposed so tests can drive a single sweep deterministically
+    sweep,
     start(): void {
       if (timer) return;
       timer = setInterval(() => void sweep(), intervalMs);

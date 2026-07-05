@@ -6,11 +6,10 @@ import { makeShipmentsController } from '@modules/shipping/shipments-controller.
 import { ShipmentPublic, IdParams } from '@modules/shipping/shipments-schema.js';
 import { errorResponses } from '@infra/http/error-responses.js';
 
-/** /shipments admin routes. Manual one-step advance (also the lost-timer recovery path). */
 export const shipmentsRoutes: FastifyPluginAsyncTypebox = (app) => {
   const shipmentsRepo = makeShipmentsRepository(app.db);
   const service = makeShipmentsService({ shipmentsRepo, httpErrors: app.httpErrors });
-  const controller = makeShipmentsController({ service });
+  const controller = makeShipmentsController(service);
 
   app.patch(
     '/:id/status',

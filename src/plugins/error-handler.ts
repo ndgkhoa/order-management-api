@@ -3,18 +3,12 @@ import type { FastifyError } from 'fastify';
 import { buildProblem, problemType, titleFor } from '@infra/http/problem-details.js';
 import { captureError } from '@infra/telemetry/sentry.js';
 
-/**
- * Normalizes EVERY error into an RFC 7807 Problem Details response
- * (`application/problem+json`) with a `requestId`. Single source of error truth:
- * validation (400), httpErrors, JWT (401), rate-limit (429), unexpected (500),
- * and unknown routes (404) all share one shape.
- */
 export const errorHandlerPlugin = fp((app) => {
   app.setErrorHandler((err: FastifyError, req, reply) => {
     const status = err.statusCode ?? 500;
     if (status >= 500) {
       req.log.error({ err }, 'unhandled error');
-      captureError(err); // forward 5xx to Sentry (no-op without DSN)
+      captureError(err);
     }
     reply.code(status).type('application/problem+json').send(buildProblem(err, req));
   });

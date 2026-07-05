@@ -5,7 +5,6 @@ import { makeUsersController } from '@modules/users/users-controller.js';
 import { UserPublic } from '@modules/users/users-schema.js';
 import { errorResponses } from '@infra/http/error-responses.js';
 
-/** /users routes. GET /me is protected by the `authenticate` preHandler (JWT). */
 export const usersRoutes: FastifyPluginAsyncTypebox = (app) => {
   const usersRepo = makeUsersRepository(app.db);
   const service = makeUsersService({ usersRepo, httpErrors: app.httpErrors });

@@ -1,4 +1,4 @@
-import '@config/env-loader.js'; // loads .env before db pool reads process.env (OTel preloaded via --import)
+import '@config/env-loader.js';
 import { pino } from 'pino';
 import { db } from '@infra/db/client.js';
 import { closePool } from '@infra/db/pool.js';
@@ -25,11 +25,11 @@ import { compensateOnPaymentFailed } from '@/sagas/compensate-on-payment-failed.
 import {
   fakeProviderOnPaymentCreated,
   type FakeProviderConfig,
-} from '@infra/providers/fake-payment-provider.js';
+} from '@modules/payments/fake-payment-provider.js';
 import { makeShippingConsumer } from './fake-shipping-worker.js';
 import { makeNotificationDispatcher } from '@modules/notifications/notifications-dispatch.js';
-import { makeEmailProvider } from '@infra/providers/email-provider.js';
-import { makeSmsProvider } from '@infra/providers/sms-provider.js';
+import { makeEmailProvider } from '@modules/notifications/channels/email.js';
+import { makeSmsProvider } from '@modules/notifications/channels/sms.js';
 
 function buildLogger() {
   const options = { level: process.env.LOG_LEVEL ?? 'info' };
@@ -40,22 +40,15 @@ function buildLogger() {
 
 const num = (v: string | undefined, fallback: number) => (v ? Number(v) : fallback);
 
-/**
- * Background worker: hosts every async consumer plus the outbox relay and the stuck-order
- * reaper in one process. Each consumer gets its own channel (independent prefetch) on its
- * own queue. Running the relay here (in addition to the API) means consumer-emitted saga
- * events still publish even if the API is down — `FOR UPDATE SKIP LOCKED` keeps the two
- * relays from double-publishing.
- */
 async function main(): Promise<void> {
   const log = buildLogger();
   const conn = await getConnection(log);
 
   const inventoryChannel = await conn.createChannel();
-  await assertTopology(inventoryChannel); // idempotent; declares all queues once
+  await assertTopology(inventoryChannel);
 
   const mailer = makeMailer();
-  const mailFrom = process.env.MAIL_FROM ?? 'no-reply@orders.local';
+  const mailFrom = process.env.MAIL_FROM ?? 'no-reply@orders.test';
   await startConsumer(
     inventoryChannel,
     ORDER_INVENTORY_QUEUE,
@@ -63,7 +56,6 @@ async function main(): Promise<void> {
     { log },
   );
 
-  // Payment saga consumers, each on its own channel.
   const mockConfig: FakeProviderConfig = {
     webhookUrl: process.env.PAYMENT_WEBHOOK_URL ?? 'http://localhost:3000/webhooks/payment',
     secret: process.env.WEBHOOK_HMAC_SECRET ?? '',
@@ -106,7 +98,6 @@ async function main(): Promise<void> {
   });
   await startConsumer(shippingChannel, SHIPPING_QUEUE, shippingConsumer, { log });
 
-  // Notifications: one consumer fans user-facing events out to channel providers.
   const notificationChannel = await conn.createChannel();
   const notificationHandler = makeNotificationDispatcher({
     db,

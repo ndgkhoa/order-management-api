@@ -18,12 +18,6 @@ interface HandlerDeps {
   log: FastifyBaseLogger;
 }
 
-/**
- * `inventory.reserved` → create the order's single pending payment (amount = order total) and
- * emit `payment.created`, both in ONE transaction (outbox), idempotent by
- * (consumer='payment-create', eventId). The unique `order_id` on payments is a second guard:
- * if a payment already exists, we skip the emit rather than double-charge.
- */
 export async function createPaymentOnReserved(
   msg: ConsumeMessage,
   { db, log }: HandlerDeps,
@@ -37,7 +31,7 @@ export async function createPaymentOnReserved(
   const paymentsRepo = makePaymentsRepository(db);
   try {
     await db.transaction(async (tx) => {
-      if (!(await claimOnce(tx, PAYMENT_CREATE_CONSUMER, eventId))) return; // duplicate delivery
+      if (!(await claimOnce(tx, PAYMENT_CREATE_CONSUMER, eventId))) return;
 
       const [order] = await tx
         .select({ totalCents: orders.totalCents })

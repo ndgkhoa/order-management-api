@@ -3,12 +3,6 @@ import { Type } from '@sinclair/typebox';
 import { sql } from 'drizzle-orm';
 import { isMqHealthy } from '@infra/mq/connection.js';
 
-/**
- * Liveness vs readiness probes (for Docker/K8s).
- * - /health: process is up (no dependency checks) → always 200.
- * - /ready: dependencies reachable. DB is checked with `SELECT 1`;
- *   the RabbitMQ check is stubbed true until phase 07 wires it.
- */
 export function healthRoutes(app: FastifyInstance): void {
   const publicProbe = { tags: ['health'], security: [] };
 

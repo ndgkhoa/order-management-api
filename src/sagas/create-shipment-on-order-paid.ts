@@ -19,12 +19,6 @@ interface HandlerDeps {
   log: FastifyBaseLogger;
 }
 
-/**
- * `order.paid` → create the order's single shipment (pending), move the order
- * `paid → fulfilling`, record the history row, and emit `shipment.created` — one transaction,
- * idempotent by (consumer='shipping', eventId) plus the unique `order_id`. Returns the new
- * `shipmentId` so the worker can schedule the timed advances (undefined if it was a duplicate).
- */
 export async function createShipmentOnOrderPaid(
   msg: ConsumeMessage,
   { db, log }: HandlerDeps,
@@ -39,11 +33,8 @@ export async function createShipmentOnOrderPaid(
     const ordersRepo = makeOrdersRepository(db);
     let shipmentId: string | undefined;
     await db.transaction(async (tx) => {
-      if (!(await claimOnce(tx, SHIPPING_CONSUMER, eventId))) return; // duplicate delivery
+      if (!(await claimOnce(tx, SHIPPING_CONSUMER, eventId))) return;
 
-      // Win the order first: this CAS acquires the order row lock, so a concurrent cancel is
-      // serialized behind us and will find status='fulfilling' → rejected. Only if we win do we
-      // create the shipment — never leave an orphaned/advancing shipment for a cancelled order.
       const moved = await ordersRepo.transition(
         tx,
         orderId,

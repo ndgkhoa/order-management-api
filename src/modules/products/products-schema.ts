@@ -2,7 +2,8 @@ import { Type, type Static } from '@sinclair/typebox';
 import type { InferSelectModel } from 'drizzle-orm';
 import type { products } from '@infra/db/schema.js';
 
-/** Admin create-product body. SKU + name required; stock optional (defaults to 0). */
+export type ProductRow = InferSelectModel<typeof products>;
+
 export const CreateProductBody = Type.Object({
   sku: Type.String({ minLength: 1, maxLength: 64 }),
   name: Type.String({ minLength: 1, maxLength: 200 }),
@@ -13,7 +14,6 @@ export const CreateProductBody = Type.Object({
 });
 export type CreateProductBody = Static<typeof CreateProductBody>;
 
-/** Admin update-product body — all fields optional (partial update). SKU is immutable. */
 export const UpdateProductBody = Type.Object({
   name: Type.Optional(Type.String({ minLength: 1, maxLength: 200 })),
   description: Type.Optional(Type.String({ maxLength: 2000 })),
@@ -23,7 +23,8 @@ export const UpdateProductBody = Type.Object({
 });
 export type UpdateProductBody = Static<typeof UpdateProductBody>;
 
-/** Public product shape. `stockReserved` is an internal reservation detail — not exposed. */
+export const IdParams = Type.Object({ id: Type.String({ format: 'uuid' }) });
+
 export const ProductPublic = Type.Object({
   id: Type.String(),
   sku: Type.String(),
@@ -37,9 +38,6 @@ export const ProductPublic = Type.Object({
 });
 export type ProductPublic = Static<typeof ProductPublic>;
 
-export type ProductRow = InferSelectModel<typeof products>;
-
-/** Maps a DB row to the public DTO (Dates → ISO strings, reserved dropped). */
 export function toProductPublic(p: ProductRow): ProductPublic {
   return {
     id: p.id,
@@ -53,6 +51,3 @@ export function toProductPublic(p: ProductRow): ProductPublic {
     updatedAt: p.updatedAt.toISOString(),
   };
 }
-
-/** Route param: a single UUID `id` (`/resource/:id`). */
-export const IdParams = Type.Object({ id: Type.String({ format: 'uuid' }) });

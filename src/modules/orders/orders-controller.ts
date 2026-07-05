@@ -8,11 +8,6 @@ import {
   toOrderDetail,
 } from '@modules/orders/orders-schema.js';
 
-/**
- * HTTP glue for /orders. userId comes from the verified JWT, never the body.
- * `req.body`/`req.params` are cast — the route schema already validated them at runtime
- * (the TypeBox provider can't infer types into handlers defined in a separate file).
- */
 export function makeOrdersController(service: OrdersService) {
   return {
     create: async (req: FastifyRequest, reply: FastifyReply) => {
@@ -22,7 +17,6 @@ export function makeOrdersController(service: OrdersService) {
     },
 
     list: async (req: FastifyRequest) => {
-      // Callers with order:read:all see every order; everyone else sees only their own.
       const list = hasPermission(req.user.roles, Permissions.Order.ReadAll)
         ? await service.listAll()
         : await service.list(req.user.sub);

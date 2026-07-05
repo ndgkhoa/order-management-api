@@ -6,10 +6,6 @@ import { makeAuthController } from '@modules/auth/auth-controller.js';
 import { LoginBody, RegisterBody, TokenResponse } from '@modules/auth/auth-schema.js';
 import { errorResponses } from '@infra/http/error-responses.js';
 
-/**
- * /auth routes. Wires repository → service → controller (DI from app decorators).
- * TypeBox schemas drive validation, OpenAPI, and body typing.
- */
 export const authRoutes: FastifyPluginAsyncTypebox = (app) => {
   const usersRepo = makeUsersRepository(app.db);
   const service = makeAuthService({
@@ -24,7 +20,7 @@ export const authRoutes: FastifyPluginAsyncTypebox = (app) => {
     {
       schema: {
         tags: ['auth'],
-        security: [], // public
+        security: [],
         body: RegisterBody,
         response: { 201: UserPublic, ...errorResponses(400, 409) },
       },
@@ -37,7 +33,7 @@ export const authRoutes: FastifyPluginAsyncTypebox = (app) => {
     {
       schema: {
         tags: ['auth'],
-        security: [], // public
+        security: [],
         body: LoginBody,
         response: { 200: TokenResponse, ...errorResponses(400, 401) },
       },

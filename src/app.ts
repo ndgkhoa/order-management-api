@@ -22,7 +22,6 @@ import { ordersRoutes } from '@modules/orders/orders-routes.js';
 import { paymentsRoutes } from '@modules/payments/payments-routes.js';
 import { shipmentsRoutes } from '@modules/shipping/shipments-routes.js';
 
-/** Pretty logs in dev, structured JSON in production. */
 function loggerOptions(): FastifyServerOptions['logger'] {
   const level = process.env.LOG_LEVEL ?? 'info';
   return process.env.NODE_ENV === 'production'
@@ -30,15 +29,8 @@ function loggerOptions(): FastifyServerOptions['logger'] {
     : { level, transport: { target: 'pino-pretty' } };
 }
 
-/**
- * Builds a configured Fastify instance WITHOUT listening, so `app.inject()` tests
- * can reuse it. `server.ts` is the only place that calls `listen`.
- *
- * Plugin order matters: env first (provides app.config used by jwt), then
- * security/jwt/swagger/db, then the error handler, then routes.
- */
 export async function buildApp() {
-  initSentry(); // no-op without SENTRY_DSN
+  initSentry();
 
   const app = Fastify({
     logger: loggerOptions(),
@@ -48,26 +40,26 @@ export async function buildApp() {
 
   app.setValidatorCompiler(TypeBoxValidatorCompiler);
 
-  await app.register(envPlugin); // -> app.config
-  await app.register(fastifySensible); // httpErrors helpers
+  await app.register(envPlugin);
+  await app.register(fastifySensible);
   await app.register(correlationIdPlugin);
-  await app.register(metricsPlugin); // /metrics for Prometheus
-  await app.register(redisPlugin); // -> app.redis (before security: rate-limit store)
-  await app.register(securityPlugin); // Redis-backed rate limit (needs app.redis)
-  await app.register(jwtPlugin); // -> app.authenticate
-  await app.register(rbacPlugin); // -> app.requirePermission (needs app.httpErrors from sensible)
-  await app.register(swaggerPlugin); // /docs
-  await app.register(dbPlugin); // -> app.db
-  await app.register(errorHandlerPlugin); // RFC 7807
-  await app.register(idempotencyPlugin); // -> app.idempotency (needs redis + httpErrors)
+  await app.register(metricsPlugin);
+  await app.register(redisPlugin);
+  await app.register(securityPlugin);
+  await app.register(jwtPlugin);
+  await app.register(rbacPlugin);
+  await app.register(swaggerPlugin);
+  await app.register(dbPlugin);
+  await app.register(errorHandlerPlugin);
+  await app.register(idempotencyPlugin);
 
   await app.register(healthRoutes);
   await app.register(authRoutes, { prefix: '/auth' });
   await app.register(usersRoutes, { prefix: '/users' });
   await app.register(productsRoutes, { prefix: '/products' });
   await app.register(ordersRoutes, { prefix: '/orders' });
-  await app.register(paymentsRoutes); // /webhooks/payment + /mock-payments/* (own raw-body parser)
-  await app.register(shipmentsRoutes, { prefix: '/shipments' }); // admin manual advance
+  await app.register(paymentsRoutes);
+  await app.register(shipmentsRoutes, { prefix: '/shipments' });
 
   return app;
 }

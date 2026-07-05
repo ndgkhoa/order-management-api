@@ -2,7 +2,6 @@ import type { Channel, ConsumeMessage } from 'amqplib';
 import type { FastifyBaseLogger } from 'fastify';
 import { ORDER_EVENTS_EXCHANGE } from '@infra/mq/outbox-event-types.js';
 
-/** What a message handler asks the consumer to do: acknowledge, or retry (nack + backoff). */
 export type HandlerResult = 'ack' | 'retry';
 
 const delay = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
@@ -13,13 +12,6 @@ interface ConsumerOptions {
   prefetch?: number;
 }
 
-/**
- * Generic consumer: prefetch-bounded, with in-process retry + exponential backoff,
- * then dead-letter (nack no-requeue → DLX → DLQ) after maxAttempts. Retry count is
- * carried in the `x-attempts` header on re-publish.
- * (Production alternative: a dedicated TTL retry queue that dead-letters back to the
- * main queue, avoiding an in-process delay that holds the channel.)
- */
 export async function startConsumer(
   ch: Channel,
   queue: string,
@@ -41,11 +33,11 @@ export async function startConsumer(
 
     if (attempts >= maxAttempts) {
       log.warn({ messageId: msg.properties.messageId, attempts }, 'max attempts reached → DLQ');
-      ch.nack(msg, false, false); // no requeue → dead-letters to DLX/DLQ
+      ch.nack(msg, false, false);
       return;
     }
 
-    await delay(2 ** attempts * 200); // exponential backoff
+    await delay(2 ** attempts * 200);
     ch.publish(ORDER_EVENTS_EXCHANGE, msg.fields.routingKey, msg.content, {
       ...msg.properties,
       headers: { ...headers, 'x-attempts': attempts },

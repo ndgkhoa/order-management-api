@@ -12,7 +12,6 @@ import {
 } from '@modules/orders/orders-schema.js';
 import { errorResponses } from '@infra/http/error-responses.js';
 
-/** /orders routes — all authenticated. POST creates order + items + outbox atomically. */
 export const ordersRoutes: FastifyPluginAsyncTypebox = (app) => {
   const ordersRepo = makeOrdersRepository(app.db);
   const productsRepo = makeProductsRepository(app.db, app.redis);
@@ -22,8 +21,6 @@ export const ordersRoutes: FastifyPluginAsyncTypebox = (app) => {
   app.post(
     '/',
     {
-      // idempotency runs after authenticate so the key is scoped to the verified user;
-      // a retried Idempotency-Key replays the original 201 instead of creating a duplicate.
       preHandler: [app.authenticate, app.idempotency],
       schema: {
         tags: ['orders'],
@@ -59,8 +56,6 @@ export const ordersRoutes: FastifyPluginAsyncTypebox = (app) => {
     controller.get,
   );
 
-  // Customer (owner) or admin cancel. Pre-ship only: paid → refund+restock, pending → release;
-  // fulfilling/delivered → 409. Ownership is enforced inside service.cancel (IDOR guard).
   app.post(
     '/:id/cancel',
     {

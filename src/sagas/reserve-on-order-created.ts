@@ -23,19 +23,8 @@ interface HandlerDeps {
   log: FastifyBaseLogger;
 }
 
-/** This consumer's identity in the per-consumer dedupe key (distinct from 'email'). */
-
-/** Thrown inside the reserve savepoint so a single insufficient line rolls back ALL reserves. */
 class InsufficientStockError extends Error {}
 
-/**
- * `order.created` → reserve stock for every line. In ONE db transaction, keyed idempotent by
- * (consumer='inventory', eventId): reserve each item with a guarded atomic UPDATE inside a
- * savepoint. If ALL succeed → commit + emit `inventory.reserved`. If ANY line is short → the
- * savepoint rolls back the partial reserves (all-or-nothing), the order is cancelled
- * (out_of_stock, compare-and-set on `pending`), and `order.cancelled` is emitted. Both the
- * next event and the state change commit together (transactional outbox).
- */
 export async function reserveOnOrderCreated(
   msg: ConsumeMessage,
   { db, log }: HandlerDeps,
@@ -55,11 +44,10 @@ export async function reserveOnOrderCreated(
 
     await db.transaction(async (tx) => {
       if (!(await claimOnce(tx, INVENTORY_CONSUMER, eventId))) {
-        duplicate = true; // already processed → don't reserve again
+        duplicate = true;
         return;
       }
 
-      // Savepoint: any short line throws → the whole reserve rolls back (no partial hold).
       try {
         await tx.transaction(async (sp) => {
           for (const item of items) {
@@ -85,9 +73,6 @@ export async function reserveOnOrderCreated(
           payload,
         });
       } else {
-        // Compare-and-set: only cancel an order still pending. Emit order.cancelled ONLY if
-        // this update actually transitioned a row — so a redelivery or an already-terminal
-        // order (future pay/cancel race) never produces a spurious cancellation event.
         const cancelled = await ordersRepo.transition(
           tx,
           orderId,

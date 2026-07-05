@@ -12,12 +12,6 @@ import {
 } from '@modules/payments/payments-schema.js';
 import { errorResponses } from '@infra/http/error-responses.js';
 
-/**
- * Payment webhook + mock control endpoints. Registered without a prefix (full paths). A
- * content-type parser SCOPED to this plugin keeps the raw JSON bytes on `req.rawBody` so the
- * webhook can verify the HMAC against exactly what the provider signed (the global parser only
- * yields the parsed object). Other modules keep the default parser.
- */
 export const paymentsRoutes: FastifyPluginAsyncTypebox = (app) => {
   app.addContentTypeParser('application/json', { parseAs: 'string' }, (req, bodyStr, done) => {
     (req as FastifyRequest).rawBody = bodyStr as string;
@@ -60,7 +54,6 @@ export const paymentsRoutes: FastifyPluginAsyncTypebox = (app) => {
     controller.webhook,
   );
 
-  // Dev/test only: force a payment outcome (drives the real saga). Admin-guarded.
   const mockGuards = {
     preHandler: [app.authenticate, app.requirePermission(Permissions.Payment.Force)],
   };

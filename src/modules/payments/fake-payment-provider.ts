@@ -9,19 +9,12 @@ import { MOCK_PROVIDER_CONSUMER } from '@/constants/index.js';
 import { signWebhook } from '@infra/http/webhook-signature.js';
 import type { SettleOutcome } from '@modules/payments/payments-schema.js';
 
-/** Distinct dedup dimension so the mock provider processes each payment.created once. */
-
 export interface FakeProviderConfig {
   webhookUrl: string;
   secret: string;
   delayMs: number;
 }
 
-/**
- * Simulates a payment provider by posting a fresh HMAC-signed webhook back to our own API.
- * A new `providerEventId` per delivery keeps deliveries distinct; the API dedups on it.
- * Shared by the auto-timer (default SUCCEEDED) and the admin force-endpoints.
- */
 export async function deliverPaymentResult(
   config: Pick<FakeProviderConfig, 'webhookUrl' | 'secret'>,
   paymentId: string,
@@ -55,11 +48,6 @@ interface HandlerDeps {
   log: FastifyBaseLogger;
 }
 
-/**
- * `payment.created` consumer: after `delayMs`, delivers a default SUCCEEDED webhook. The timer
- * is in-process (lost on restart — acceptable for a mock; a real provider would use a durable
- * delayed message). Admin force-endpoints can drive an explicit outcome out of band.
- */
 export async function fakeProviderOnPaymentCreated(
   msg: ConsumeMessage,
   { db, config, log }: HandlerDeps,

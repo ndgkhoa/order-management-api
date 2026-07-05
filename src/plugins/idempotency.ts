@@ -7,8 +7,6 @@ import {
   DONE_TTL_SECONDS,
 } from '@/constants/index.js';
 
-/** Redis key for an idempotent request. Scoped by user AND route so a client key can
- *  never replay another user's — or another endpoint's — stored response. */
 export function deriveIdempotencyKey(userId: string, routeId: string, header: string): string {
   return `idem:${userId}:${routeId}:${header}`;
 }
@@ -24,31 +22,18 @@ function routeIdOf(req: FastifyRequest): string {
   return `${req.method}:${req.routeOptions.url ?? req.url}`;
 }
 
-/**
- * HTTP `Idempotency-Key` layer (Redis-backed). Opt-in per route by adding `app.idempotency`
- * to the route's `preHandler` array AFTER `app.authenticate` (the key is scoped by the
- * verified `req.user.sub`, so auth must run first — an instance-level preHandler would run
- * too early). A global `onSend` hook persists the response of the OWNING request only.
- *
- * Flow: first request `SET NX` a short-lived processing marker → runs the handler → onSend
- * stores {status, body} under a long TTL. A retry with the same key replays that stored
- * response; a retry hitting the in-flight marker gets 409. Only 2xx responses are cached
- * (errors are never replayed); the owner check on replay is defense-in-depth against a
- * leaked key.
- */
 export const idempotencyPlugin = fp((app) => {
   async function preHandler(
     req: FastifyRequest,
     reply: FastifyReply,
   ): Promise<FastifyReply | void> {
     const header = req.headers[IDEMPOTENCY_HEADER];
-    if (typeof header !== 'string' || header.length === 0) return; // no key → normal path
+    if (typeof header !== 'string' || header.length === 0) return;
     const userId = req.user?.sub;
-    if (!userId) return; // runs after authenticate; a missing user is handled upstream
+    if (!userId) return;
 
     const key = deriveIdempotencyKey(userId, routeIdOf(req), header);
 
-    // Become the owner: atomically claim the key with a short-lived processing marker.
     const acquired = await app.redis.set(
       key,
       PROCESSING_MARKER,
@@ -57,12 +42,12 @@ export const idempotencyPlugin = fp((app) => {
       'NX',
     );
     if (acquired === 'OK') {
-      req.idempotencyKey = key; // owner → onSend persists the response
+      req.idempotencyKey = key;
       return;
     }
 
     const existing = await app.redis.get(key);
-    if (existing === null) return; // marker expired between SET and GET (rare) → proceed
+    if (existing === null) return;
     if (existing === PROCESSING_MARKER) {
       throw app.httpErrors.conflict('a request with this Idempotency-Key is still processing');
     }
@@ -77,15 +62,10 @@ export const idempotencyPlugin = fp((app) => {
 
   app.decorate('idempotency', preHandler);
 
-  // Persist the response for the owning request only: cache 2xx, drop the marker otherwise
-  // so a failed request can be retried immediately rather than replaying an error.
   app.addHook('onSend', async (req, reply, payload) => {
     const key = req.idempotencyKey;
     if (!key) return payload;
 
-    // The response is already produced; a Redis failure here must not turn a successful
-    // handler into a 500. Log and move on (worst case: the short marker expires and a
-    // retry is treated as a fresh request).
     try {
       if (reply.statusCode >= 200 && reply.statusCode < 300) {
         const stored: StoredResponse = {

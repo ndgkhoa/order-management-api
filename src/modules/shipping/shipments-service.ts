@@ -7,13 +7,8 @@ interface ShipmentsServiceDeps {
   httpErrors: FastifyInstance['httpErrors'];
 }
 
-/**
- * Shipments business logic. All DB/transaction work lives in the repository. This layer
- * maps repository outcomes to HTTP errors and serialises the response shape.
- */
 export function makeShipmentsService({ shipmentsRepo, httpErrors }: ShipmentsServiceDeps) {
   return {
-    /** Advance a shipment one step. 404 if unknown, 409 if already delivered. */
     async advance(id: string) {
       const existing = await shipmentsRepo.findById(id);
       if (!existing) throw httpErrors.notFound('shipment not found');

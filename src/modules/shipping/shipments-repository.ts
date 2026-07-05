@@ -26,20 +26,12 @@ const EVENT_BY_STATUS: Record<Exclude<ShipmentStatus, 'pending'>, string> = {
   delivered: SHIPMENT_DELIVERED_EVENT,
 };
 
-/** Data access for shipments. `advance` drives the status machine in one CAS transaction. */
 export function makeShipmentsRepository(db: DB) {
   return {
     async findById(id: string) {
       return db.query.shipments.findFirst({ where: eq(shipments.id, id) });
     },
 
-    /**
-     * Advances a shipment exactly ONE step (pending→ready_for_pickup→in_transit→delivered) and
-     * emits the matching event, all in one transaction. Compare-and-set on the current status
-     * makes it idempotent and race-safe: a redelivery/duplicate advance or an already-delivered
-     * shipment updates zero rows and returns null. On `delivered` it also CAS-transitions the
-     * order `fulfilling → delivered` and records the order history. Returns the new status or null.
-     */
     async advance(shipmentId: string, log?: FastifyBaseLogger): Promise<ShipmentStatus | null> {
       const ordersRepo = makeOrdersRepository(db);
       const result = await db.transaction(async (tx) => {
@@ -47,14 +39,14 @@ export function makeShipmentsRepository(db: DB) {
         if (!ship) return null;
         const from = ship.status as ShipmentStatus;
         const to = nextStatus(SHIPMENT_TRANSITIONS, from);
-        if (!to) return null; // already delivered
+        if (!to) return null;
 
         const advanced = await tx
           .update(shipments)
           .set({ status: to, updatedAt: new Date() })
           .where(and(eq(shipments.id, shipmentId), eq(shipments.status, from)))
           .returning({ orderId: shipments.orderId });
-        if (advanced.length === 0) return null; // lost a race — someone else advanced it
+        if (advanced.length === 0) return null;
         const orderId = advanced[0]!.orderId;
 
         const payload: ShipmentEventPayload = { orderId, shipmentId, status: to };

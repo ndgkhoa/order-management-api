@@ -6,7 +6,6 @@ interface UsersServiceDeps {
   httpErrors: FastifyInstance['httpErrors'];
 }
 
-/** User business logic. Thin today, but keeps HTTP and data access separated. */
 export function makeUsersService({ usersRepo, httpErrors }: UsersServiceDeps) {
   return {
     async getById(id: string) {

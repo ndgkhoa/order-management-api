@@ -2,20 +2,21 @@ import { Type, type Static } from '@sinclair/typebox';
 import type { InferSelectModel } from 'drizzle-orm';
 import type { orders, orderItems } from '@infra/db/schema.js';
 
-/** Create-order body: a list of product references + quantities. Price is snapshotted
- *  server-side from the catalog, never trusted from the client. */
+export type OrderRow = InferSelectModel<typeof orders>;
+export type OrderItemRow = InferSelectModel<typeof orderItems>;
+
 export const CreateOrderBody = Type.Object({
   items: Type.Array(
     Type.Object({
       productId: Type.String({ format: 'uuid' }),
-      // Upper bound keeps line_total_cents / total_cents within Postgres int32 and caps
-      // a single order's blast radius (rejected as 400, not a 500 overflow).
       quantity: Type.Integer({ minimum: 1, maximum: 10_000 }),
     }),
     { minItems: 1, maxItems: 100 },
   ),
 });
 export type CreateOrderBody = Static<typeof CreateOrderBody>;
+
+export const IdParams = Type.Object({ id: Type.String({ format: 'uuid' }) });
 
 export const OrderItemPublic = Type.Object({
   productId: Type.String(),
@@ -26,7 +27,6 @@ export const OrderItemPublic = Type.Object({
 });
 export type OrderItemPublic = Static<typeof OrderItemPublic>;
 
-/** Order header (summary) — used by the list endpoint for status polling. */
 export const OrderPublic = Type.Object({
   id: Type.String(),
   userId: Type.String(),
@@ -38,15 +38,11 @@ export const OrderPublic = Type.Object({
 });
 export type OrderPublic = Static<typeof OrderPublic>;
 
-/** Order header + line items — returned by create (201) and GET /orders/:id. */
 export const OrderDetail = Type.Composite([
   OrderPublic,
   Type.Object({ items: Type.Array(OrderItemPublic) }),
 ]);
 export type OrderDetail = Static<typeof OrderDetail>;
-
-export type OrderRow = InferSelectModel<typeof orders>;
-export type OrderItemRow = InferSelectModel<typeof orderItems>;
 
 export function toOrderPublic(o: OrderRow): OrderPublic {
   return {
@@ -74,18 +70,12 @@ export function toOrderDetail(o: OrderRow, items: OrderItemRow[]): OrderDetail {
   return { ...toOrderPublic(o), items: items.map(toOrderItemPublic) };
 }
 
-// ---------------------------------------------------------------------------
-// Internal DTOs (not HTTP-validated, so plain `type` aliases rather than TypeBox).
-// ---------------------------------------------------------------------------
-
-/** A product snapshot the service reads when pricing an order line. */
 export type SnapshotProduct = {
   id: string;
   sku: string;
   priceCents: number;
 };
 
-/** An immutable priced order line (price + SKU snapshotted at order time). */
 export type OrderLine = {
   productId: string;
   skuSnapshot: string;
@@ -94,20 +84,14 @@ export type OrderLine = {
   lineTotalCents: number;
 };
 
-/** Repository input for the atomic create — the service builds this after pricing. */
 export type CreateOrderInput = {
   userId: string;
-  lines: OrderLine[]; // pre-validated + price-snapshotted by the service
+  lines: OrderLine[];
   totalCents: number;
 };
 
-/** Input for cancelling an order (owner or `order:cancel:any`). */
 export type CancelOrderInput = {
   orderId: string;
   requesterId: string;
-  /** True when the caller holds `order:cancel:any` — lets them cancel an order they do not own. */
   canCancelAny: boolean;
 };
-
-/** Route param: a single UUID `id` (`/resource/:id`). */
-export const IdParams = Type.Object({ id: Type.String({ format: 'uuid' }) });

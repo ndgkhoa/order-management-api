@@ -15,17 +15,9 @@ interface OrdersServiceDeps {
   httpErrors: FastifyInstance['httpErrors'];
 }
 
-/**
- * Orders business logic. On create it validates every referenced product is active, snapshots the
- * current price + computes line/order totals, then hands the pre-validated lines to the
- * repository's atomic outbox write. Cancel maps the repository's outcome to HTTP errors. NO stock
- * reserve / payment here — those are async saga steps; all DB work lives in the repository.
- */
 export function makeOrdersService({ ordersRepo, productsRepo, httpErrors }: OrdersServiceDeps) {
   return {
     async create(userId: string, dto: CreateOrderBody) {
-      // One pass: validate each product is active, dedupe the DB lookup, and snapshot its price
-      // into an immutable line. An unknown/inactive product is rejected synchronously as a 400.
       const seen = new Map<string, SnapshotProduct>();
       const lines: OrderLine[] = [];
       for (const item of dto.items) {
@@ -48,10 +40,13 @@ export function makeOrdersService({ ordersRepo, productsRepo, httpErrors }: Orde
       return ordersRepo.createWithOutbox({ userId, lines, totalCents });
     },
 
-    list: (userId: string) => ordersRepo.listByUser(userId),
+    list(userId: string) {
+      return ordersRepo.listByUser(userId);
+    },
 
-    /** Admin listing: all orders regardless of owner. */
-    listAll: () => ordersRepo.listAll(),
+    listAll() {
+      return ordersRepo.listAll();
+    },
 
     async getForUser(orderId: string, userId: string) {
       const found = await ordersRepo.findByIdForUser(orderId, userId);

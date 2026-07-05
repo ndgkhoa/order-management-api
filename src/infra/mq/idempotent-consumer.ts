@@ -4,11 +4,6 @@ import { processedMessages } from '@infra/db/schema.js';
 import type { Tx } from '@infra/db/client.js';
 import type { EventEnvelope } from '@infra/mq/event-envelope.js';
 
-/**
- * Parses a message body into an EventEnvelope and validates it carries an eventId. Returns null
- * (and logs) for a malformed body or a missing eventId — the caller should ack-drop those to
- * avoid a poison loop. Shared by every idempotent consumer.
- */
 export function parseEnvelope<P>(
   msg: ConsumeMessage,
   log: FastifyBaseLogger,
@@ -27,11 +22,6 @@ export function parseEnvelope<P>(
   return envelope;
 }
 
-/**
- * Per-consumer idempotency claim: inserts (consumerName, eventId) into processed_messages inside
- * the caller's transaction. Returns true if this delivery is the first (proceed), false if the
- * row already existed (duplicate delivery → the caller must skip its side effects).
- */
 export async function claimOnce(tx: Tx, consumerName: string, eventId: string): Promise<boolean> {
   const inserted = await tx
     .insert(processedMessages)

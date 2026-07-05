@@ -1,6 +1,5 @@
 import { Type, type Static } from '@sinclair/typebox';
 
-// Simple email pattern — validated by the TypeBox compiler (no ajv-formats needed).
 const EMAIL_PATTERN = '^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$';
 
 export const RegisterBody = Type.Object({

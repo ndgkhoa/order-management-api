@@ -21,12 +21,6 @@ interface HandlerDeps {
   log: FastifyBaseLogger;
 }
 
-/**
- * `payment.succeeded` → mark the order paid and COMMIT its reservation (`reserved -= q` per
- * line), then emit `order.paid`. One transaction, idempotent by (consumer='payment-complete',
- * eventId). Compare-and-set on `pending` makes a late/duplicate success a no-op — a `cancelled`
- * order is never revived to `paid`.
- */
 export async function completeOnPaymentSucceeded(
   msg: ConsumeMessage,
   { db, log }: HandlerDeps,
@@ -41,7 +35,7 @@ export async function completeOnPaymentSucceeded(
     const ordersRepo = makeOrdersRepository(db);
     const inventoryRepo = makeInventoryRepository();
     await db.transaction(async (tx) => {
-      if (!(await claimOnce(tx, PAYMENT_COMPLETE_CONSUMER, eventId))) return; // duplicate delivery
+      if (!(await claimOnce(tx, PAYMENT_COMPLETE_CONSUMER, eventId))) return;
 
       const paid = await ordersRepo.transition(
         tx,

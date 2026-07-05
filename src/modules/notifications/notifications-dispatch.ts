@@ -4,7 +4,7 @@ import type { FastifyBaseLogger } from 'fastify';
 import type { DB } from '@infra/db/client.js';
 import { orders, users } from '@infra/db/schema.js';
 import type { HandlerResult } from '@infra/mq/consumer.js';
-import type { NotificationProvider } from '@infra/providers/notification-provider.js';
+import type { NotificationProvider } from '@modules/notifications/notification-interface.js';
 import { parseEnvelope, claimOnce } from '@infra/mq/idempotent-consumer.js';
 import { NOTIFY_CONSUMER } from '@/constants/index.js';
 import {
@@ -18,17 +18,6 @@ interface HandlerDeps {
   log: FastifyBaseLogger;
 }
 
-/**
- * Channel-agnostic notification consumer. Maps an event type → route (channels + template),
- * looks up the order owner's address, renders once, and fans out to each channel's provider.
- *
- * Dedup + recipient lookup run in ONE short transaction with NO external I/O, so the DB connection
- * is never held open across an SMTP call. The dedup row is committed BEFORE sending, which makes
- * delivery **at-most-once**: a redelivery hits the committed row and no-ops, and a failed send is
- * logged rather than retried (a duplicate confirmation email is worse UX than a rare miss, and the
- * transport itself can retry). If the dedup/lookup tx fails nothing was sent and the row was not
- * committed, so the message is safely retried. Unrouted events are acked without side effect.
- */
 export function makeNotificationDispatcher({ db, providers, log }: HandlerDeps) {
   const notifications = makeNotificationsService();
   return async (msg: ConsumeMessage): Promise<HandlerResult> => {
@@ -37,13 +26,13 @@ export function makeNotificationDispatcher({ db, providers, log }: HandlerDeps) 
     const eventId = envelope.eventId;
 
     const route = notifications.route(envelope.eventType);
-    if (!route) return 'ack'; // not a notification-worthy event → no-op
+    if (!route) return 'ack';
 
     let claimed = false;
     let recipientEmail: string | undefined;
     try {
       await db.transaction(async (tx) => {
-        if (!(await claimOnce(tx, NOTIFY_CONSUMER, eventId))) return; // already processed
+        if (!(await claimOnce(tx, NOTIFY_CONSUMER, eventId))) return;
         claimed = true;
         const [recipient] = await tx
           .select({ email: users.email })
@@ -53,7 +42,7 @@ export function makeNotificationDispatcher({ db, providers, log }: HandlerDeps) 
         recipientEmail = recipient?.email;
       });
     } catch (err) {
-      log.error({ err, eventId }, 'notification dedup/lookup failed'); // nothing sent → safe retry
+      log.error({ err, eventId }, 'notification dedup/lookup failed');
       return 'retry';
     }
 
@@ -66,8 +55,6 @@ export function makeNotificationDispatcher({ db, providers, log }: HandlerDeps) 
       return 'ack';
     }
 
-    // Send OUTSIDE the transaction. Per-channel best-effort: one channel failing does not stop the
-    // others, and the already-committed dedup means none of them is re-sent on redelivery.
     const message = route.render(envelope.payload);
     for (const channel of route.channels) {
       const provider = providers[channel];

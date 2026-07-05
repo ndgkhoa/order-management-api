@@ -1,15 +1,10 @@
-import '@config/env-loader.js'; // loads .env before db pool reads process.env (OTel preloaded via --import)
+import '@config/env-loader.js';
 import { buildApp } from '@/app.js';
 import { db } from '@infra/db/client.js';
 import { makeOutboxRelay } from '@infra/mq/outbox-relay.js';
 import { makeRabbitPublisher } from '@infra/mq/publisher.js';
 import { closeMq } from '@infra/mq/connection.js';
 
-/**
- * Process entrypoint: build the app, connect the RabbitMQ publisher, start the
- * outbox relay, listen, and shut down gracefully (stop relay → drain http + close
- * db pool → close mq channel/connection).
- */
 async function main(): Promise<void> {
   const app = await buildApp();
 
@@ -33,7 +28,7 @@ async function main(): Promise<void> {
       void (async () => {
         try {
           relay.stop();
-          await app.close(); // drains in-flight requests, closes db pool (onClose)
+          await app.close();
           await publisher.close();
           await closeMq();
           process.exit(0);

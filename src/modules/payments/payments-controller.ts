@@ -7,11 +7,11 @@ import type { WebhookBody } from '@modules/payments/payments-schema.js';
 import {
   deliverPaymentResult,
   type FakeProviderConfig,
-} from '@infra/providers/fake-payment-provider.js';
+} from '@modules/payments/fake-payment-provider.js';
 import { sagaMetrics } from '@infra/telemetry/saga-metrics.js';
 import { webhookDedupKey, WEBHOOK_DEDUP_TTL_SECONDS } from '@/constants/index.js';
 
-interface ControllerDeps {
+interface PaymentsControllerDeps {
   service: PaymentsService;
   redis: Redis;
   secret: string;
@@ -21,13 +21,7 @@ interface ControllerDeps {
   log: FastifyBaseLogger;
 }
 
-/**
- * Webhook + mock force endpoints. The webhook verifies HMAC over the RAW bytes and the
- * timestamp freshness BEFORE any side effect (bad/stale → 401), then dedups (Redis fast-path
- * + the service's durable backstop) and settles the payment. Force endpoints are admin-only
- * (they drive the real saga commit) and simply post a signed result back to the webhook.
- */
-export function makePaymentsController(deps: ControllerDeps) {
+export function makePaymentsController(deps: PaymentsControllerDeps) {
   const { service, redis, secret, skewMs, mockConfig, httpErrors, log } = deps;
 
   return {

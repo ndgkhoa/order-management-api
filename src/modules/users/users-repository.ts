@@ -2,7 +2,6 @@ import { eq } from 'drizzle-orm';
 import type { DB } from '@infra/db/client.js';
 import { users } from '@infra/db/schema.js';
 
-/** Data access for users — Drizzle queries only, no business logic (Repository pattern). */
 export function makeUsersRepository(db: DB) {
   return {
     async findByEmail(email: string) {

@@ -24,13 +24,9 @@ import { PaymentStatuses } from '@/types/payment-status.js';
 import { OrderReasons } from '@/types/order-reasons.js';
 import { sagaMetrics } from '@infra/telemetry/saga-metrics.js';
 
-/** Data access for orders. The create path is the Transactional Outbox core; cancel is the
- *  cross-aggregate compensation transaction (orders + payment + stock + outbox) rooted here.
- *  Methods call each other via `this`, so always invoke them as `repository.method(...)`. */
 export function makeOrdersRepository(db: DB) {
   const inventoryRepo = makeInventoryRepository();
   return {
-    /** Appends one order status-transition audit row inside the caller's transaction. */
     async recordTransition(
       tx: Tx,
       input: { orderId: string; from: OrderStatus | null; to: OrderStatus; reason?: string },
@@ -43,12 +39,6 @@ export function makeOrdersRepository(db: DB) {
       });
     },
 
-    /**
-     * Guarded order status transition. Asserts the move is legal, applies it with a CAS UPDATE
-     * (only while the row is still `from`), and on success appends the audit history row — all on
-     * the caller's transaction. Returns `true` if a row transitioned, `false` if the CAS matched
-     * nothing (lost race / already terminal / duplicate delivery).
-     */
     async transition(
       tx: Tx,
       orderId: string,
@@ -71,11 +61,6 @@ export function makeOrdersRepository(db: DB) {
       return true;
     },
 
-    /**
-     * Writes the order header, its line items, AND the `order.created` outbox row in ONE
-     * transaction — all commit together or none does, so the event can never be lost or
-     * orphaned. NO stock reservation and NO payment here; those are async saga steps.
-     */
     async createWithOutbox(input: CreateOrderInput) {
       const result = await db.transaction(async (tx) => {
         const orderRows = await tx
@@ -101,16 +86,13 @@ export function makeOrdersRepository(db: DB) {
           })),
           totalCents: order.totalCents,
         };
-        // Capture the active (request) trace context into a W3C carrier so the relay can
-        // resume THIS trace at publish time — without it the relay's later publish starts
-        // a brand-new trace, splitting the request and the worker apart.
         const carrier: Record<string, string> = {};
         propagation.inject(context.active(), carrier);
 
         await tx.insert(outboxMessages).values({
           aggregateType: 'order',
           aggregateId: order.id,
-          correlationId: order.id, // saga correlation = order id; event_id defaults to a fresh uuid
+          correlationId: order.id,
           eventType: ORDER_CREATED_EVENT,
           payload,
           traceContext: Object.keys(carrier).length > 0 ? carrier : null,
@@ -129,14 +111,7 @@ export function makeOrdersRepository(db: DB) {
       return result;
     },
 
-    /**
-     * Cancel an order (owner or `order:cancel:any`) — the cross-aggregate compensation, CAS-first
-     * so it races safely against the shipping worker:
-     *  - `paid`    → refund (payment paid→refunded) + restock + `order.refunded`
-     *  - `pending` → release the reservation + `order.cancelled`
-     *  - otherwise → `conflict` (the order can no longer be cancelled).
-     * Ownership scoping is the IDOR guard: `not_found` is returned for a missing OR unowned order.
-     */
+    // Ownership scoping is the IDOR guard: not_found for a missing OR unowned order.
     async cancel(input: CancelOrderInput): Promise<
       | { outcome: 'not_found' }
       | { outcome: 'conflict' }
@@ -160,7 +135,6 @@ export function makeOrdersRepository(db: DB) {
           .from(orderItems)
           .where(eq(orderItems.orderId, input.orderId));
 
-        // paid → refund + restock
         const didRefund = await this.transition(
           tx,
           input.orderId,
@@ -191,7 +165,6 @@ export function makeOrdersRepository(db: DB) {
           return;
         }
 
-        // pending → release the reservation
         const released = await this.transition(
           tx,
           input.orderId,
@@ -215,7 +188,7 @@ export function makeOrdersRepository(db: DB) {
           return;
         }
 
-        conflict = true; // already fulfilling/delivered/cancelled
+        conflict = true;
       });
       if (conflict) return { outcome: 'conflict' };
 
@@ -233,12 +206,10 @@ export function makeOrdersRepository(db: DB) {
       });
     },
 
-    /** Admin: every order, newest first. */
     async listAll() {
       return db.query.orders.findMany({ orderBy: desc(orders.createdAt) });
     },
 
-    /** Owner-scoped fetch (order + items). Returns undefined if missing or not owned. */
     async findByIdForUser(orderId: string, userId: string) {
       const order = await db.query.orders.findFirst({
         where: and(eq(orders.id, orderId), eq(orders.userId, userId)),
@@ -250,7 +221,6 @@ export function makeOrdersRepository(db: DB) {
       return { order, items };
     },
 
-    /** Orders stuck in `pending` since before `cutoff` (for the reaper). */
     async findStuckOrders(cutoff: Date) {
       return db
         .select({ id: orders.id, createdAt: orders.createdAt })

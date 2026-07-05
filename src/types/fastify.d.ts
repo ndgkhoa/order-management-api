@@ -5,25 +5,23 @@ import type { DB } from '@infra/db/client.js';
 import type { UserRole } from '@/types/user-role.js';
 import type { Permission } from '@/types/permission.js';
 
-// Decorators added by our plugins, surfaced on the Fastify types.
 declare module 'fastify' {
   interface FastifyInstance {
-    config: AppConfig; // @fastify/env (confKey)
-    db: DB; // db plugin
-    redis: Redis; // redis plugin
-    authenticate: (request: FastifyRequest, reply: FastifyReply) => Promise<void>; // jwt plugin
-    requirePermission: (permission: Permission) => (request: FastifyRequest) => Promise<void>; // rbac plugin
-    // idempotency plugin — use in a route preHandler AFTER authenticate
+    config: AppConfig;
+    db: DB;
+    redis: Redis;
+    authenticate: (request: FastifyRequest, reply: FastifyReply) => Promise<void>;
+    optionalAuth: (request: FastifyRequest, reply: FastifyReply) => Promise<void>;
+    requirePermission: (permission: Permission) => (request: FastifyRequest) => Promise<void>;
     idempotency: (request: FastifyRequest, reply: FastifyReply) => Promise<FastifyReply | void>;
   }
 
   interface FastifyRequest {
-    idempotencyKey?: string; // set by idempotency preHandler when this request owns the key
-    rawBody?: string; // raw request body captured by the payments webhook parser (HMAC verify)
+    idempotencyKey?: string;
+    rawBody?: string;
   }
 }
 
-// Shapes for the JWT payload / authenticated user (set by request.jwtVerify()).
 declare module '@fastify/jwt' {
   interface FastifyJWT {
     payload: { sub: string; email: string; roles: UserRole[] };

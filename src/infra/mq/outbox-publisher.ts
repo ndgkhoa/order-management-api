@@ -1,6 +1,5 @@
 import type { FastifyBaseLogger } from 'fastify';
 
-/** A message the outbox relay hands to a publisher. */
 export interface OutboxMessage {
   exchange: string;
   routingKey: string;
@@ -8,15 +7,10 @@ export interface OutboxMessage {
   messageId: string;
 }
 
-/** Publisher contract. Phase 07 provides the real RabbitMQ implementation. */
 export interface OutboxPublisher {
   publish(message: OutboxMessage): Promise<void>;
 }
 
-/**
- * STUB used until phase 07: logs instead of sending to RabbitMQ, so the relay
- * loop is fully exercisable now. Swap for the RabbitMQ publisher in phase 07.
- */
 export function makeLogPublisher(log: FastifyBaseLogger): OutboxPublisher {
   return {
     publish(message) {

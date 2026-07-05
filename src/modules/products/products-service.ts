@@ -7,14 +7,8 @@ interface ProductsServiceDeps {
   httpErrors: FastifyInstance['httpErrors'];
 }
 
-/**
- * Product business logic. Public reads delegate to the repository's read-through cache
- * (active-only). Admin reads bypass the cache. Every mutation triggers cache invalidation
- * inside the repository before returning. No DB or Redis wiring here.
- */
 export function makeProductsService({ productsRepo, httpErrors }: ProductsServiceDeps) {
   return {
-    // --- admin mutations ---
     async create(dto: CreateProductBody) {
       if (await productsRepo.findBySku(dto.sku)) {
         throw httpErrors.conflict('sku already exists');
@@ -33,8 +27,9 @@ export function makeProductsService({ productsRepo, httpErrors }: ProductsServic
       if (!removed) throw httpErrors.notFound('product not found');
     },
 
-    // --- admin reads (bypass cache; see inactive) ---
-    listAll: () => productsRepo.listAll(),
+    listAll() {
+      return productsRepo.listAll();
+    },
 
     async getAny(id: string) {
       const product = await productsRepo.findById(id);
@@ -42,8 +37,9 @@ export function makeProductsService({ productsRepo, httpErrors }: ProductsServic
       return product;
     },
 
-    // --- public reads (cache read-through via repository; active only) ---
-    listPublic: () => productsRepo.listActive(),
+    listPublic() {
+      return productsRepo.listActive();
+    },
 
     async getPublic(id: string) {
       const product = await productsRepo.findActiveById(id);

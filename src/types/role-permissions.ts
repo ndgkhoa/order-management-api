@@ -1,13 +1,6 @@
 import { type UserRole, UserRoles } from '@/types/user-role.js';
 import { type Permission, Permissions } from '@/types/permission.js';
 
-/**
- * Role → permissions mapping — the single source of truth binding roles to capabilities.
- * A user carries one or more roles (`users.roles`); the union of their roles' permissions is
- * their effective permission set. Customers hold no cross-tenant permissions (they act on their
- * own resources via ownership checks); admins hold every guarded capability. Grant a capability
- * by adding its permission string to the relevant role's list here — routes stay unchanged.
- */
 export const ROLE_PERMISSIONS: Record<UserRole, readonly Permission[]> = {
   [UserRoles.Customer]: [],
   [UserRoles.Admin]: [

@@ -1,10 +1,6 @@
 import type { FastifyBaseLogger } from 'fastify';
-import type { NotificationProvider } from '@infra/providers/notification-provider.js';
+import type { NotificationProvider } from '@modules/notifications/notification-interface.js';
 
-/**
- * SMS channel — intentionally a STUB (YAGNI): the multi-channel abstraction is the point, not a
- * real SMS integration. Logs the intent and resolves; never throws, so it can't fail a dispatch.
- */
 export function makeSmsProvider(log: FastifyBaseLogger): NotificationProvider {
   return {
     channel: 'sms',

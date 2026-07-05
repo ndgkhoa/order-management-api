@@ -6,10 +6,8 @@ import {
   SHIPMENT_IN_TRANSIT_EVENT,
   SHIPMENT_DELIVERED_EVENT,
 } from '@infra/mq/outbox-event-types.js';
-import type { NotificationMessage } from '@infra/providers/notification-provider.js';
+import type { NotificationMessage } from '@modules/notifications/notification-interface.js';
 
-/** The subset of saga-event payload fields the templates read (all carry `orderId`; the
- *  order-created template also lists the ordered lines + total). */
 export interface NotifyPayload {
   orderId: string;
   reason?: string;
@@ -23,12 +21,6 @@ export interface NotificationRoute {
   render: (payload: NotifyPayload) => NotificationMessage;
 }
 
-/**
- * Notifications business logic: which user-facing saga events notify, on which channels, and how
- * they render. Templates are kept separate from transport — a route only produces a
- * `{subject, body}`; the dispatch subscriber delivers it via the channel providers. Events not in
- * the table (e.g. `shipment.ready_for_pickup`) resolve to `undefined` (no-op).
- */
 export function makeNotificationsService() {
   const routes: Record<string, NotificationRoute> = {
     [ORDER_CREATED_EVENT]: {
@@ -70,7 +62,7 @@ export function makeNotificationsService() {
       }),
     },
     [SHIPMENT_DELIVERED_EVENT]: {
-      channels: ['email', 'sms'], // exercises the multi-channel abstraction
+      channels: ['email', 'sms'],
       render: (p) => ({
         subject: `Order ${p.orderId} delivered`,
         body: `Your order ${p.orderId} has been delivered. Enjoy!`,
@@ -79,7 +71,6 @@ export function makeNotificationsService() {
   };
 
   return {
-    /** The notification route for an event type, or undefined if it should not notify. */
     route(eventType: string): NotificationRoute | undefined {
       return routes[eventType];
     },

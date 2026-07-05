@@ -22,12 +22,6 @@ interface HandlerDeps {
   log: FastifyBaseLogger;
 }
 
-/**
- * `payment.failed` → the saga compensation: RELEASE the reservation (`available += q,
- * reserved -= q` per line) and cancel the order, then emit `order.cancelled`. One transaction,
- * idempotent by (consumer='payment-compensate', eventId). Compare-and-set on `pending` +
- * the guarded release make a duplicate a no-op (no double-release, no over-credited stock).
- */
 export async function compensateOnPaymentFailed(
   msg: ConsumeMessage,
   { db, log }: HandlerDeps,
@@ -43,7 +37,7 @@ export async function compensateOnPaymentFailed(
     const inventoryRepo = makeInventoryRepository();
     let cancelled = false;
     await db.transaction(async (tx) => {
-      if (!(await claimOnce(tx, PAYMENT_COMPENSATE_CONSUMER, eventId))) return; // duplicate delivery
+      if (!(await claimOnce(tx, PAYMENT_COMPENSATE_CONSUMER, eventId))) return;
 
       const didCancel = await ordersRepo.transition(
         tx,

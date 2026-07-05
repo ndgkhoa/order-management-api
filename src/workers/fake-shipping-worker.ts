@@ -16,12 +16,6 @@ interface ConsumerDeps {
   log: FastifyBaseLogger;
 }
 
-/**
- * Fake carrier: after creating the shipment, drives it to delivered by advancing one step
- * every `stepMs` via an in-process timer chain. The timer is non-durable (lost on restart —
- * the order would sit in `fulfilling` until an admin manually advances it via
- * `PATCH /shipments/:id/status`); acceptable for a mock, a real carrier sends async updates.
- */
 function scheduleAdvances(
   db: DB,
   shipmentId: string,
@@ -39,7 +33,6 @@ function scheduleAdvances(
   tick();
 }
 
-/** Builds the `order.paid` consumer: create the shipment, then kick off the timed advances. */
 export function makeShippingConsumer({ db, config, log }: ConsumerDeps) {
   return async (msg: ConsumeMessage): Promise<HandlerResult> => {
     const { result, shipmentId } = await createShipmentOnOrderPaid(msg, { db, log });

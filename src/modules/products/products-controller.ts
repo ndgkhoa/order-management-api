@@ -8,12 +8,6 @@ import {
   toProductPublic,
 } from '@modules/products/products-schema.js';
 
-/**
- * HTTP glue for /products. Mutations are permission-guarded at the route. Reads branch on
- * permission: a caller with `product:read` (optional JWT present) sees all products fresh from
- * the DB; everyone else gets the cached active-only catalog. `req.body` is cast — the route schema
- * already validated it.
- */
 export function makeProductsController(service: ProductsService) {
   return {
     create: async (req: FastifyRequest, reply: FastifyReply) => {
