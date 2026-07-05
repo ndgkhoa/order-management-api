@@ -5,116 +5,83 @@
 [![Release](https://img.shields.io/github/v/release/ndgkhoa/order-management-api?sort=semver)](https://github.com/ndgkhoa/order-management-api/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
 
-A production-shaped, event-driven order backend on Fastify v5, Drizzle ORM + PostgreSQL, RabbitMQ and Redis. It runs the full e-commerce order lifecycle as a **choreography saga** — catalog, inventory reservation, payment (HMAC webhook), shipping, and multi-channel notifications — built on the Transactional Outbox pattern with idempotent consumers and saga compensation.
+A production-grade, event-driven order backend. Runs the e-commerce order lifecycle as an asynchronous choreography saga built on the Transactional Outbox pattern: catalog, inventory reservation, payment, shipping, and multi-channel notifications — all with idempotent consumers and compensation on failure.
 
 ## What it does
 
-Runs an order from checkout to delivery as an asynchronous saga — the API commits state + an event in one transaction and returns immediately; background workers carry the rest:
+The API commits state + an event in one database transaction and returns immediately. Background workers consume events asynchronously to drive orders to completion:
 
-1. **Auth & catalog** — register/login (argon2 + JWT); admin product CRUD with a Redis-cached public catalog.
-2. **Order → reserve** — `POST /orders` writes the order + `order.created` in one tx; the inventory consumer reserves stock (or cancels on out-of-stock).
-3. **Payment** — a mock provider calls back an HMAC-signed webhook; success commits the reservation, failure releases it and cancels the order (compensation).
-4. **Shipping** — a fake carrier drives the shipment `pending → … → delivered`; the order ends `delivered`. Customers can cancel pre-ship (refund + restock).
-5. **Notifications** — user-facing events fan out to channel providers (email real; SMS stubbed).
-6. **Idempotency everywhere** — `Idempotency-Key` on mutating POSTs, HMAC webhook dedup, and per-consumer dedup make retries safe.
-
-Architecture & diagrams: **[docs/architecture.md](./docs/architecture.md)** · **[event-flow.md](./docs/event-flow.md)** · **[state-machine.md](./docs/state-machine.md)** · **[compensation.md](./docs/compensation.md)**.
-
-### The Transactional Outbox core (the foundation)
-
-```
-[Client] POST /orders ──▶ [Fastify API]
-                            │ ONE db transaction:
-                            │   INSERT order  +  INSERT outbox_messages(order.created)
-                            ▼
-                          201 Created (immediate — does NOT wait for email)
-                            │
-                  [Outbox Relay] polls unsent outbox rows
-                            │ publishes "order.created"
-                            ▼
-                 [RabbitMQ] exchange ──▶ queue ──(fail × N)──▶ DLX ▶ Dead Letter Queue
-                            │
-                  [Email Worker] consumes idempotently
-                            │ Nodemailer
-                            ▼
-                        [Mailpit] (dev SMTP + web UI)
-```
-
-The Transactional Outbox pattern guarantees the event is never lost even if the broker is briefly down — the order and the event are written in the same DB transaction.
+1. **Auth & catalog** — JWT login; admin product CRUD with a Redis-cached public catalog
+2. **Order → reserve** — `POST /orders` writes order + `order.created` event in one tx; inventory consumer reserves stock or cancels on out-of-stock
+3. **Payment** — mock provider posts an HMAC-signed webhook; success commits reservation, failure releases stock and compensates
+4. **Shipping** — fake carrier drives shipment progression; customer can cancel pre-ship
+5. **Notifications** — events fan out to email + SMS channel providers
+6. **Idempotency** — `Idempotency-Key` header, HMAC webhook replay detection, and per-consumer dedup make retries safe
 
 ## Tech stack
 
-Node 24 · TypeScript (ESM) · Fastify v5 · Drizzle ORM + PostgreSQL 17 · RabbitMQ (amqplib) · Redis (ioredis) · TypeBox + AJV validation · @fastify/jwt + argon2 · Nodemailer + Mailpit · Pino.
+**Node 24 · TypeScript ESM · Fastify v5 · Drizzle ORM + PostgreSQL 17 · RabbitMQ · Redis · TypeBox + AJV · @fastify/jwt + argon2 · Nodemailer · Pino · OpenTelemetry · Prometheus/Grafana · Vitest + Testcontainers**
 
-- Security: cors, helmet, Redis-backed rate-limit, sensible
-- Observability: Prometheus + Grafana, OpenTelemetry + Jaeger, Sentry, health/readiness probes
-- Quality: ESLint + Prettier, Husky + commitlint, Vitest + Testcontainers
+See [docs/codebase-summary.md](./docs/codebase-summary.md) for full stack details.
 
-Full rationale and versions: [`docs/tech-stack.md`](./docs/tech-stack.md).
-
-## Design patterns applied
-
-- Architecture: Layered (Route → Controller → Service → Repository), Modular Monolith, Repository, DTO, Dependency Injection (Fastify decorators)
-- Messaging & saga: Producer/Consumer, Transactional Outbox, Choreography Saga + Compensation, Idempotent Consumer, Dead Letter Queue, Retry + exponential backoff, HMAC-signed webhooks
-- Reliability & ops: compare-and-set state machines, Graceful Shutdown, Health/Readiness, Structured Logging + Correlation ID, 12-Factor config
-
-## Project structure
-
-```
-src/
-├── modules/{auth,users,products,orders,payments,shipping,notifications}/
-│                                  # route → controller → service → repository + saga consumers
-├── infra/{db,mq,mail,notify,redis,telemetry,http}/
-├── plugins/                       # env, security, jwt, redis, idempotency, swagger, error-handler...
-├── workers/                       # background worker: all saga consumers + outbox relay + reaper
-├── config/                        # env schema (validated at boot)
-├── app.ts                         # build Fastify instance (no listen)
-└── server.ts                      # listen + graceful shutdown
-```
-
-## Getting started
-
-Prereqs: Node 24 (`nvm use`) and Docker.
+## Quick start
 
 ```bash
-cp .env.example .env    # fill JWT_SECRET (32+ chars); defaults work for the rest locally
+# Setup
+cp .env.example .env
 npm install
 
-docker compose up -d    # full local stack (Postgres, RabbitMQ, Mailpit, Prometheus, Grafana, Jaeger)
-npm run db:migrate      # apply Drizzle migrations
+# Start the full stack
+docker compose up -d
+npm run db:migrate
 
-npm run dev             # start API (hot reload via tsx) → http://localhost:3000
-npm run dev:worker      # in another shell: start the email worker
+# Run the API and the worker in separate shells
+npm run dev
+npm run dev:worker
 ```
 
-| Service        | URL                                                              |
-| -------------- | ---------------------------------------------------------------- |
-| API            | http://localhost:3000 (`/docs`, `/health`, `/ready`, `/metrics`) |
-| Mailpit inbox  | http://localhost:8025                                            |
-| RabbitMQ admin | http://localhost:15672                                           |
-| Jaeger traces  | http://localhost:16686                                           |
-| Prometheus     | http://localhost:9090                                            |
-| Grafana        | http://localhost:3001                                            |
+API on http://localhost:3000 — Swagger at `/docs`, plus `/health`, `/ready`, `/metrics`.
 
-### Scripts
+| Service        | URL                    |
+| -------------- | ---------------------- |
+| API / OpenAPI  | http://localhost:3000  |
+| Mailpit inbox  | http://localhost:8025  |
+| RabbitMQ admin | http://localhost:15672 |
+| Jaeger traces  | http://localhost:16686 |
+| Prometheus     | http://localhost:9090  |
+| Grafana        | http://localhost:3001  |
 
-| Script                                             | Purpose                                          |
-| -------------------------------------------------- | ------------------------------------------------ |
-| `npm run dev` / `dev:worker`                       | Hot-reload API / email worker                    |
-| `npm run build`                                    | Clean + compile (`rimraf` → `tsc` → `tsc-alias`) |
-| `npm run lint` / `format`                          | ESLint (typed) / Prettier                        |
-| `npm run typecheck`                                | `tsc --noEmit`                                   |
-| `npm test` / `test:cov`                            | Vitest / with coverage                           |
-| `npm run db:generate` / `db:migrate` / `db:studio` | Drizzle Kit migrations / Studio                  |
+**Scripts:** `npm run {dev, build, lint, typecheck, test, db:generate, db:migrate, db:studio}`
 
-## Container image
+## Architecture
 
-Each release builds a single image and publishes it to **both** GitHub Container Registry and Docker Hub with identical tags (`:X.Y.Z`, `:X.Y`, `:latest`, `:sha-<short>`):
+Two processes, one image:
 
-```bash
-docker pull ghcr.io/ndgkhoa/order-management-api:latest   # GitHub Container Registry
-docker pull ndgkhoa/order-management-api:latest           # Docker Hub
-```
+- **API** — HTTP routes, state writes, outbox relay → RabbitMQ
+- **Worker** — async saga consumers, idempotent event handlers
+
+**Core pattern:** Transactional Outbox + at-least-once delivery + idempotent consumers = zero event loss, safe retries.
+
+**Design:** Layered 5-layer modules (route → controller → service → repository → schema), modular monolith, event-driven choreography saga with compare-and-set state machines and compensation on failure.
+
+## Key features
+
+- **Choreography saga** with compensation
+- **Transactional Outbox** — state + event in one DB tx, relay publishes to broker
+- **Idempotency** — three layers (consumer dedup, HTTP Idempotency-Key, webhook replay detection)
+- **RBAC** — multi-role, permission-based access control
+- **HMAC-signed webhooks** — payment provider integration pattern
+- **Observability** — OpenTelemetry traces, Prometheus metrics, Sentry error tracking
+- **Testable** — real infrastructure (Testcontainers: Postgres, RabbitMQ, Redis, Mailpit)
+
+## Documentation
+
+- **[docs/project-overview-pdr.md](./docs/project-overview-pdr.md)** — problem statement, goals, scope, key decisions
+- **[docs/codebase-summary.md](./docs/codebase-summary.md)** — directory layout, module responsibilities, tech stack rationale
+- **[docs/system-architecture.md](./docs/system-architecture.md)** — component diagram, saga event flow, state machines, compensation, idempotency layers
+- **[docs/code-standards.md](./docs/code-standards.md)** — enforced patterns: 5-layer modules, factories, schema declaration, type SSoT, ESM conventions
+- **[docs/project-roadmap.md](./docs/project-roadmap.md)** — current status, completed features, next steps
+- **[docs/deployment-guide.md](./docs/deployment-guide.md)** — migration gate, three deployment tiers (Fly.io, VPS+compose, Kubernetes)
 
 ## License
 
