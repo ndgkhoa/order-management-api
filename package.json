@@ -1,6 +1,6 @@
 {
   "name": "order-management-api",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "Production-grade learning REST API: register/login + async order email via Transactional Outbox -> RabbitMQ -> Email Worker.",
   "type": "module",
   "engines": {
