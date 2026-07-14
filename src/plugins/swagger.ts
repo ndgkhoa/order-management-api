@@ -9,7 +9,7 @@ export const swaggerPlugin = fp(async (app) => {
     openapi: {
       info: {
         title: pkg.name,
-        description: 'E-commerce order backend',
+        description: 'Event-driven order backend built on the Transactional Outbox pattern.',
         version: pkg.version,
       },
       components: {

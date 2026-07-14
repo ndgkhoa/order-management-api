@@ -1,7 +1,7 @@
 {
   "name": "order-management-api",
   "version": "0.1.6",
-  "description": "Production-grade learning REST API: register/login + async order email via Transactional Outbox -> RabbitMQ -> Email Worker.",
+  "description": "Event-driven order backend built on the Transactional Outbox pattern.",
   "type": "module",
   "engines": {
     "node": ">=24"
