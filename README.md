@@ -1,11 +1,21 @@
 # order-management-api
 
-[![CI](https://github.com/ndgkhoa/order-management-api/actions/workflows/ci.yml/badge.svg)](https://github.com/ndgkhoa/order-management-api/actions/workflows/ci.yml)
-[![CodeQL](https://github.com/ndgkhoa/order-management-api/actions/workflows/codeql.yml/badge.svg)](https://github.com/ndgkhoa/order-management-api/actions/workflows/codeql.yml)
-[![Release](https://img.shields.io/github/v/release/ndgkhoa/order-management-api?sort=semver)](https://github.com/ndgkhoa/order-management-api/releases)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
+![Fastify](https://img.shields.io/badge/Fastify-5-000000?logo=fastify&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-6-3178C6?logo=typescript&logoColor=white)
+![Node.js](https://img.shields.io/badge/Node.js-24_LTS-5FA04E?logo=nodedotjs&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-18-4169E1?logo=postgresql&logoColor=white)
+![Drizzle](https://img.shields.io/badge/Drizzle-ORM-C5F74F?logo=drizzle&logoColor=white)
+![RabbitMQ](https://img.shields.io/badge/RabbitMQ-4.3-FF6600?logo=rabbitmq&logoColor=white)
+![Redis](https://img.shields.io/badge/Redis-8-FF4438?logo=redis&logoColor=white)
+![OpenTelemetry](https://img.shields.io/badge/OpenTelemetry-Traces-425CC7?logo=opentelemetry&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
+![Vitest](https://img.shields.io/badge/Vitest-Testcontainers-6E9F18?logo=vitest&logoColor=white)
 
-A production-grade, event-driven order backend. Runs the e-commerce order lifecycle as an asynchronous choreography saga built on the Transactional Outbox pattern: catalog, inventory reservation, payment, shipping, and multi-channel notifications — all with idempotent consumers and compensation on failure.
+[![CI](https://github.com/ndgkhoa/order-management-api/actions/workflows/ci.yml/badge.svg)](https://github.com/ndgkhoa/order-management-api/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/ndgkhoa/order-management-api?sort=semver&label=release&color=orange)](https://github.com/ndgkhoa/order-management-api/releases)
+[![License](https://img.shields.io/badge/License-MIT-blue)](./LICENSE)
+
+Event-driven **order management backend** in Fastify — the e-commerce order lifecycle as an asynchronous choreography saga on the Transactional Outbox pattern: catalog, inventory reservation, payment, shipping, and multi-channel notifications, with idempotent consumers, compensation on failure, and end-to-end tracing.
 
 ## What it does
 
